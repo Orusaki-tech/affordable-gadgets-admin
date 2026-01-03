@@ -1,0 +1,19 @@
+0 verbose cli /Users/shwariphones/.nvm/versions/node/v22.20.0/bin/node /Users/shwariphones/.nvm/versions/node/v22.20.0/lib/node_modules/npm/bin/npm-cli.js
+1 info using npm@10.9.3
+2 info using node@v22.20.0
+3 silly config load:file:/Users/shwariphones/.nvm/versions/node/v22.20.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/shwariphones/Desktop/shwari-django/Shwari/frontend_inventory_and_orders/ts-clients/.npmrc
+5 silly config load:file:/Users/shwariphones/.npmrc
+6 silly config load:file:/Users/shwariphones/.nvm/versions/node/v22.20.0/etc/npmrc
+7 verbose title npm exec openapi-typescript-codegen --input ../../openapi.yaml --output ../inventory-management-frontend/src/api --client axios
+8 verbose argv "exec" "--yes" "--" "openapi-typescript-codegen" "--input" "../../openapi.yaml" "--output" "../inventory-management-frontend/src/api" "--client" "axios"
+9 verbose logfile logs-max:10 dir:/Users/shwariphones/Desktop/shwari-django/Shwari/frontend_inventory_and_orders/ts-clients/.npm-cache/_logs/2025-10-31T07_47_27_778Z-
+10 verbose logfile /Users/shwariphones/Desktop/shwari-django/Shwari/frontend_inventory_and_orders/ts-clients/.npm-cache/_logs/2025-10-31T07_47_27_778Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2197815296 maxSize:549453824 maxEntrySize:274726912
+13 verbose cwd /Users/shwariphones/Desktop/shwari-django/Shwari/frontend_inventory_and_orders/ts-clients
+14 verbose os Darwin 21.6.0
+15 verbose node v22.20.0
+16 verbose npm  v10.9.3
+17 verbose exit 0
+18 info ok

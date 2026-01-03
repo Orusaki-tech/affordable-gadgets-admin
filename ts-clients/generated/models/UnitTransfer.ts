@@ -1,0 +1,28 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+import type { Status214Enum } from './Status214Enum';
+/**
+ * Serializer for UnitTransfer model.
+ */
+export type UnitTransfer = {
+    readonly id?: number;
+    inventory_unit: number;
+    readonly inventory_unit_name?: string;
+    readonly from_salesperson?: number;
+    readonly from_salesperson_username?: string;
+    to_salesperson: number;
+    readonly to_salesperson_username?: string;
+    readonly status?: Status214Enum;
+    readonly status_display?: string;
+    readonly requested_at?: string;
+    readonly approved_at?: string | null;
+    readonly approved_by?: number | null;
+    readonly approved_by_username?: string;
+    /**
+     * Optional notes
+     */
+    notes?: string;
+};
+
