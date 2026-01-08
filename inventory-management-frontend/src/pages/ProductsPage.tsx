@@ -290,7 +290,25 @@ export const ProductsPage: React.FC = () => {
       alert('Product deleted successfully');
     },
     onError: (err: any) => {
-      alert(`Failed to delete product: ${err.message || 'Unknown error'}`);
+      // Extract error message from DRF ValidationError response
+      let errorMessage = 'Unknown error';
+      if (err?.response?.data) {
+        // DRF ValidationError can return string or object
+        if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        } else if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else if (Array.isArray(err.response.data) && err.response.data.length > 0) {
+          errorMessage = err.response.data[0];
+        } else if (typeof err.response.data === 'object') {
+          errorMessage = JSON.stringify(err.response.data);
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      alert(`Failed to delete product: ${errorMessage}`);
     },
   });
 
