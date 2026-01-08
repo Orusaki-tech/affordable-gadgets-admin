@@ -167,7 +167,7 @@ export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptio
     }), {} as Record<string, string>);
 
     if (isStringWithValue(token)) {
-        headers['Authorization'] = `Token ${token}`;
+        headers['Authorization'] = `Bearer ${token}`;
     }
 
     if (isStringWithValue(username) && isStringWithValue(password)) {
@@ -219,42 +219,12 @@ export const sendRequest = async <T>(
         cancelToken: source.token,
     };
 
-    // #region agent log
-    if (url.includes('/login/')) {
-      fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:212',message:'Axios request config',data:{url:requestConfig.url,method:requestConfig.method,headers:requestConfig.headers,hasBody:!!requestConfig.data,bodyType:typeof requestConfig.data,bodyKeys:requestConfig.data?Object.keys(requestConfig.data):null},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-    }
-    // #endregion
-
     onCancel(() => source.cancel('The user aborted a request.'));
 
     try {
-        const response = await axiosClient.request(requestConfig);
-        
-        // #region agent log
-        if (url.includes('/login/')) {
-          fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:225',message:'Axios response received',data:{status:response.status,statusText:response.statusText,hasData:!!response.data},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-        }
-        // #endregion
-        
-        return response;
+        return await axiosClient.request(requestConfig);
     } catch (error) {
         const axiosError = error as AxiosError<T>;
-        
-        // #region agent log
-        if (url.includes('/login/')) {
-          const errorInfo = {
-            hasResponse:!!axiosError.response,
-            status:axiosError.response?.status,
-            statusText:axiosError.response?.statusText,
-            responseData:axiosError.response?.data,
-            requestUrl:axiosError.config?.url,
-            requestMethod:axiosError.config?.method,
-            requestData:axiosError.config?.data,
-          };
-          fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:232',message:'Axios error caught',data:errorInfo,timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-        }
-        // #endregion
-        
         if (axiosError.response) {
             return axiosError.response;
         }
@@ -329,20 +299,8 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
             const body = getRequestBody(options);
             const headers = await getHeaders(config, options, formData);
 
-            // #region agent log
-            if (url.includes('/login/')) {
-              fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:297',message:'Login request prepared',data:{url,baseUrl:config.BASE,path:options.url,method:options.method,body,bodyStringified:JSON.stringify(body),headers:Object.keys(headers),headerValues:headers,hasFormData:!!formData},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-            }
-            // #endregion
-
             if (!onCancel.isCancelled) {
                 const response = await sendRequest<T>(config, options, url, body, formData, headers, onCancel, axiosClient);
-                
-                // #region agent log
-                if (url.includes('/login/')) {
-                  fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:304',message:'Login response received',data:{status:response.status,statusText:response.statusText,hasBody:!!response.data},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-                }
-                // #endregion
                 const responseBody = getResponseBody(response);
                 const responseHeader = getResponseHeader(response, options.responseHeader);
 
@@ -358,19 +316,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
 
                 resolve(result.body);
             }
-        } catch (error: any) {
-            // #region agent log
-            if (options.url.includes('/login/')) {
-              const errorData = {
-                message: error?.message,
-                status: error?.response?.status,
-                statusText: error?.response?.statusText,
-                data: error?.response?.data,
-                url: error?.config?.url,
-              };
-              fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:320',message:'Login request error',data:errorData,timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-            }
-            // #endregion
+        } catch (error) {
             reject(error);
         }
     });

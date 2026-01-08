@@ -33,6 +33,10 @@ export type Promotion = {
      */
     display_locations?: any;
     /**
+     * Position in stories carousel (1-5). 1 = Large banner, 2-5 = Grid positions
+     */
+    carousel_position?: number | null;
+    /**
      * Discount percentage (e.g., 20.00 for 20%)
      */
     discount_percentage?: string | null;

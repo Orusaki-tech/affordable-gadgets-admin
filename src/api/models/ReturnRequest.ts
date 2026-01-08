@@ -8,7 +8,10 @@ import type { Status214Enum } from './Status214Enum';
  */
 export type ReturnRequest = {
     readonly id?: number;
-    readonly requesting_salesperson?: number;
+    /**
+     * Salesperson requesting return. Null for buyback units (auto-created).
+     */
+    readonly requesting_salesperson?: number | null;
     readonly requesting_salesperson_username?: string;
     readonly inventory_units?: Array<number>;
     readonly inventory_units_count?: string;

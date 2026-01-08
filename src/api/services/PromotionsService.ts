@@ -13,20 +13,17 @@ export class PromotionsService {
     /**
      * Promotion management ViewSet (admin and marketing managers).
      * @param page A page number within the paginated result set.
-     * @param isActive Filter promotions by active status.
      * @returns PaginatedPromotionList
      * @throws ApiError
      */
     public static promotionsList(
         page?: number,
-        isActive?: boolean,
     ): CancelablePromise<PaginatedPromotionList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/promotions/',
             query: {
                 'page': page,
-                'is_active': isActive,
             },
         });
     }

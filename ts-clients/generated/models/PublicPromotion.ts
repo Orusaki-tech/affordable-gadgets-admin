@@ -41,6 +41,10 @@ export type PublicPromotion = {
      * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales'
      */
     display_locations?: any;
+    /**
+     * Position in stories carousel (1-5). 1 = Large banner, 2-5 = Grid positions
+     */
+    carousel_position?: number | null;
     readonly products?: string;
 };
 

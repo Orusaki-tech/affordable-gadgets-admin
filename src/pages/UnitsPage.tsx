@@ -761,11 +761,19 @@ export const UnitsPage: React.FC = () => {
       )}
 
       {selectedUnitId && (
-        <UnitDetailsModal
-          unitId={selectedUnitId}
-          onClose={() => setSelectedUnitId(null)}
-          isEditable={isInventoryManager || isSuperuser}
-        />
+        <>
+          {/* #region agent log */}
+          {(() => {
+            fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnitsPage.tsx:767',message:'UnitDetailsModal props calculation',data:{isInventoryManager,isSuperuser,isEditable:isInventoryManager||isSuperuser,adminProfile:adminProfile?.user},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            return null;
+          })()}
+          {/* #endregion */}
+          <UnitDetailsModal
+            unitId={selectedUnitId}
+            onClose={() => setSelectedUnitId(null)}
+            isEditable={isInventoryManager || isSuperuser}
+          />
+        </>
       )}
 
       {/* Bulk Price Update Modal */}

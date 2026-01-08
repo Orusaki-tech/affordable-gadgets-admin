@@ -18,6 +18,7 @@ export type PatchedInventoryUnitRequest = {
     acquisition_source_details_id?: number | null;
     condition?: ConditionEnum;
     source?: SourceEnum;
+    available_online?: boolean;
     grade?: (GradeEnum | BlankEnum | NullEnum) | null;
     /**
      * Date the unit was acquired

@@ -26,6 +26,7 @@ export type InventoryUnit = {
     condition?: ConditionEnum;
     source?: SourceEnum;
     readonly sale_status?: string;
+    available_online?: boolean;
     grade?: (GradeEnum | BlankEnum | NullEnum) | null;
     /**
      * Date the unit was acquired
