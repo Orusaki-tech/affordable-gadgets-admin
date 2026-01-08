@@ -34,7 +34,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     acquisition_source_details_id?: number;
     condition?: ConditionEnum;
     source?: SourceEnum;
-    sale_status?: 'AV' | 'SD' | 'RS' | 'RT' | 'PP';
     available_online?: boolean;
   };
   
@@ -44,7 +43,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     cost_of_unit: undefined,
     condition: undefined,
     source: undefined,
-    sale_status: undefined,
     available_online: true,
     grade: undefined,
     date_sourced: undefined,
@@ -274,7 +272,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         cost_of_unit: unitDetails.cost_of_unit,
         condition: unitDetails.condition || undefined,
         source: unitDetails.source || undefined,
-        sale_status: (unitDetails as any).sale_status || 'AV',
         available_online: (unitDetails as any).available_online !== undefined ? (unitDetails as any).available_online : true,
         grade: unitDetails.grade || undefined,
         date_sourced: formattedDateSourced,
@@ -312,7 +309,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         cost_of_unit: undefined,
         condition: undefined,
         source: undefined,
-        sale_status: 'AV',
         available_online: true,
         grade: undefined,
         date_sourced: undefined,
@@ -556,7 +552,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       cost_of_unit: formData.cost_of_unit || '0',
       condition: formData.condition,
       source: formData.source,
-      sale_status: formData.sale_status || 'AV',
       available_online: formData.available_online !== undefined ? formData.available_online : true,
       grade: formData.grade || undefined,
       // Ensure date_sourced is in YYYY-MM-DD format
@@ -579,7 +574,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       imei: formData.imei || undefined,
     };
 
-    // Use submitData directly (cast to any to include sale_status and available_online)
+    // Use submitData directly (cast to any to include available_online)
     const cleanedData: any = submitData;
 
     if (unit?.id) {
@@ -1333,25 +1328,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="sale_status">Sale Status</label>
-                <select
-                  id="sale_status"
-                  value={formData.sale_status || 'AV'}
-                  onChange={(e) => setFormData({ ...formData, sale_status: e.target.value as 'AV' | 'SD' | 'RS' | 'RT' | 'PP' })}
-                  disabled={isLoading}
-                >
-                  <option value="AV">Available (AV)</option>
-                  <option value="SD">Sold (SD)</option>
-                  <option value="RS">Reserved (RS)</option>
-                  <option value="RT">Returned (RT)</option>
-                  <option value="PP">Pending Payment (PP)</option>
-                </select>
-                <small className="form-help">
-                  Status determines if the unit appears on the frontend. Only "Available" units with "Available Online" checked will be visible.
-                </small>
-              </div>
-
-              <div className="form-group">
                 <label htmlFor="available_online">
                   <input
                     id="available_online"
@@ -1366,7 +1342,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                   {' '}Available Online
                 </label>
                 <small className="form-help">
-                  Check this box to make the unit visible on the frontend (requires Sale Status = Available).
+                  Check this box to make the unit visible on the frontend. Only units with status "Available" and this box checked will be visible.
                 </small>
               </div>
             </div>

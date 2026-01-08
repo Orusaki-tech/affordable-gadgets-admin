@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { UnitsService } from '../api/index';
 import { UnitForm } from './UnitForm';
 
@@ -17,6 +17,62 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ unitId, onCl
     queryFn: () => UnitsService.unitsRetrieve(unitId),
     enabled: !!unitId && !isEditing,
   });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => UnitsService.unitsDestroy(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['units'] });
+      queryClient.invalidateQueries({ queryKey: ['product', unit?.product_template] });
+      alert('Inventory unit deleted successfully');
+      onClose();
+    },
+    onError: (err: any) => {
+      // Extract error message from DRF ValidationError response
+      let errorMessage = 'Unknown error';
+      if (err?.response?.data) {
+        const data = err.response.data;
+        if (typeof data === 'string') {
+          errorMessage = data;
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (Array.isArray(data) && data.length > 0) {
+          errorMessage = typeof data[0] === 'string' ? data[0] : JSON.stringify(data[0]);
+        } else if (typeof data === 'object') {
+          const keys = Object.keys(data);
+          if (keys.length > 0) {
+            const firstValue = data[keys[0]];
+            if (Array.isArray(firstValue) && firstValue.length > 0) {
+              errorMessage = firstValue[0];
+            } else if (typeof firstValue === 'string') {
+              errorMessage = firstValue;
+            } else {
+              errorMessage = JSON.stringify(data);
+            }
+          } else {
+            errorMessage = JSON.stringify(data);
+          }
+        }
+      } else if (err?.message && err.message !== 'Bad Request' && err.message !== 'Request failed with status code 400') {
+        errorMessage = err.message;
+      } else if (err?.response?.statusText && err.response.statusText !== 'Bad Request') {
+        errorMessage = err.response.statusText;
+      }
+      alert(`Failed to delete inventory unit: ${errorMessage}`);
+    },
+  });
+
+  const handleDelete = () => {
+    if (!unitId) return;
+    const unitName = unit?.serial_number || unit?.product_template_name || `Unit #${unitId}`;
+    if (window.confirm(`Are you sure you want to delete "${unitName}"? This action cannot be undone.`)) {
+      deleteMutation.mutate(unitId);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -136,19 +192,37 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ unitId, onCl
           <h2>Inventory Unit Details</h2>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             {isEditable && (
-              <button
-                className="btn-secondary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsEditing(true);
-                }}
-                style={{
-                  padding: 'var(--spacing-sm) var(--spacing-md)',
-                  fontSize: 'var(--font-size-14)',
-                }}
-              >
-                Edit
-              </button>
+              <>
+                <button
+                  className="btn-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsEditing(true);
+                  }}
+                  style={{
+                    padding: 'var(--spacing-sm) var(--spacing-md)',
+                    fontSize: 'var(--font-size-14)',
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn-danger"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete();
+                  }}
+                  disabled={deleteMutation.isPending}
+                  style={{
+                    padding: 'var(--spacing-sm) var(--spacing-md)',
+                    fontSize: 'var(--font-size-14)',
+                    backgroundColor: 'var(--md-error)',
+                    color: 'var(--md-on-error)',
+                  }}
+                >
+                  {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+                </button>
+              </>
             )}
             <button className="modal-close" onClick={onClose}>×</button>
           </div>

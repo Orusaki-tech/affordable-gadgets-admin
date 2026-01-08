@@ -290,24 +290,61 @@ export const ProductsPage: React.FC = () => {
       alert('Product deleted successfully');
     },
     onError: (err: any) => {
+      // #region agent log
+      const errorInfo = {
+        hasResponse: !!err?.response,
+        hasData: !!err?.response?.data,
+        status: err?.response?.status,
+        statusText: err?.response?.statusText,
+        dataType: typeof err?.response?.data,
+        data: err?.response?.data,
+        message: err?.message,
+        fullError: err,
+      };
+      fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProductsPage.tsx:292',message:'Product delete error caught',data:errorInfo,timestamp:Date.now(),sessionId:'debug-session',runId:'product-delete-error-debug',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
       // Extract error message from DRF ValidationError response
       let errorMessage = 'Unknown error';
+      
+      // Check response.data first (most common for API errors)
       if (err?.response?.data) {
-        // DRF ValidationError can return string or object
-        if (typeof err.response.data === 'string') {
-          errorMessage = err.response.data;
-        } else if (err.response.data.detail) {
-          errorMessage = err.response.data.detail;
-        } else if (err.response.data.error) {
-          errorMessage = err.response.data.error;
-        } else if (Array.isArray(err.response.data) && err.response.data.length > 0) {
-          errorMessage = err.response.data[0];
-        } else if (typeof err.response.data === 'object') {
-          errorMessage = JSON.stringify(err.response.data);
+        const data = err.response.data;
+        // DRF ValidationError can return string, object, or array
+        if (typeof data === 'string') {
+          errorMessage = data;
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (Array.isArray(data) && data.length > 0) {
+          // DRF sometimes returns errors as arrays
+          errorMessage = typeof data[0] === 'string' ? data[0] : JSON.stringify(data[0]);
+        } else if (typeof data === 'object') {
+          // Try to extract first meaningful error value
+          const keys = Object.keys(data);
+          if (keys.length > 0) {
+            const firstValue = data[keys[0]];
+            if (Array.isArray(firstValue) && firstValue.length > 0) {
+              errorMessage = firstValue[0];
+            } else if (typeof firstValue === 'string') {
+              errorMessage = firstValue;
+            } else {
+              errorMessage = JSON.stringify(data);
+            }
+          } else {
+            errorMessage = JSON.stringify(data);
+          }
         }
-      } else if (err?.message) {
+      } else if (err?.message && err.message !== 'Bad Request' && err.message !== 'Request failed with status code 400') {
+        // Only use err.message if it's not just the status text
         errorMessage = err.message;
+      } else if (err?.response?.statusText && err.response.statusText !== 'Bad Request') {
+        errorMessage = err.response.statusText;
       }
+      
       alert(`Failed to delete product: ${errorMessage}`);
     },
   });
