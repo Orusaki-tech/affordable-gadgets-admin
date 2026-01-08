@@ -22,14 +22,32 @@ export const AdminLayout: React.FC = () => {
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
 
   // Fetch admin profile to get roles
-  const { data: adminProfile } = useQuery<AdminProfileResponse>({
+  const { data: adminProfile, error: adminProfileError, isLoading: isLoadingAdminProfile } = useQuery<AdminProfileResponse>({
     queryKey: ['admin-profile', user?.id],
     queryFn: async () => {
-      const profile = await ProfilesService.profilesAdminRetrieve();
-      return profile as AdminProfileResponse;
+      try {
+        const profile = await ProfilesService.profilesAdminRetrieve();
+        console.log('✅ Admin profile fetched successfully:', { 
+          hasUser: !!profile.user, 
+          is_superuser: profile.user?.is_superuser,
+          is_staff: profile.user?.is_staff,
+          hasRoles: !!profile.roles,
+          rolesCount: profile.roles?.length || 0
+        });
+        return profile as AdminProfileResponse;
+      } catch (error: any) {
+        console.error('❌ Failed to fetch admin profile:', {
+          status: error?.status,
+          message: error?.message,
+          user_id: user?.id,
+          user_is_staff: user?.is_staff,
+          user_is_superuser: user?.is_superuser
+        });
+        throw error;
+      }
     },
     retry: false,
-    enabled: !!user?.is_staff,
+    enabled: !!user?.is_staff || !!user?.is_superuser, // Enable for staff OR superuser
   });
 
   const hasRole = (roleName: string) => {
@@ -37,8 +55,27 @@ export const AdminLayout: React.FC = () => {
     return adminProfile.roles.some((role) => role.name === roleName || role.role_code === roleName);
   };
 
-  // Check superuser status from adminProfile.user if available
-  const isSuperuser = adminProfile?.user?.is_superuser === true;
+  // Check superuser status - use user from AuthContext as fallback if adminProfile is not available
+  // This handles cases where the admin profile API fails but the user is still a superuser
+  const isSuperuser = adminProfile?.user?.is_superuser === true || user?.is_superuser === true;
+  
+  // Debug logging for superuser status
+  useEffect(() => {
+    if (user) {
+      console.log('🔍 AdminLayout - User status:', {
+        user_id: user.id,
+        user_is_staff: user.is_staff,
+        user_is_superuser: user.is_superuser,
+        adminProfile_exists: !!adminProfile,
+        adminProfile_user_is_superuser: adminProfile?.user?.is_superuser,
+        final_isSuperuser: isSuperuser,
+        adminProfileError: adminProfileError ? {
+          status: (adminProfileError as any)?.status,
+          message: (adminProfileError as any)?.message
+        } : null
+      });
+    }
+  }, [user, adminProfile, isSuperuser, adminProfileError]);
   const isSalesperson = hasRole('SP') && !isSuperuser && !hasRole('IM'); // Salesperson only, not if superuser or IM
   const isInventoryManager = hasRole('IM') && !isSuperuser; // Inventory Manager only, not if superuser
   const isContentCreator = hasRole('CC') && !isSuperuser; // Content Creator only, not if superuser
