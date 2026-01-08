@@ -32,22 +32,6 @@ export const UnitsPage: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // CSV Export
-  const handleExport = () => {
-    const queryString = buildQueryString();
-    window.open(`/api/inventory/units/export_csv/?${queryString}`, '_blank');
-  };
-
-  const buildQueryString = () => {
-    const params = new URLSearchParams();
-    if (search) params.append('search', search);
-    if (filters.condition) params.append('condition', filters.condition);
-    if (filters.sale_status) params.append('sale_status', filters.sale_status);
-    if (filters.min_price) params.append('selling_price__gte', filters.min_price);
-    if (filters.max_price) params.append('selling_price__lte', filters.max_price);
-    return params.toString();
-  };
-
   // Fetch admin profile to check roles
   const { data: adminProfile } = useQuery({
     queryKey: ['admin-profile', user?.id],
@@ -128,6 +112,22 @@ export const UnitsPage: React.FC = () => {
   const handleFilterChange = (key: string, value: string) => {
     setFilters({ ...filters, [key]: value });
     setPage(1); // Reset to first page when filter changes
+  };
+
+  const buildQueryString = () => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (filters.condition) params.append('condition', filters.condition);
+    if (filters.sale_status) params.append('sale_status', filters.sale_status);
+    if (filters.min_price) params.append('selling_price__gte', filters.min_price);
+    if (filters.max_price) params.append('selling_price__lte', filters.max_price);
+    return params.toString();
+  };
+
+  // CSV Export
+  const handleExport = () => {
+    const queryString = buildQueryString();
+    window.open(`/api/inventory/units/export_csv/?${queryString}`, '_blank');
   };
 
   const clearFilters = () => {
@@ -308,38 +308,6 @@ export const UnitsPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredUnits]);
 
-  // Role checks and redirect (after all hooks are declared)
-  const isInventoryManagerCheck = hasRole('IM');
-  const isMarketingManagerCheck = hasRole('MM') && !isSuperuser;
-  const isContentCreatorCheck = hasRole('CC') && !isSuperuser;
-  const isSalespersonCheck = hasRole('SP') && !isSuperuser;
-
-  // Redirect unauthorized users
-  if (!authLoading && isAuthenticated && !isInventoryManagerCheck && !isSuperuser && !isContentCreatorCheck && !isSalespersonCheck && !isMarketingManagerCheck) {
-    // For non-staff users or users without any role, redirect to products
-    return <Navigate to="/products" replace />;
-  }
-  if (!authLoading && isAuthenticated && isContentCreatorCheck) {
-    // Content Creators should not access inventory units
-    return <Navigate to="/content-creator/dashboard" replace />;
-  }
-
-  const getNextPage = () => {
-    if (data?.next) {
-      setPage(page + 1);
-    }
-  };
-
-  const getPrevPage = () => {
-    if (data?.previous) {
-      setPage(page - 1);
-    }
-  };
-
-  if (isLoading) {
-    return <div className="loading">Loading units...</div>;
-  }
-
   // #region agent log
   useEffect(() => {
     const checkLayout = () => {
@@ -391,6 +359,18 @@ export const UnitsPage: React.FC = () => {
     return () => clearTimeout(timeout);
   }, []);
   // #endregion
+
+  const getNextPage = () => {
+    if (data?.next) {
+      setPage(page + 1);
+    }
+  };
+
+  const getPrevPage = () => {
+    if (data?.previous) {
+      setPage(page - 1);
+    }
+  };
 
   if (isLoading) {
     return <div className="loading">Loading units...</div>;
