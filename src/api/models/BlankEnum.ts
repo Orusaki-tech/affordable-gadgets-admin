@@ -2,6 +2,5 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum BlankEnum {
-    = '',
-}
+// Fixed: BlankEnum with empty string value - using type alias instead of enum
+export type BlankEnum = '';
