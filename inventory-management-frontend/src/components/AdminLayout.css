@@ -300,11 +300,14 @@
   background-color: var(--md-background);
   overflow-y: auto;
   overflow-x: hidden;
-  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
   padding-top: 5rem;
   margin-top: 0;
   box-sizing: border-box;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-header {
@@ -338,6 +341,11 @@
 .content-wrapper {
   flex: 1;
   padding: var(--spacing-md) 0;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Tablet - 768px and up */
@@ -371,6 +379,10 @@
     overflow-x: hidden;
     overflow-y: auto;
     box-sizing: border-box;
+    height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 
   .page-title {
@@ -425,6 +437,10 @@
     overflow-x: hidden;
     overflow-y: auto;
     box-sizing: border-box;
+    height: 100vh;
+    max-height: 100vh;
+    display: flex;
+    flex-direction: column;
   }
 }
 

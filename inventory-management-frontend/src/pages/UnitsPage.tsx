@@ -383,12 +383,12 @@ export const UnitsPage: React.FC = () => {
                 <button className="btn-secondary" onClick={() => setShowImportModal(true)}>
                   📤 Import CSV
                 </button>
+                <button className="btn-primary" onClick={handleCreate}>
+                  + Create Unit
+                </button>
               </>
             )}
-        <button className="btn-primary" onClick={handleCreate}>
-          + Create Unit
-        </button>
-      </div>
+          </div>
         </div>
       </div>
 
