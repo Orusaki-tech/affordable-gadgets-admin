@@ -340,18 +340,6 @@ export const UnitsPage: React.FC = () => {
     return <div className="loading">Loading units...</div>;
   }
 
-  if (error) {
-    const apiError = error as any;
-    // Handle authentication errors by redirecting
-    if (apiError?.status === 401 || apiError?.status === 403) {
-      // Use logout function which properly clears auth state
-      logout();
-      navigate('/login');
-      return <div className="loading">Redirecting to login...</div>;
-    }
-    return <div className="error">Error loading units: {apiError?.message || (error as Error).message || 'Unknown error'}</div>;
-  }
-
   // #region agent log
   useEffect(() => {
     const checkLayout = () => {
@@ -394,7 +382,7 @@ export const UnitsPage: React.FC = () => {
         });
       };
       
-      fetch('http://127.0.0.1:7244/ingest/a84d7254-041a-43bc-abcc-ca4a84f2e979',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnitsPage.tsx:355',message:'Layout debug info',data:{viewportWidth:window.innerWidth,unitsPage:getScrollInfo(unitsPage),mainContent:getScrollInfo(mainContent),contentWrapper:getScrollInfo(contentWrapper),pageHeader:{width:pageHeader?.getBoundingClientRect().width,scrollInfo:getScrollInfo(pageHeader)},pageHeaderActions:{width:pageHeaderActions?.getBoundingClientRect().width,scrollInfo:getScrollInfo(pageHeaderActions)},utilityActions:{width:utilityActions?.getBoundingClientRect().width,scrollInfo:getScrollInfo(utilityActions)},buttons:getButtonInfo()},timestamp:Date.now(),sessionId:'debug-session',runId:'scroll-button-debug',hypothesisId:'A'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7244/ingest/a84d7254-041a-43bc-abcc-ca4a84f2e979',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnitsPage.tsx:335',message:'Layout debug info',data:{viewportWidth:window.innerWidth,unitsPage:getScrollInfo(unitsPage),mainContent:getScrollInfo(mainContent),contentWrapper:getScrollInfo(contentWrapper),pageHeader:{width:pageHeader?.getBoundingClientRect().width,scrollInfo:getScrollInfo(pageHeader)},pageHeaderActions:{width:pageHeaderActions?.getBoundingClientRect().width,scrollInfo:getScrollInfo(pageHeaderActions)},utilityActions:{width:utilityActions?.getBoundingClientRect().width,scrollInfo:getScrollInfo(utilityActions)},buttons:getButtonInfo()},timestamp:Date.now(),sessionId:'debug-session',runId:'scroll-button-debug',hypothesisId:'A'})}).catch(()=>{});
     };
     
     // Check immediately and after a short delay to catch any async layout
@@ -403,6 +391,22 @@ export const UnitsPage: React.FC = () => {
     return () => clearTimeout(timeout);
   }, []);
   // #endregion
+
+  if (isLoading) {
+    return <div className="loading">Loading units...</div>;
+  }
+
+  if (error) {
+    const apiError = error as any;
+    // Handle authentication errors by redirecting
+    if (apiError?.status === 401 || apiError?.status === 403) {
+      // Use logout function which properly clears auth state
+      logout();
+      navigate('/login');
+      return <div className="loading">Redirecting to login...</div>;
+    }
+    return <div className="error">Error loading units: {apiError?.message || (error as Error).message || 'Unknown error'}</div>;
+  }
 
   return (
     <div className="units-page">
