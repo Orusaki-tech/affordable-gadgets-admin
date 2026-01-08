@@ -2,7 +2,5 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-// Fixed: BlankEnum with empty string value - using empty enum as fallback
-export enum BlankEnum {
-    Empty = '',
-}
+// Fixed: BlankEnum with empty string value - using type alias instead of enum
+export type BlankEnum = '';
