@@ -5,21 +5,36 @@ const getApiBaseUrl = () => {
   // If environment variable is set, use it
   if (process.env.REACT_APP_API_BASE_URL) {
     console.log(`🔧 Using API URL from environment: ${process.env.REACT_APP_API_BASE_URL}`);
+    console.log(`🔍 Environment check - NODE_ENV: ${process.env.NODE_ENV}, hostname: ${typeof window !== 'undefined' ? window.location.hostname : 'N/A'}`);
     return process.env.REACT_APP_API_BASE_URL;
   }
   
-  // Auto-detect based on current hostname
+  // Auto-detect based on current hostname (only for local development)
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
-    // If accessing via network IP, use that IP for backend
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+    // Only auto-detect for local network IPs (not production domains)
+    // Production domains like vercel.app, netlify.app, etc. should use env variable
+    const isProductionDomain = hostname.includes('.vercel.app') || 
+                                hostname.includes('.netlify.app') || 
+                                hostname.includes('.railway.app') ||
+                                hostname.includes('.herokuapp.com') ||
+                                hostname.includes('.onrender.com');
+    
+    if (!isProductionDomain && hostname !== 'localhost' && hostname !== '127.0.0.1') {
       const apiUrl = `http://${hostname}:8000/api/inventory`;
       console.log(`🌐 Auto-detected API URL: ${apiUrl} (from hostname: ${hostname})`);
       return apiUrl;
     }
+    
+    // For production domains without env variable, warn and use localhost (will fail, but at least we warn)
+    if (isProductionDomain) {
+      console.error('❌ REACT_APP_API_BASE_URL environment variable is not set!');
+      console.error('   Please set REACT_APP_API_BASE_URL in your Vercel/Netlify project settings.');
+      console.error('   Example: https://your-api-domain.railway.app/api/inventory');
+    }
   }
   
-  // Default to localhost
+  // Default to localhost (for local development only)
   const defaultUrl = 'http://localhost:8000/api/inventory';
   console.log(`📍 Using default API URL: ${defaultUrl}`);
   return defaultUrl;

@@ -168,6 +168,13 @@ export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptio
 
     if (isStringWithValue(token)) {
         headers['Authorization'] = `Token ${token}`;
+        // #region agent log
+        console.log(`🔐 Adding Authorization header: Token ${token.substring(0, 10)}...`);
+        // #endregion
+    } else {
+        // #region agent log
+        console.warn('⚠️ No token available for request:', options.url);
+        // #endregion
     }
 
     if (isStringWithValue(username) && isStringWithValue(password)) {
@@ -328,6 +335,12 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
             const formData = getFormData(options);
             const body = getRequestBody(options);
             const headers = await getHeaders(config, options, formData);
+            
+            // #region agent log
+            console.log(`🌐 API Request: ${options.method} ${url}`);
+            console.log(`📡 Base URL: ${config.BASE}`);
+            console.log(`🔑 Headers:`, Object.keys(headers).filter(k => k !== 'Authorization').concat(headers['Authorization'] ? ['Authorization: Token ***'] : []));
+            // #endregion
 
             // #region agent log
             if (url.includes('/login/')) {
@@ -360,15 +373,18 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
             }
         } catch (error: any) {
             // #region agent log
-            if (options.url.includes('/login/')) {
-              const errorData = {
-                message: error?.message,
-                status: error?.response?.status,
-                statusText: error?.response?.statusText,
-                data: error?.response?.data,
-                url: error?.config?.url,
-              };
-              fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:320',message:'Login request error',data:errorData,timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
+            const axiosError = error as AxiosError;
+            if (axiosError.response?.status === 401) {
+              console.error(`❌ 401 Unauthorized for: ${options.method} ${url}`);
+              console.error(`   Request URL: ${axiosError.config?.url}`);
+              console.error(`   Base URL: ${config.BASE}`);
+              console.error(`   Has Token: ${!!headers['Authorization']}`);
+              console.error(`   Response:`, axiosError.response?.data);
+              console.error(`   This usually means:`);
+              console.error(`   1. Token is invalid or expired`);
+              console.error(`   2. Backend doesn't recognize the token format`);
+              console.error(`   3. CORS issue - backend not allowing requests from this origin`);
+              console.error(`   4. Backend URL is incorrect`);
             }
             // #endregion
             reject(error);
