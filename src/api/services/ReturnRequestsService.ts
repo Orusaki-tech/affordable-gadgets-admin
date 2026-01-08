@@ -6,6 +6,7 @@ import type { PaginatedReturnRequestList } from '../models/PaginatedReturnReques
 import type { PatchedReturnRequestRequest } from '../models/PatchedReturnRequestRequest';
 import type { ReturnRequest } from '../models/ReturnRequest';
 import type { ReturnRequestRequest } from '../models/ReturnRequestRequest';
+import type { Status214Enum } from '../models/Status214Enum';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -15,17 +16,20 @@ export class ReturnRequestsService {
      * - Salespersons can create return requests for their reserved units
      * - Inventory Managers can approve/reject return requests
      * @param page A page number within the paginated result set.
+     * @param status Filter return requests by status.
      * @returns PaginatedReturnRequestList
      * @throws ApiError
      */
     public static returnRequestsList(
         page?: number,
+        status?: Status214Enum,
     ): CancelablePromise<PaginatedReturnRequestList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/return-requests/',
             query: {
                 'page': page,
+                'status': status,
             },
         });
     }

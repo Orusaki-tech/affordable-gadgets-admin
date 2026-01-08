@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { Lead } from '../models/Lead';
 import type { LeadRequest } from '../models/LeadRequest';
+import type { LeadStatusEnum } from '../models/LeadStatusEnum';
 import type { PaginatedLeadList } from '../models/PaginatedLeadList';
 import type { PatchedLeadRequest } from '../models/PatchedLeadRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -13,17 +14,20 @@ export class LeadsService {
     /**
      * Lead management for salespersons only.
      * @param page A page number within the paginated result set.
+     * @param status Filter leads by status.
      * @returns PaginatedLeadList
      * @throws ApiError
      */
     public static leadsList(
         page?: number,
+        status?: LeadStatusEnum,
     ): CancelablePromise<PaginatedLeadList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/leads/',
             query: {
                 'page': page,
+                'status': status,
             },
         });
     }
@@ -149,7 +153,7 @@ export class LeadsService {
      */
     public static leadsCloseCreate(
         id: string,
-        requestBody: LeadRequest,
+        requestBody?: LeadRequest,
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -170,7 +174,9 @@ export class LeadsService {
      */
     public static leadsContactCreate(
         id: string,
-        requestBody: LeadRequest,
+        requestBody?: {
+            notes?: string;
+        },
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {
             method: 'POST',
