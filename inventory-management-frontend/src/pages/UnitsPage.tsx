@@ -352,6 +352,58 @@ export const UnitsPage: React.FC = () => {
     return <div className="error">Error loading units: {apiError?.message || (error as Error).message || 'Unknown error'}</div>;
   }
 
+  // #region agent log
+  useEffect(() => {
+    const checkLayout = () => {
+      const unitsPage = document.querySelector('.units-page');
+      const pageHeader = document.querySelector('.page-header');
+      const pageHeaderActions = document.querySelector('.page-header-actions');
+      const utilityActions = document.querySelector('.utility-actions');
+      const mainContent = document.querySelector('.main-content');
+      const contentWrapper = document.querySelector('.content-wrapper');
+      
+      const getScrollInfo = (el: Element | null) => {
+        if (!el) return null;
+        const computed = window.getComputedStyle(el);
+        return {
+          overflowY: computed.overflowY,
+          overflowX: computed.overflowX,
+          height: computed.height,
+          maxHeight: computed.maxHeight,
+          scrollHeight: el.scrollHeight,
+          clientHeight: el.clientHeight,
+          hasScrollbar: el.scrollHeight > el.clientHeight
+        };
+      };
+      
+      const getButtonInfo = () => {
+        const buttons = utilityActions?.querySelectorAll('button');
+        if (!buttons) return null;
+        return Array.from(buttons).map((btn, i) => {
+          const rect = btn.getBoundingClientRect();
+          const computed = window.getComputedStyle(btn);
+          return {
+            index: i,
+            text: btn.textContent?.trim(),
+            width: rect.width,
+            right: rect.right,
+            visible: rect.right <= window.innerWidth,
+            flexShrink: computed.flexShrink,
+            minWidth: computed.minWidth
+          };
+        });
+      };
+      
+      fetch('http://127.0.0.1:7244/ingest/a84d7254-041a-43bc-abcc-ca4a84f2e979',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnitsPage.tsx:355',message:'Layout debug info',data:{viewportWidth:window.innerWidth,unitsPage:getScrollInfo(unitsPage),mainContent:getScrollInfo(mainContent),contentWrapper:getScrollInfo(contentWrapper),pageHeader:{width:pageHeader?.getBoundingClientRect().width,scrollInfo:getScrollInfo(pageHeader)},pageHeaderActions:{width:pageHeaderActions?.getBoundingClientRect().width,scrollInfo:getScrollInfo(pageHeaderActions)},utilityActions:{width:utilityActions?.getBoundingClientRect().width,scrollInfo:getScrollInfo(utilityActions)},buttons:getButtonInfo()},timestamp:Date.now(),sessionId:'debug-session',runId:'scroll-button-debug',hypothesisId:'A'})}).catch(()=>{});
+    };
+    
+    // Check immediately and after a short delay to catch any async layout
+    checkLayout();
+    const timeout = setTimeout(checkLayout, 500);
+    return () => clearTimeout(timeout);
+  }, []);
+  // #endregion
+
   return (
     <div className="units-page">
       {/* Toast Notification */}

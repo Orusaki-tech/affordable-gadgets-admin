@@ -103,9 +103,9 @@ p, body {
   gap: var(--spacing-xs);
   white-space: nowrap;
   letter-spacing: 0.01em;
-  flex-shrink: 1; /* Allow buttons to shrink if needed */
-  min-width: 0; /* Allow text truncation if needed */
-  max-width: 100%; /* Prevent overflow */
+  flex-shrink: 0; /* Don't shrink buttons - let them wrap instead */
+  min-width: fit-content; /* Use natural width */
+  max-width: none; /* Allow natural width */
 }
 
 .btn-primary {
@@ -4151,13 +4151,15 @@ p, body {
   .page-header {
     flex-direction: row;
     justify-content: space-between;
-    align-items: center;
-    gap: var(--spacing-md);
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
   }
   
   .page-header h1 {
     font-size: var(--font-size-30);
     flex-shrink: 0;
+    min-width: 0;
   }
   
   .page-meta {
@@ -4405,10 +4407,21 @@ p, body {
   box-shadow: 0 0 0 3px var(--md-primary-container);
 }
 
+.filters-bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
 @media (min-width: 640px) {
   .filters-bar {
     flex-direction: row;
     align-items: center;
+    flex-wrap: wrap;
   }
   
   .filter-select,
@@ -5276,6 +5289,8 @@ p, body {
     gap: var(--spacing-xs);
     flex-wrap: wrap;
     min-width: 0;
+    flex: 0 1 auto;
+    max-width: 100%;
   }
 }
 
@@ -5289,6 +5304,18 @@ p, body {
   box-sizing: border-box;
   overflow-x: hidden; /* Prevent horizontal overflow */
   min-width: 0; /* Allow shrinking */
+}
+
+/* Ensure buttons wrap on smaller screens */
+@media (max-width: 1024px) {
+  .utility-actions {
+    flex-wrap: wrap;
+  }
+  
+  .utility-actions button {
+    font-size: var(--font-size-12);
+    padding: var(--spacing-xs) var(--spacing-xs);
+  }
 }
 
 .btn-filter-toggle {
