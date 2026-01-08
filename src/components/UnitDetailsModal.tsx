@@ -205,6 +205,14 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ unitId, onCl
             {/* #endregion */}
             {isEditable && (
               <>
+                {/* #region agent log */}
+                {(() => {
+                  if (typeof window !== 'undefined') {
+                    fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnitDetailsModal.tsx:206',message:'Rendering buttons - isEditable is true',data:{isEditable,hasDeleteMutation:!!deleteMutation},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                  }
+                  return null;
+                })()}
+                {/* #endregion */}
                 <button
                   className="btn-secondary"
                   onClick={(e) => {

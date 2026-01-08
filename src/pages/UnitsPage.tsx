@@ -58,6 +58,11 @@ export const UnitsPage: React.FC = () => {
 
   // Check superuser status from adminProfile.user if available
   const isSuperuser = adminProfile?.user?.is_superuser === true;
+  // #region agent log
+  if (typeof window !== 'undefined') {
+    fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UnitsPage.tsx:60',message:'Superuser check',data:{isSuperuser,adminProfileExists:!!adminProfile,userExists:!!adminProfile?.user,isSuperuserValue:adminProfile?.user?.is_superuser},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  }
+  // #endregion
 
   const hasRole = (roleName: string) => {
     if (isSuperuser) return true;
