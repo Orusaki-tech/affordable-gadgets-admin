@@ -1,0 +1,11 @@
+{
+  "buildCommand": "cd inventory-management-frontend && npm install && npm run build",
+  "outputDirectory": "inventory-management-frontend/build",
+  "framework": "create-react-app",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

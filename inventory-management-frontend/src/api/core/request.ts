@@ -375,10 +375,10 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
             // #region agent log
             const axiosError = error as AxiosError;
             if (axiosError.response?.status === 401) {
-              console.error(`❌ 401 Unauthorized for: ${options.method} ${url}`);
-              console.error(`   Request URL: ${axiosError.config?.url}`);
+              const requestUrl = axiosError.config?.url || getUrl(config, options);
+              console.error(`❌ 401 Unauthorized for: ${options.method} ${requestUrl}`);
+              console.error(`   Request URL: ${requestUrl}`);
               console.error(`   Base URL: ${config.BASE}`);
-              console.error(`   Has Token: ${!!headers['Authorization']}`);
               console.error(`   Response:`, axiosError.response?.data);
               console.error(`   This usually means:`);
               console.error(`   1. Token is invalid or expired`);
