@@ -183,9 +183,15 @@ export const ProductAccessoriesPage: React.FC = () => {
         </Typography>
         <Button
           variant="contained"
+          size="small"
           startIcon={<AddIcon />}
           onClick={handleCreate}
-          sx={{ borderRadius: 2 }}
+          sx={{ 
+            borderRadius: 1,
+            textTransform: 'none',
+            px: 2,
+            py: 0.75,
+          }}
         >
           Create Link
         </Button>
@@ -254,6 +260,12 @@ export const ProductAccessoriesPage: React.FC = () => {
               size="small"
               onClick={clearFilters}
               startIcon={<ClearIcon />}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                px: 1.5,
+                py: 0.75,
+              }}
             >
               Clear
             </Button>
@@ -273,7 +285,17 @@ export const ProductAccessoriesPage: React.FC = () => {
               : 'There are no product accessory links in the system. Create one to get started.'}
           </Typography>
           {search && (
-            <Button variant="outlined" onClick={clearFilters}>
+            <Button 
+              variant="outlined" 
+              size="small"
+              onClick={clearFilters}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                px: 2,
+                py: 0.75,
+              }}
+            >
               Clear Filters
             </Button>
           )}

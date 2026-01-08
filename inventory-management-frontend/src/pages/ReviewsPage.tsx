@@ -368,23 +368,35 @@ export const ReviewsPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mb={3}
+        sx={{
+          marginLeft: { xs: '80px', sm: 0 },
+        }}
+      >
         <Typography variant="h4" component="h1" fontWeight="bold">
           Reviews
         </Typography>
         <Button
           variant="contained"
+          size="small"
           startIcon={<AddIcon />}
           onClick={handleCreate}
-          sx={{ backgroundColor: 'primary.main' }}
+          sx={{ 
+            backgroundColor: 'primary.main',
+            borderRadius: 1,
+            textTransform: 'none',
+            px: 2,
+            py: 0.75,
+            margin: 1,
+          }}
         >
           Create Review
         </Button>
       </Box>
-
-      <Typography variant="h5" component="h2" fontWeight="bold" mb={2} sx={{ fontSize: '1.25rem' }}>
-        Product Reviews
-      </Typography>
 
       <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
@@ -1324,7 +1336,29 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
                   }}
                   disabled={isLoading}
                   placeholder="https://drive.google.com/file/d/... or https://youtube.com/watch?v=..."
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
                 />
+                {formData.video_url && formData.video_url.length > 60 && (
+                  <div style={{
+                    marginTop: 'var(--spacing-xs)',
+                    padding: 'var(--spacing-xs) var(--spacing-sm)',
+                    backgroundColor: 'var(--md-surface-container-high)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 'var(--font-size-12)',
+                    color: 'var(--md-on-surface-variant)',
+                    wordBreak: 'break-all',
+                    overflowWrap: 'break-word',
+                    whiteSpace: 'normal',
+                  }}>
+                    Full URL: {formData.video_url}
+                  </div>
+                )}
                 <small className="form-help">
                   Paste a Google Drive sharing link or YouTube URL. Make sure the link is publicly accessible.
                 </small>

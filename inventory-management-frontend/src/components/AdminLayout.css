@@ -26,6 +26,7 @@
   justify-content: center;
   box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
+  margin-right: var(--spacing-md);
 }
 
 .mobile-menu-toggle:hover {

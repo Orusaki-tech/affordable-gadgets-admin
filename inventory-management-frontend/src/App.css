@@ -1901,6 +1901,8 @@ p, body {
   box-shadow: var(--shadow-md);
   border: 1px solid var(--md-outline-variant);
   margin-bottom: var(--spacing-xl);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .info-card h2 {
@@ -1922,6 +1924,9 @@ p, body {
   gap: var(--spacing-md);
   padding: var(--spacing-sm) 0;
   border-bottom: 1px solid var(--md-outline-variant);
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .detail-row:last-child {
@@ -1932,12 +1937,20 @@ p, body {
   font-weight: var(--font-weight-semibold);
   color: var(--md-on-surface-variant);
   min-width: 140px;
+  max-width: 140px;
   flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .detail-value {
   color: var(--md-on-surface);
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .admin-card {
@@ -1947,7 +1960,7 @@ p, body {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: visible;
+  overflow: hidden;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
@@ -1961,7 +1974,7 @@ p, body {
 .admin-card-header {
   padding: clamp(2px, 0.3vw, 3px) clamp(6px, 0.7vw, var(--spacing-xs));
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
@@ -1971,7 +1984,7 @@ p, body {
   gap: clamp(4px, 0.5vw, 6px);
   flex: 1;
   min-width: 0;
-  overflow: visible;
+  overflow: hidden;
   flex-wrap: wrap;
 }
 
@@ -2005,26 +2018,27 @@ p, body {
 
 .admin-card-body {
   padding: clamp(1px, 0.2vw, 2px) clamp(6px, 0.7vw, var(--spacing-xs));
-  overflow: visible;
+  overflow: hidden;
   min-width: 0;
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .admin-info-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: clamp(3px, 0.5vw, 6px);
-  padding: 0;
+  padding: clamp(2px, 0.3vw, 4px) 0;
   border-bottom: 1px solid var(--md-outline-variant);
   min-width: 0;
   width: 100%;
-  white-space: nowrap;
-  overflow: visible;
+  overflow: hidden;
   min-height: clamp(14px, 1.5vw, 18px);
+  box-sizing: border-box;
 }
 
 .admin-info-row:last-child {
@@ -2034,13 +2048,14 @@ p, body {
 .admin-info-row .info-label {
   font-weight: var(--font-weight-regular);
   color: var(--md-on-surface-variant);
-  min-width: clamp(45px, 5.5vw, 65px);
-  max-width: clamp(45px, 5.5vw, 65px);
+  min-width: clamp(70px, 8vw, 90px);
+  max-width: clamp(70px, 8vw, 90px);
   flex-shrink: 0;
   font-size: clamp(0.7rem, 0.75vw, 0.8rem);
-  line-height: 1;
+  line-height: 1.2;
   white-space: nowrap;
-  overflow: visible;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-info-row .info-value {
@@ -2048,13 +2063,14 @@ p, body {
   flex: 1;
   font-size: clamp(0.7rem, 0.75vw, 0.8rem);
   font-weight: var(--font-weight-regular);
-  white-space: nowrap;
-  overflow: visible;
+  white-space: normal;
+  overflow: hidden;
   min-width: 0;
-  line-height: 1;
-  word-break: keep-all;
-  overflow-wrap: normal;
+  line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: break-word;
   flex-shrink: 1;
+  text-overflow: ellipsis;
 }
 
 .roles-container {
@@ -2874,6 +2890,10 @@ p, body {
 .form-group input[type="url"] {
   font-family: 'Courier New', monospace;
   font-size: var(--font-size-14);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 /* ===== TABLES ===== */
@@ -4059,11 +4079,18 @@ p, body {
   flex-direction: column;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-xl);
+  margin-left: calc(48px + var(--spacing-md) + var(--spacing-md));
   padding-bottom: var(--spacing-lg);
   border-bottom: 1px solid var(--md-outline-variant);
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .page-header {
+    margin-left: 0;
+  }
 }
 
 .content-creator-dashboard .page-header {

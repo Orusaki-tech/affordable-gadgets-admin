@@ -296,23 +296,45 @@ export const PromotionsPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box 
+        display="flex" 
+        justifyContent="space-between" 
+        alignItems="center" 
+        mb={3}
+        sx={{
+          marginLeft: { xs: '80px', sm: 0 },
+        }}
+      >
         <Typography variant="h4" component="h1" fontWeight="bold">
           Promotions
         </Typography>
           {canCreatePromotions && (
-          <Stack direction="row" spacing={2}>
+          <Stack direction="row" spacing={1.5}>
             <Button
               variant="outlined"
+              size="small"
               startIcon={<SettingsIcon />}
               onClick={() => setShowPromotionTypesModal(true)}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                px: 2,
+                py: 0.75,
+              }}
             >
-                Manage Types
+              Manage Types
             </Button>
             <Button
               variant="contained"
+              size="small"
               startIcon={<AddIcon />}
               onClick={handleCreate}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                px: 2,
+                py: 0.75,
+              }}
             >
               Create Promotion
             </Button>
@@ -404,19 +426,33 @@ export const PromotionsPage: React.FC = () => {
           />
           <Button
             variant="outlined"
+            size="small"
             startIcon={<FilterListIcon />}
             onClick={() => setShowFilters(!showFilters)}
             endIcon={activeFilterCount > 0 ? <Chip label={activeFilterCount} size="small" color="primary" /> : null}
-            sx={{ flexShrink: 0 }}
+            sx={{ 
+              flexShrink: 0,
+              borderRadius: 1,
+              textTransform: 'none',
+              px: 2,
+              py: 0.75,
+            }}
           >
             Filters
           </Button>
           {activeFilterCount > 0 && (
             <Button
               variant="text"
+              size="small"
               startIcon={<ClearIcon />}
               onClick={clearFilters}
-              sx={{ flexShrink: 0 }}
+              sx={{ 
+                flexShrink: 0,
+                borderRadius: 1,
+                textTransform: 'none',
+                px: 1.5,
+                py: 0.75,
+              }}
             >
               Clear
             </Button>
@@ -463,7 +499,18 @@ export const PromotionsPage: React.FC = () => {
                 : 'There are no promotions in the system yet.'}
           </Typography>
           {canCreatePromotions && !search && activeFilterCount === 0 && (
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
+            <Button 
+              variant="contained" 
+              size="small"
+              startIcon={<AddIcon />} 
+              onClick={handleCreate}
+              sx={{
+                borderRadius: 1,
+                textTransform: 'none',
+                px: 2,
+                py: 0.75,
+              }}
+            >
               Create Promotion
             </Button>
           )}
@@ -583,27 +630,43 @@ export const PromotionsPage: React.FC = () => {
                   
                   {/* Actions */}
                     {canEdit && (
-                    <CardActions sx={{ p: 1.5, pt: 0, justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
+                    <CardActions sx={{ p: 1.5, pt: 0, justifyContent: 'flex-end', gap: 1 }} onClick={(e) => e.stopPropagation()}>
                       <Button
                         size="small"
+                        variant="outlined"
                         startIcon={<EditIcon />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(promotion);
-                          }}
-                        >
-                          Edit
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(promotion);
+                        }}
+                        sx={{
+                          borderRadius: 1,
+                          textTransform: 'none',
+                          px: 1.5,
+                          py: 0.5,
+                          minWidth: 'auto',
+                        }}
+                      >
+                        Edit
                       </Button>
                       <Button
                         size="small"
+                        variant="outlined"
                         color="error"
                         startIcon={<DeleteIcon />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(promotion);
-                          }}
-                        >
-                          Delete
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(promotion);
+                        }}
+                        sx={{
+                          borderRadius: 1,
+                          textTransform: 'none',
+                          px: 1.5,
+                          py: 0.5,
+                          minWidth: 'auto',
+                        }}
+                      >
+                        Delete
                       </Button>
                     </CardActions>
                     )}
@@ -843,29 +906,54 @@ export const PromotionsPage: React.FC = () => {
                 </Grid>
               </Stack>
             </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setShowDetailsModal(false)}>Close</Button>
+            <DialogActions sx={{ gap: 1, px: 2, pb: 2 }}>
+              <Button 
+                onClick={() => setShowDetailsModal(false)}
+                size="small"
+                sx={{
+                  borderRadius: 1,
+                  textTransform: 'none',
+                  px: 2,
+                  py: 0.75,
+                }}
+              >
+                Close
+              </Button>
                 {(isSuperuser || (isMarketingManager && selectedPromotion.created_by === adminProfile?.id)) && (
                   <>
                   <Button
                     variant="contained"
+                    size="small"
                     startIcon={<EditIcon />}
-                      onClick={() => {
-                        setShowDetailsModal(false);
-                        handleEdit(selectedPromotion);
-                      }}
-                    >
+                    onClick={() => {
+                      setShowDetailsModal(false);
+                      handleEdit(selectedPromotion);
+                    }}
+                    sx={{
+                      borderRadius: 1,
+                      textTransform: 'none',
+                      px: 2,
+                      py: 0.75,
+                    }}
+                  >
                     Edit
                   </Button>
                   <Button
                     variant="outlined"
+                    size="small"
                     color="error"
                     startIcon={<DeleteIcon />}
-                      onClick={() => {
-                        setShowDetailsModal(false);
-                        handleDelete(selectedPromotion);
-                      }}
-                    >
+                    onClick={() => {
+                      setShowDetailsModal(false);
+                      handleDelete(selectedPromotion);
+                    }}
+                    sx={{
+                      borderRadius: 1,
+                      textTransform: 'none',
+                      px: 2,
+                      py: 0.75,
+                    }}
+                  >
                     Delete
                   </Button>
                   </>
@@ -888,11 +976,32 @@ export const PromotionsPage: React.FC = () => {
             Are you sure you want to delete the promotion "{deleteConfirmPromotion?.title}"? This action cannot be undone.
           </Typography>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteConfirmPromotion(null)} color="primary">
+        <DialogActions sx={{ gap: 1, px: 2, pb: 2 }}>
+          <Button 
+            onClick={() => setDeleteConfirmPromotion(null)} 
+            color="primary"
+            size="small"
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none',
+              px: 2,
+              py: 0.75,
+            }}
+          >
             Cancel
           </Button>
-          <Button onClick={handleConfirmDelete} color="error" disabled={deleteMutation.isPending}>
+          <Button 
+            onClick={handleConfirmDelete} 
+            color="error" 
+            disabled={deleteMutation.isPending}
+            size="small"
+            sx={{
+              borderRadius: 1,
+              textTransform: 'none',
+              px: 2,
+              py: 0.75,
+            }}
+          >
             {deleteMutation.isPending ? <CircularProgress size={24} /> : 'Delete'}
           </Button>
         </DialogActions>
