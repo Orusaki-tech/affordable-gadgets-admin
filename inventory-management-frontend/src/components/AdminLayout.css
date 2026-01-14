@@ -189,6 +189,27 @@
   flex: 1;
   padding: var(--spacing-md) 0;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* Allow flex item to shrink and enable scrolling */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* Custom scrollbar for sidebar navigation */
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: var(--md-outline-variant);
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--md-outline);
 }
 
 .sidebar-nav a {
@@ -281,7 +302,7 @@
   transition: all var(--transition-base);
   width: calc(100% - var(--spacing-lg));
   font-size: var(--font-size-14);
-  flex-shrink: 0;
+  flex-shrink: 0; /* Keep logout button fixed at bottom */
 }
 
 .logout-button:hover {
