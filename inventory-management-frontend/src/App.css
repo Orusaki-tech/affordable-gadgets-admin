@@ -4995,7 +4995,7 @@ p, body {
   max-width: 100%;
   box-sizing: border-box;
   align-items: start;
-  overflow: hidden;
+  overflow: visible; /* Changed from 'hidden' to 'visible' - let parent handle scrolling */
   padding: var(--spacing-xs) 0;
 }
 
@@ -5390,6 +5390,7 @@ p, body {
   margin-bottom: clamp(var(--spacing-lg), 3vw, var(--spacing-xl));
   width: 100%;
   box-sizing: border-box;
+  overflow: visible; /* Ensure no scrolling here */
 }
 
 @media (min-width: 640px) {

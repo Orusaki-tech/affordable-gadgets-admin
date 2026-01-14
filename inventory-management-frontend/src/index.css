@@ -381,6 +381,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color var(--transition-slow), color var(--transition-slow);
+  height: 100%;
+  overflow: hidden; /* Prevent body scrolling - let .main-content handle it */
 }
 
 code {
@@ -389,6 +391,8 @@ code {
 
 html {
   scroll-behavior: smooth;
+  height: 100%;
+  overflow: hidden; /* Prevent body scrolling */
 }
 
 *:focus-visible {
@@ -400,4 +404,9 @@ html {
 [data-theme="high-contrast"] *:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 3px;
+}
+
+#root {
+  height: 100%;
+  overflow: hidden; /* Prevent root element scrolling */
 }
