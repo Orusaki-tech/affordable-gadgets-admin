@@ -141,6 +141,14 @@ export const PromotionsPage: React.FC = () => {
     if (!data?.results) return [];
     let filtered = data.results;
     
+    // #region agent log
+    if (data.results && data.results.length > 0) {
+      data.results.forEach((promo: any, idx: number) => {
+        fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionsPage.tsx:140',message:'Promotion image data from API',data:{promotionId:promo.id,title:promo.title,banner_image:promo.banner_image,banner_image_url:promo.banner_image_url,bannerImageType:typeof promo.banner_image,bannerImageUrlType:typeof promo.banner_image_url,hasBannerImage:!!promo.banner_image,hasBannerImageUrl:!!promo.banner_image_url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      });
+    }
+    // #endregion
+    
     // Filter by brand
     if (filters.brand) {
       const brandId = parseInt(filters.brand);
@@ -764,6 +772,14 @@ export const PromotionsPage: React.FC = () => {
                       image={selectedPromotion.banner_image}
                       alt={selectedPromotion.title}
                       sx={{ objectFit: 'cover' }}
+                      // #region agent log
+                      onError={(e: any) => {
+                        fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionsPage.tsx:764',message:'Detail modal image load error',data:{promotionId:selectedPromotion.id,title:selectedPromotion.title,banner_image:selectedPromotion.banner_image,banner_image_url:selectedPromotion.banner_image_url,imageSrc:selectedPromotion.banner_image},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                      }}
+                      onLoad={() => {
+                        fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionsPage.tsx:764',message:'Detail modal image loaded successfully',data:{promotionId:selectedPromotion.id,banner_image:selectedPromotion.banner_image},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                      }}
+                      // #endregion
                     />
                   </Box>
                 )}
