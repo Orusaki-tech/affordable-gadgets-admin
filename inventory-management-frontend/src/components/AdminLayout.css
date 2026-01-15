@@ -66,11 +66,11 @@
   position: fixed;
   top: 0;
   left: 0;
-  height: 100vh;
+  /* Remove height constraint - allow sidebar to grow naturally */
   z-index: 1000;
   transform: translateX(-100%);
   transition: transform var(--transition-slow);
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden - allow content to flow */
   box-shadow: var(--shadow-lg);
   border-right: 1px solid var(--md-outline-variant);
 }
@@ -321,35 +321,36 @@
 }
 
 .main-content {
-  flex: 1;
-  width: 100%;
-  max-width: 100%;
-  margin-left: 0;
-  padding: var(--spacing-lg) var(--spacing-md);
-  background-color: var(--md-background);
-  overflow-y: auto;
-  overflow-x: hidden;
-  height: 100vh;
-  max-height: 100vh;
-  padding-top: 5rem;
-  margin-top: 0;
-  box-sizing: border-box;
-  position: relative;
-  display: flex;
-  flex-direction: column;
   -webkit-overflow-scrolling: touch;
+  background-color: var(--md-background);
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1;
+  flex-direction: column;
+  height: 100vh;
+  margin-left: 0;
+  margin-top: 0;
+  max-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: var(--spacing-lg) var(--spacing-md);
+  padding-top: 5rem;
+  position: relative;
+  width: 100%;
 }
 
 .main-header {
   background-color: var(--md-surface);
-  padding: var(--spacing-md);
   border-bottom: 1px solid var(--md-outline-variant);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
   box-shadow: var(--shadow-sm);
   margin-bottom: var(--spacing-md);
+  padding: var(--spacing-md);
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
   z-index: 100;
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .header-content {
@@ -369,18 +370,21 @@
 }
 
 .content-wrapper {
-  flex: 1;
-  padding: var(--spacing-md) 0;
+  display: flex;
+  flex: 1 1; /* Match production exactly */
+  flex-direction: column;
   min-height: 0;
   overflow: visible;
-  display: flex;
-  flex-direction: column;
+  padding: var(--spacing-md) 0;
 }
 
 /* Tablet - 768px and up */
 @media (min-width: 768px) {
   .admin-layout {
     flex-direction: row;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden; /* Prevent admin-layout from scrolling */
   }
 
   .sidebar {
@@ -399,20 +403,20 @@
   }
 
   .main-content {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1 1;
+    flex-direction: column;
+    height: 100vh;
     margin-left: 0;
-    padding-top: var(--spacing-lg);
-    padding-left: var(--spacing-lg);
-    padding-right: var(--spacing-lg);
-    flex: 1;
-    width: auto;
+    max-height: 100vh;
     min-width: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    box-sizing: border-box;
-    height: 100vh;
-    max-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    padding-left: var(--spacing-lg);
+    padding-right: var(--spacing-lg);
+    padding-top: var(--spacing-lg);
+    width: auto;
   }
 
   .page-title {
@@ -420,12 +424,12 @@
   }
 
   .main-header {
+    margin: calc(var(--spacing-lg) * -1) calc(var(--spacing-lg) * -1) var(--spacing-lg) calc(var(--spacing-lg) * -1);
     padding: var(--spacing-lg) var(--spacing-xl);
-    margin: calc(-1 * var(--spacing-lg)) calc(-1 * var(--spacing-lg)) var(--spacing-lg) calc(-1 * var(--spacing-lg));
     position: relative;
   }
 
-  .content-wrapper {
+  .content-wrapper, .sidebar-header {
     padding: var(--spacing-lg);
   }
 
@@ -451,28 +455,4 @@
   }
 }
 
-/* Desktop - 1024px and up */
-@media (min-width: 1024px) {
-  .sidebar {
-    width: 280px;
-    max-width: 280px;
-    height: 100vh; /* Keep fixed height for flex scrolling to work */
-    max-height: 100vh; /* Ensure it doesn't exceed viewport */
-  }
-
-  .main-content {
-    flex: 1;
-    width: auto;
-    min-width: 0;
-    padding-left: var(--spacing-xl);
-    padding-right: var(--spacing-xl);
-    overflow-x: hidden;
-    overflow-y: auto;
-    box-sizing: border-box;
-    height: 100vh;
-    max-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-}
 

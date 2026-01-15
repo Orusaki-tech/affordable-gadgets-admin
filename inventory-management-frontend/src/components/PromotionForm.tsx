@@ -4,7 +4,6 @@ import {
   PromotionsService,
   Promotion,
   Brand,
-  BrandsService,
 } from '../api/index';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
@@ -27,17 +26,12 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
   // Use preSelectedProductIds if provided and no existing promotion, otherwise use promotion products
   const initialProductIds = promotion?.products || preSelectedProductIds;
   
-  // Fetch brands directly from API (works for global admins too)
-  const { data: brandsData, isLoading: brandsLoading, error: brandsError } = useQuery({
-    queryKey: ['brands'],
-    queryFn: () => BrandsService.brandsList(1),
-  });
-
-  // Extract brands from paginated response
+  // Use admin's brands - only show brands the admin is associated with
+  // Extract brands from adminBrands prop (already filtered by backend)
   const availableBrands = useMemo(() => {
-    if (!brandsData?.results) return [];
-    return brandsData.results.filter((b: Brand) => b.is_active !== false);
-  }, [brandsData]);
+    // Filter to only active brands
+    return adminBrands.filter((b: Brand) => b.is_active !== false);
+  }, [adminBrands]);
 
   const [formData, setFormData] = useState({
     brand: promotion?.brand || '',
@@ -57,16 +51,6 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     carousel_position: (promotion as any)?.carousel_position || null as number | null,
   });
 
-  // Auto-select brand if only one is available (and not editing existing promotion)
-  useEffect(() => {
-    if (!promotion && availableBrands.length === 1 && !formData.brand) {
-      setFormData(prev => ({
-        ...prev,
-        brand: availableBrands[0].id?.toString() || '',
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [availableBrands, promotion]);
 
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(
     new Set(initialProductIds)
@@ -506,17 +490,25 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             <label htmlFor="brand">
               Brand <span className="required">*</span>
             </label>
-            {brandsLoading ? (
-              <div style={{ padding: '8px', color: '#666', fontSize: '14px' }}>
-                Loading brands...
+            {availableBrands.length === 0 ? (
+              <div style={{ padding: '12px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px', fontSize: '14px', color: '#856404' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>⚠️ No brands available</div>
+                <div>
+                  {adminBrands.length === 0 ? (
+                    <>You are not associated with any brands. Please contact an administrator to assign you to a brand.</>
+                  ) : (
+                    <>No active brands found. Please contact an administrator to activate a brand.</>
+                  )}
+                </div>
               </div>
-            ) : brandsError ? (
-              <div style={{ padding: '8px', color: '#d32f2f', fontSize: '14px' }}>
-                Failed to load brands. Please refresh the page.
-              </div>
-            ) : availableBrands.length === 0 ? (
-              <div style={{ padding: '8px', color: '#d32f2f', fontSize: '14px' }}>
-                No brands available. Please contact an administrator to create a brand.
+            ) : availableBrands.length === 1 ? (
+              <div style={{ padding: '8px', backgroundColor: '#e8f5e9', border: '1px solid #4caf50', borderRadius: '4px', fontSize: '14px' }}>
+                <strong>Brand:</strong> {availableBrands[0].name || availableBrands[0].code}
+                <input
+                  type="hidden"
+                  id="brand"
+                  value={formData.brand || availableBrands[0].id?.toString() || ''}
+                />
               </div>
             ) : (
               <select
@@ -524,7 +516,8 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
                 value={formData.brand}
                 onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
                 required
-                disabled={isLoading || availableBrands.length === 1}
+                disabled={isLoading}
+                style={{ width: '100%', padding: '8px', fontSize: '14px' }}
               >
                 <option value="">Select Brand</option>
                 {availableBrands.map((brand) => (

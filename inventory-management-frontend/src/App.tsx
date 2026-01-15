@@ -32,6 +32,7 @@ import { AuditLogsPage } from './pages/AuditLogsPage';
 import { ProductAnalyticsPage } from './pages/ProductAnalyticsPage';
 import { ContentCreatorDashboard } from './pages/ContentCreatorDashboard';
 import { PromotionsPage } from './pages/PromotionsPage';
+import { BrandsPage } from './pages/BrandsPage';
 
 // Material UI Theme Wrapper Component
 const AppWithMUITheme: React.FC = () => {
@@ -123,6 +124,7 @@ const AppWithMUITheme: React.FC = () => {
           <Route path="audit-logs" element={<AuditLogsPage />} />
           <Route path="product-analytics" element={<ProductAnalyticsPage />} />
           <Route path="promotions" element={<PromotionsPage />} />
+          <Route path="brands" element={<BrandsPage />} />
         </Route>
       </Routes>
     </MUIThemeProvider>

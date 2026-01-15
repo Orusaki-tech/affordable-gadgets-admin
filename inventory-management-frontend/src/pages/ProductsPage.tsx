@@ -1265,17 +1265,19 @@ export const ProductsPage: React.FC = () => {
                 <div className="product-card-content">
                   <div className="product-card-header">
                   <h3 className="product-card-name">{product.product_name || 'Unnamed Product'}</h3>
-                    {stockSummary && (
-                      <div className="product-stock-info">
-                        <span className="stock-count">{stockSummary.available_stock || 0} available</span>
-                        {stockSummary.min_price && stockSummary.max_price && stockSummary.min_price === stockSummary.max_price && (
-                          <span className="stock-price">KES {stockSummary.min_price.toLocaleString()}</span>
-                        )}
-                        {stockSummary.min_price && stockSummary.max_price && stockSummary.min_price !== stockSummary.max_price && (
-                          <span className="stock-price">KES {stockSummary.min_price.toLocaleString()} - {stockSummary.max_price.toLocaleString()}</span>
-                        )}
-                      </div>
-                    )}
+                    <div className={`product-stock-info ${!stockSummary ? 'product-stock-info-empty' : ''}`}>
+                      {stockSummary && (
+                        <>
+                          <span className="stock-count">{stockSummary.available_stock || 0} available</span>
+                          {stockSummary.min_price != null && stockSummary.max_price != null && stockSummary.min_price > 0 && stockSummary.max_price > 0 && stockSummary.min_price === stockSummary.max_price && (
+                            <span className="stock-price">KES {stockSummary.min_price.toLocaleString()}</span>
+                          )}
+                          {stockSummary.min_price != null && stockSummary.max_price != null && stockSummary.min_price > 0 && stockSummary.max_price > 0 && stockSummary.min_price !== stockSummary.max_price && (
+                            <span className="stock-price">KES {stockSummary.min_price.toLocaleString()} - {stockSummary.max_price.toLocaleString()}</span>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                   <div className="product-card-details">
                     <div className="product-card-detail-item">

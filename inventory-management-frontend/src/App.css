@@ -548,8 +548,11 @@ p, body {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: var(--spacing-sm);
+  gap: 8px;
   width: 100%;
+  min-height: 75px;
+  box-sizing: border-box;
+  position: relative;
 }
 
 .product-card-title-section {
@@ -824,6 +827,32 @@ p, body {
   .product-card-header {
     flex-direction: column;
     align-items: flex-start;
+    /* Maintain fixed height and prevent overflow at all screen sizes */
+    min-height: 75px;
+    max-height: 75px;
+    height: 75px;
+    overflow: hidden;
+    flex-grow: 0;
+    flex-basis: 75px;
+  }
+  
+  .product-card-name {
+    /* Maintain constraints at all screen sizes */
+    max-height: calc(1.4em * 2 + 4px);
+    overflow: hidden;
+    flex-shrink: 1;
+    flex-grow: 0;
+    min-height: 0;
+  }
+  
+  .product-stock-info {
+    /* Maintain fixed height at all screen sizes */
+    min-height: 32px;
+    max-height: 32px;
+    height: 32px;
+    overflow: hidden;
+    flex-grow: 0;
+    flex-basis: 32px;
   }
   
   .product-card-meta {
@@ -1012,57 +1041,6 @@ p, body {
   }
 }
 
-/* Notification cards on notifications page should match modal styling */
-.notifications-page .notification-card,
-.notifications-list-container .notification-card {
-  aspect-ratio: auto;
-  height: auto;
-  min-height: auto;
-  margin-bottom: var(--spacing-md);
-}
-
-/* Responsive styles for notification cards on page (matching modal) */
-@media (max-width: 640px) {
-  .notifications-page .notification-card,
-  .notifications-list-container .notification-card {
-    padding: var(--spacing-sm) var(--spacing-md);
-    margin-bottom: var(--spacing-sm);
-  }
-  
-  .notifications-page .notification-card-header,
-  .notifications-list-container .notification-card-header {
-    margin-bottom: var(--spacing-xs);
-    padding-bottom: var(--spacing-xs);
-    gap: var(--spacing-xs);
-  }
-  
-  .notifications-page .notification-card-icon,
-  .notifications-list-container .notification-card-icon {
-    width: 36px;
-    height: 36px;
-    font-size: var(--font-size-18);
-  }
-  
-  .notifications-page .notification-card-title,
-  .notifications-list-container .notification-card-title {
-    font-size: var(--font-size-14);
-    line-height: var(--line-height-20);
-  }
-  
-  .notifications-page .notification-card-message,
-  .notifications-list-container .notification-card-message {
-    font-size: var(--font-size-13);
-    line-height: var(--line-height-18);
-    margin-bottom: var(--spacing-xs);
-  }
-  
-  .notifications-page .notification-card-footer,
-  .notifications-list-container .notification-card-footer {
-    padding-top: var(--spacing-xs);
-    font-size: var(--font-size-11);
-    gap: var(--spacing-xs);
-  }
-}
 
 .acquisition-source-card,
 .color-card,
@@ -1318,14 +1296,6 @@ p, body {
   overflow: visible;
 }
 
-.notifications-page {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: var(--spacing-lg);
-  margin: 0;
-  overflow-x: hidden;
-}
 
 .search-filters-section {
   margin-bottom: var(--spacing-lg);
@@ -4510,6 +4480,8 @@ p, body {
 }
 
 /* ===== PRODUCT CARDS ===== */
+/* Product Card - Show all content, no scrollbar on card itself
+   Card grows to fit all content, parent handles scrolling */
 .product-card {
   background-color: var(--md-surface);
   border-radius: var(--radius-xl);
@@ -4519,17 +4491,18 @@ p, body {
   border: 1px solid var(--md-outline-variant);
   transition: box-shadow var(--transition-base), border-color var(--transition-base);
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* Keep clean boundaries, but card grows to show all content */
   display: flex;
   flex-direction: column;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: auto; /* Allow card to grow to fit content instead of fixed ratio */
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
-  max-height: none;
-  min-height: 450px;
+  max-height: none; /* No maximum height - card can grow to show all content */
+  min-height: 450px; /* Minimum height but can grow beyond this */
   width: 100%;
   flex-shrink: 1;
+  height: auto; /* Allow height to adjust to content */
 }
 
 .product-card:hover {
@@ -4538,10 +4511,61 @@ p, body {
   /* Remove transform to prevent content shifting/cutting */
 }
 
+.product-card:hover .product-card-content {
+  /* Ensure content maintains consistent padding on hover */
+  padding: 12px;
+  gap: 12px;
+}
+
+.product-card:hover .product-card-header {
+  /* Ensure header maintains consistent height and spacing on hover */
+  min-height: 75px;
+  max-height: 75px;
+  height: 75px;
+  gap: 4px;
+  overflow: hidden;
+  flex-grow: 0;
+  flex-basis: 75px;
+}
+
+.product-card:hover .product-card-name {
+  /* Ensure name maintains consistent font size and padding on hover */
+  font-size: var(--font-size-16);
+  padding-bottom: 4px;
+  max-height: calc(1.4em * 2 + 4px);
+  overflow: hidden;
+  flex-shrink: 1;
+  flex-grow: 0;
+  min-height: 0;
+}
+
+.product-card:hover .product-stock-info {
+  /* Ensure stock info maintains consistent spacing on hover */
+  gap: 4px;
+  margin-top: 0;
+  min-height: 32px;
+  max-height: 32px;
+  height: 32px;
+  overflow: hidden;
+  flex-grow: 0;
+  flex-basis: 32px;
+}
+
+.product-card:hover .stock-count {
+  /* Ensure stock count maintains consistent font size on hover */
+  font-size: var(--font-size-11);
+}
+
+.product-card:hover .stock-price {
+  /* Ensure stock price maintains consistent font size on hover */
+  font-size: var(--font-size-12);
+}
+
 .product-card:hover .product-card-details {
   /* Ensure details section doesn't shift on hover */
   transform: none;
   padding: 12px;
+  margin-top: 0;
 }
 
 .product-card:hover .product-card-detail-item {
@@ -4698,32 +4722,46 @@ p, body {
 }
 
 .product-card-content {
-  padding: clamp(var(--spacing-sm), 1.2vw, var(--spacing-md));
+  padding: 12px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: clamp(var(--spacing-sm), 1vw, var(--spacing-md));
+  gap: 12px;
   min-height: 0;
-  overflow: visible;
-  max-height: 100%;
+  overflow: visible; /* Show all content */
+  max-height: none; /* Remove height constraint - allow content to expand */
+  height: auto; /* Allow height to adjust to content */
   justify-content: space-between;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
 }
 
 /* Scrollbar styles removed - content should fit without scrolling */
 
+/* CRITICAL: product-card-header must maintain fixed 75px height at ALL screen sizes
+   to prevent overflow and maintain consistent layout. These constraints should NOT be overridden. */
 .product-card-header {
   display: flex;
   flex-direction: column;
-  gap: clamp(var(--spacing-xs), 0.8vw, var(--spacing-sm));
+  gap: 4px;
   margin-bottom: 0;
   flex-shrink: 0;
+  min-height: 75px;
+  max-height: 75px;
+  height: 75px;
+  justify-content: flex-start;
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Force consistent sizing - prevent any expansion */
+  flex-grow: 0;
+  flex-basis: 75px;
 }
 
 .product-card-name {
   font-family: var(--font-heading);
-  font-size: clamp(var(--font-size-14), 1.2vw, var(--font-size-16));
+  font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
   color: var(--md-on-surface);
   margin: 0;
@@ -4733,43 +4771,70 @@ p, body {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-bottom: clamp(var(--spacing-xs), 0.6vw, var(--spacing-sm));
+  padding-bottom: 4px;
+  box-sizing: border-box;
+  flex-shrink: 1;
+  flex-grow: 0;
+  max-height: calc(1.4em * 2 + 4px); /* 2 lines max with padding */
+  min-height: 0;
 }
 
 .product-stock-info {
   display: flex;
   flex-direction: column;
-  gap: clamp(2px, 0.4vw, var(--spacing-xs));
-  margin-top: clamp(var(--spacing-xs), 0.6vw, var(--spacing-sm));
+  gap: 4px;
+  margin-top: 0;
   flex-shrink: 0;
+  flex-grow: 0;
+  flex-basis: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  height: 32px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.product-stock-info-empty {
+  /* Maintain space even when empty to keep brand/model at consistent position */
+  min-height: 32px;
+  visibility: hidden;
 }
 
 .stock-count {
   font-family: var(--font-body);
-  font-size: clamp(var(--font-size-10), 0.85vw, var(--font-size-11));
+  font-size: var(--font-size-11);
   font-weight: var(--font-weight-regular);
   color: var(--md-on-surface-variant);
   line-height: 1.4;
-  white-space: normal;
+  white-space: nowrap;
   word-spacing: 0.05em;
   letter-spacing: 0.01em;
   margin-top: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .stock-price {
   font-family: var(--font-body);
-  font-size: clamp(var(--font-size-11), 0.9vw, var(--font-size-12));
+  font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
   color: var(--md-primary);
   line-height: 1.4;
   margin-top: 0;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 .product-card-details {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-top: clamp(var(--spacing-sm), 0.8vw, var(--spacing-md));
+  margin-top: 0;
   padding: 12px;
   background-color: var(--md-surface-container-low);
   border-radius: var(--radius-md);
@@ -5028,6 +5093,9 @@ p, body {
 }
 
 /* ===== PRODUCT GRID ===== */
+/* Products Grid - No horizontal scroll, vertical scrolling handled by parent
+   This ensures the grid doesn't create its own scrollbar
+   Grid can grow to show full card height - no height constraints */
 .products-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -5036,25 +5104,30 @@ p, body {
   max-width: 100%;
   box-sizing: border-box;
   align-items: start;
-  overflow: visible; /* Changed from 'hidden' to 'visible' - let parent handle scrolling */
+  overflow-x: hidden; /* Prevent horizontal overflow */
+  overflow-y: visible; /* Allow vertical scrolling to be handled by parent */
   padding: var(--spacing-xs) 0;
+  min-width: 0; /* Allow grid to shrink below content size */
+  min-height: 0; /* Allow grid to shrink */
+  max-height: none; /* No max height - can show full cards */
+  height: auto; /* Grow to fit content */
 }
 
 @media (min-width: 640px) {
   .products-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   }
 }
 
 @media (min-width: 1024px) {
   .products-grid {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
 
 @media (min-width: 1280px) {
   .products-grid {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   }
 }
 
@@ -6563,23 +6636,22 @@ p, body {
   max-width: 500px;
 }
 
-/* ===== PAGE LAYOUTS ===== */
-.reservation-requests-page,
-.return-requests-page,
-.orders-page,
-.products-page,
-.units-page,
-.product-units-page {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-  overflow: visible; /* No scrolling here - parent handles it */
-  min-height: 0; /* Allow flex shrinking */
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+
+/* Medium desktop/tablet landscape (768px - 1024px) - Ensure full card visibility */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .products-page {
+    /* Ensure page can grow to show at least one full row of cards */
+    min-height: 0; /* Allow flex shrinking */
+    height: auto; /* Allow height to grow */
+    overflow-y: visible; /* No scrollbar - browser window handles scrolling */
+  }
+  
+  .products-grid {
+    /* Ensure grid can show full card height */
+    min-height: 0;
+    max-height: none;
+    height: auto;
+  }
 }
 
 .toast {
@@ -8416,14 +8488,6 @@ p, body {
 }
 
 /* ===== ACQUISITION SOURCES PAGE - MATERIAL UI CARD STYLING ===== */
-.acquisition-sources-page {
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-  overflow-x: hidden;
-}
 
 .sources-grid {
   display: grid;
@@ -8755,7 +8819,86 @@ p, body {
 .role-card-wrapper {
   position: relative;
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--md-surface-container-low);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--md-outline-variant);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.role-card-wrapper:hover {
+  background-color: var(--md-surface-container);
+  border-color: var(--md-outline);
+  box-shadow: var(--shadow-lg);
+}
+
+.role-card-wrapper.role-card-wrapper-selected {
+  background-color: var(--md-surface-container-high);
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 2px var(--md-primary-container), var(--shadow-lg);
+}
+
+.role-card-wrapper.role-card-wrapper-disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Admin avatar circle in role card */
+.role-card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--md-on-surface);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
+}
+
+.role-card-wrapper-selected .role-card-avatar {
+  background-color: var(--md-primary-container);
+  border-color: var(--md-primary);
+  color: var(--md-on-primary-container);
+}
+
+/* Admin email text in role card */
+.role-card-email {
+  font-size: var(--font-size-14);
+  color: var(--md-on-surface-variant);
+  margin-top: var(--spacing-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.role-card-wrapper-selected .role-card-email {
+  color: var(--md-on-surface-variant);
+  opacity: 0.9;
+}
+
+/* Global admin badge */
+.role-card-global-badge {
+  font-size: var(--font-size-12);
+  color: var(--md-on-surface-variant);
+  font-weight: var(--font-weight-medium);
+  background-color: var(--md-surface-container);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-outline-variant);
+}
+
+.role-card-wrapper-selected .role-card-global-badge {
+  background-color: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  border-color: var(--md-outline);
 }
 
 /* Hide default checkbox */
@@ -8767,39 +8910,35 @@ p, body {
   pointer-events: none;
 }
 
-/* Role Card Styling */
+/* Role Card Styling - Inside wrapper, no border/background as wrapper handles it */
 .role-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-md) var(--spacing-lg);
-  background-color: var(--md-surface-container-low);
-  border: 2px solid var(--md-outline-variant);
-  border-radius: var(--radius-lg);
+  padding: 0;
+  background-color: transparent;
+  border: none;
   cursor: pointer;
   transition: all var(--transition-base);
   width: 100%;
-  min-height: 60px;
   gap: var(--spacing-sm);
   user-select: none;
+  flex: 1;
 }
 
 .role-card:hover {
-  background-color: var(--md-surface-container);
-  border-color: var(--md-outline);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  background-color: transparent;
 }
 
 /* Selected State */
 .role-card-selected {
-  background-color: var(--md-primary-container);
-  border-color: var(--md-primary);
-  color: var(--md-on-primary-container);
+  background-color: transparent;
+  border: none;
+  color: var(--md-on-surface);
 }
 
 .role-card-selected .role-card-name {
-  color: var(--md-on-primary-container);
+  color: var(--md-on-surface);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -8821,13 +8960,14 @@ p, body {
   justify-content: center;
   width: 24px;
   height: 24px;
-  background-color: var(--md-primary);
-  color: var(--md-on-primary);
+  background-color: var(--md-surface-container-high);
+  color: var(--md-on-surface);
   border-radius: 50%;
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-bold);
   flex-shrink: 0;
   line-height: 1;
+  border: 1px solid var(--md-outline-variant);
 }
 
 /* Selection Counter */

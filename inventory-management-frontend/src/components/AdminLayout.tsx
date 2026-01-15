@@ -521,6 +521,9 @@ export const AdminLayout: React.FC = () => {
 
               {/* Administration */}
               <div className="nav-section-header">Administration</div>
+              <Link to="/brands" className={isActive('/brands')} onClick={() => setSidebarOpen(false)}>
+                Brands
+              </Link>
               <Link to="/admins" className={isActive('/admins')} onClick={() => setSidebarOpen(false)}>
                 Admins
               </Link>
