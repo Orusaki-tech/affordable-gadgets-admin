@@ -33,8 +33,23 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     return adminBrands.filter((b: Brand) => b.is_active !== false);
   }, [adminBrands]);
 
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:35',message:'availableBrands computed',data:{availableBrandsCount:availableBrands.length,availableBrands:availableBrands.map(b=>({id:b.id,name:b.name,code:b.code})),adminBrandsCount:adminBrands.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  }, [availableBrands, adminBrands]);
+  // #endregion
+
+  // Compute initial brand value - use promotion brand if exists, otherwise use single available brand
+  const initialBrand = useMemo(() => {
+    if (promotion?.brand) return promotion.brand;
+    if (availableBrands.length === 1 && availableBrands[0]?.id) {
+      return availableBrands[0].id;
+    }
+    return '';
+  }, [promotion?.brand, availableBrands]);
+
   const [formData, setFormData] = useState({
-    brand: promotion?.brand || '',
+    brand: initialBrand,
     promotion_type: (promotion as any)?.promotion_type || '',
     promotion_code: (promotion as any)?.promotion_code || '',
     title: promotion?.title || '',
@@ -50,6 +65,12 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     display_locations: (promotion as any)?.display_locations || [] as string[],
     carousel_position: (promotion as any)?.carousel_position || null as number | null,
   });
+
+  // #region agent log
+  useEffect(() => {
+    fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:53',message:'formData.brand initial state',data:{brand:formData.brand,brandType:typeof formData.brand,promotionBrand:promotion?.brand,availableBrandsCount:availableBrands.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+  }, []);
+  // #endregion
 
 
   const [selectedProductIds, setSelectedProductIds] = useState<Set<number>>(
@@ -74,6 +95,20 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       });
     }
   }, [formData.product_types, errors.products]);
+
+  // Auto-set brand when there's only one available brand
+  useEffect(() => {
+    if (availableBrands.length === 1 && availableBrands[0]?.id) {
+      const singleBrandId = availableBrands[0].id;
+      // Only set if brand is not already set or is different
+      if (!formData.brand || formData.brand !== singleBrandId) {
+        // #region agent log
+        fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:90',message:'Auto-setting brand to single available brand',data:{singleBrandId,previousBrand:formData.brand},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        setFormData(prev => ({ ...prev, brand: singleBrandId }));
+      }
+    }
+  }, [availableBrands, formData.brand]);
 
   // Fetch promotion types
   const { data: promotionTypesData } = useQuery({
@@ -355,6 +390,10 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     e.preventDefault();
     setErrors({});
 
+    // #region agent log
+    fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:354',message:'handleSubmit called - brand validation check',data:{formDataBrand:formData.brand,brandType:typeof formData.brand,brandTruthy:!!formData.brand,availableBrandsCount:availableBrands.length,firstBrandId:availableBrands[0]?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+
     // Validation
     const validationErrors: Record<string, string> = {};
 
@@ -363,6 +402,9 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     }
 
     if (!formData.brand) {
+      // #region agent log
+      fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:365',message:'Brand validation failed',data:{formDataBrand:formData.brand,brandType:typeof formData.brand},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       validationErrors.brand = 'Brand is required';
     }
 
@@ -417,7 +459,14 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       ? formData.brand 
       : (formData.brand ? parseInt(formData.brand) : null);
     
+    // #region agent log
+    fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:416',message:'Brand ID parsing',data:{formDataBrand:formData.brand,brandType:typeof formData.brand,parsedBrandId:brandId,isNaN:isNaN(parseInt(String(formData.brand)))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
     if (!brandId) {
+      // #region agent log
+      fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:420',message:'Brand ID parsing failed - setting error',data:{formDataBrand:formData.brand,parsedBrandId:brandId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       setErrors({ brand: 'Brand is required' });
       return;
     }
@@ -508,7 +557,18 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
                   type="hidden"
                   id="brand"
                   value={formData.brand || availableBrands[0].id?.toString() || ''}
+                  // #region agent log
+                  onChange={(e) => {
+                    fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:510',message:'Hidden input onChange (should not fire)',data:{value:e.target.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+                  }}
+                  // #endregion
                 />
+                {/* #region agent log */}
+                {(() => {
+                  fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:515',message:'Single brand render - checking state',data:{formDataBrand:formData.brand,firstBrandId:availableBrands[0]?.id,hiddenInputValue:formData.brand || availableBrands[0].id?.toString() || ''},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                  return null;
+                })()}
+                {/* #endregion */}
               </div>
             ) : (
               <select
