@@ -152,7 +152,7 @@ export const ReviewsPage: React.FC = () => {
         const token = localStorage.getItem('auth_token');
         const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
         const response = await fetch(`${baseUrl}/reviews/${editingReview.id}/`, {
-          method: 'PUT',
+          method: 'PATCH',
           headers: {
             'Authorization': `Token ${token}`,
           },
@@ -552,12 +552,47 @@ export const ReviewsPage: React.FC = () => {
                       <Divider />
 
                       {/* Product Name */}
+                      {/* Review Photo */}
+                      {review.review_image_url && (
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                            Photo
+                          </Typography>
+                          <Box
+                            sx={{
+                              mt: 0.5,
+                              borderRadius: 1,
+                              overflow: 'hidden',
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <img
+                              src={review.review_image_url}
+                              alt={review.product_name || 'Review photo'}
+                              style={{ width: '100%', height: '140px', objectFit: 'cover', display: 'block' }}
+                            />
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Product Name */}
                       <Box>
                         <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
                           Product
                         </Typography>
                         <Typography variant="body2" sx={{ fontSize: '0.875rem', fontWeight: 500, wordBreak: 'break-word' }}>
                           {review.product_name || '-'}
+                        </Typography>
+                      </Box>
+
+                      {/* Product Condition */}
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                          Condition
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {review.product_condition || '-'}
                         </Typography>
                       </Box>
 
@@ -627,6 +662,22 @@ export const ReviewsPage: React.FC = () => {
                                 month: 'short', 
                                 day: 'numeric', 
                                 year: 'numeric' 
+                              })
+                            : '-'}
+                        </Typography>
+                      </Box>
+
+                      {/* Purchase Date */}
+                      <Box>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                          Purchase Date
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {review.purchase_date
+                            ? new Date(review.purchase_date).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
                               })
                             : '-'}
                         </Typography>
@@ -864,10 +915,15 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
     rating: 5,
     comment: '',
     video_url: '',
+    product_condition: '',
+    purchase_date: '',
   });
   const [videoInputType, setVideoInputType] = useState<'file' | 'url'>('url');
   const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [imagePreviewIsObjectUrl, setImagePreviewIsObjectUrl] = useState(false);
   
   // Product search state
   const [productSearchTerm, setProductSearchTerm] = useState('');
@@ -935,13 +991,28 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
         rating: review.rating || 5,
         comment: review.comment || '',
         video_url: review.video_url || '',
+        product_condition: review.product_condition || '',
+        purchase_date: review.purchase_date || '',
       });
       setVideoInputType(review.video_file_url ? 'file' : 'url');
+      setSelectedImageFile(null);
+      setImagePreviewUrl(review.review_image_url || null);
+      setImagePreviewIsObjectUrl(false);
     } else {
-      setFormData({ product: undefined, rating: 5, comment: '', video_url: '' });
+      setFormData({
+        product: undefined,
+        rating: 5,
+        comment: '',
+        video_url: '',
+        product_condition: '',
+        purchase_date: '',
+      });
       setVideoInputType('url');
       setProductSearchTerm('');
       setSelectedProductDisplay('');
+      setSelectedImageFile(null);
+      setImagePreviewUrl(null);
+      setImagePreviewIsObjectUrl(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [review]);
@@ -955,6 +1026,14 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
     };
   }, [videoPreviewUrl]);
 
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl && imagePreviewIsObjectUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl, imagePreviewIsObjectUrl]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.product || !formData.rating) {
@@ -966,30 +1045,33 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
       return;
     }
 
-    // Create FormData for multipart upload if video file is selected
-    if (selectedVideoFile) {
-      const formDataToSend = new FormData();
-      formDataToSend.append('product', formData.product!.toString());
-      formDataToSend.append('rating', formData.rating!.toString());
-      if (formData.comment) {
-        formDataToSend.append('comment', formData.comment);
-      }
-      formDataToSend.append('video_file', selectedVideoFile);
-      onSuccess(formDataToSend);
-    } else if (formData.video_url) {
-      // Use FormData even for URL-only to maintain consistency
-      const formDataToSend = new FormData();
-      formDataToSend.append('product', formData.product!.toString());
-      formDataToSend.append('rating', formData.rating!.toString());
-      if (formData.comment) {
-        formDataToSend.append('comment', formData.comment);
-      }
-      formDataToSend.append('video_url', formData.video_url);
-      onSuccess(formDataToSend);
-    } else {
-      // No video, use regular JSON
-      onSuccess(formData as Review);
+    const formDataToSend = new FormData();
+    formDataToSend.append('product', formData.product!.toString());
+    formDataToSend.append('rating', formData.rating!.toString());
+
+    if (formData.comment) {
+      formDataToSend.append('comment', formData.comment);
     }
+
+    if (selectedVideoFile) {
+      formDataToSend.append('video_file', selectedVideoFile);
+    } else if (formData.video_url) {
+      formDataToSend.append('video_url', formData.video_url);
+    }
+
+    if (selectedImageFile) {
+      formDataToSend.append('review_image', selectedImageFile);
+    }
+
+    if (formData.product_condition) {
+      formDataToSend.append('product_condition', formData.product_condition);
+    }
+
+    if (formData.purchase_date) {
+      formDataToSend.append('purchase_date', formData.purchase_date);
+    }
+
+    onSuccess(formDataToSend);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1007,6 +1089,24 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
       setVideoPreviewUrl(previewUrl);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image file size must be less than 10MB');
+        e.target.value = '';
+        return;
+      }
+      if (imagePreviewUrl && imagePreviewIsObjectUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setSelectedImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviewUrl(previewUrl);
+      setImagePreviewIsObjectUrl(true);
     }
   };
 
@@ -1252,6 +1352,54 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
               disabled={isLoading}
               placeholder="Write your review comment..."
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="product_condition">Product Condition</label>
+            <input
+              id="product_condition"
+              type="text"
+              value={formData.product_condition || ''}
+              onChange={(e) => setFormData({ ...formData, product_condition: e.target.value })}
+              disabled={isLoading}
+              placeholder="e.g. New, Refurbished, Pre-owned"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="purchase_date">Purchase Date</label>
+            <input
+              id="purchase_date"
+              type="date"
+              value={formData.purchase_date || ''}
+              onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Review Photo</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
+              disabled={isLoading}
+            />
+            {imagePreviewUrl && (
+              <div className="file-selection-display">
+                <img
+                  src={imagePreviewUrl}
+                  alt="Review preview"
+                  style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }}
+                />
+                {selectedImageFile && (
+                  <p>Selected: {selectedImageFile.name}</p>
+                )}
+              </div>
+            )}
+            <small className="form-help">
+              Optional photo for the review card (max 10MB).
+            </small>
           </div>
           
           {/* Video Input Section */}

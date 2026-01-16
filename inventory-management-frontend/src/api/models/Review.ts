@@ -19,7 +19,14 @@ export type Review = {
      */
     video_url?: string | null;
     readonly video_file_url?: string;
+    /**
+     * Optional photo uploaded by the reviewer
+     */
+    review_image?: string | null;
+    readonly review_image_url?: string;
     readonly product_name?: string;
+    product_condition?: string | null;
+    purchase_date?: string | null;
     readonly customer?: number | null;
     readonly customer_username?: string;
     rating: RatingEnum;
