@@ -69,7 +69,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
   // #region agent log
   useEffect(() => {
     fetch('http://127.0.0.1:7247/ingest/9b5e4ea3-0114-40d6-8942-833733fd214b',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:53',message:'formData.brand initial state',data:{brand:formData.brand,brandType:typeof formData.brand,promotionBrand:promotion?.brand,availableBrandsCount:availableBrands.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-  }, []);
+  }, [availableBrands.length, formData.brand, promotion?.brand]);
   // #endregion
 
 

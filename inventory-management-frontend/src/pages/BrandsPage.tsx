@@ -4,7 +4,6 @@ import {
   BrandsService,
   Brand,
   BrandRequest,
-  ProfilesService,
 } from '../api/index';
 
 interface AdminRole {
