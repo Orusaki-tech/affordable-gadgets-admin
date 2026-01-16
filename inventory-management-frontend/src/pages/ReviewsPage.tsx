@@ -1343,15 +1343,35 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
             </select>
           </div>
           <div className="form-group">
-            <label htmlFor="comment">Comment</label>
-            <textarea
-              id="comment"
-              value={formData.comment || ''}
-              onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-              rows={4}
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Review Card Details</h3>
+            <small className="form-help">
+              These fields control the photo and metadata shown on the review card.
+            </small>
+          </div>
+
+          <div className="form-group">
+            <label>Review Photo</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageSelect}
               disabled={isLoading}
-              placeholder="Write your review comment..."
             />
+            {imagePreviewUrl && (
+              <div className="file-selection-display">
+                <img
+                  src={imagePreviewUrl}
+                  alt="Review preview"
+                  style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }}
+                />
+                {selectedImageFile && (
+                  <p>Selected: {selectedImageFile.name}</p>
+                )}
+              </div>
+            )}
+            <small className="form-help">
+              Optional photo for the review card (max 10MB).
+            </small>
           </div>
 
           <div className="form-group">
@@ -1378,28 +1398,15 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ review, products, onClose, onSu
           </div>
 
           <div className="form-group">
-            <label>Review Photo</label>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageSelect}
+            <label htmlFor="comment">Comment</label>
+            <textarea
+              id="comment"
+              value={formData.comment || ''}
+              onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+              rows={4}
               disabled={isLoading}
+              placeholder="Write your review comment..."
             />
-            {imagePreviewUrl && (
-              <div className="file-selection-display">
-                <img
-                  src={imagePreviewUrl}
-                  alt="Review preview"
-                  style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '8px' }}
-                />
-                {selectedImageFile && (
-                  <p>Selected: {selectedImageFile.name}</p>
-                )}
-              </div>
-            )}
-            <small className="form-help">
-              Optional photo for the review card (max 10MB).
-            </small>
           </div>
           
           {/* Video Input Section */}
