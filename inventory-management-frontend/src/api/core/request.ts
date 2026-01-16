@@ -101,7 +101,15 @@ const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
             return substring;
         });
 
-    const url = `${config.BASE}${path}`;
+    // Normalize BASE and path to prevent double slashes
+    let base = config.BASE || '';
+    // Remove trailing slashes from base
+    base = base.replace(/\/+$/, '');
+    // Ensure path starts with a single slash
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    
+    const url = `${base}${normalizedPath}`;
+    
     if (options.query) {
         return `${url}${getQueryString(options.query)}`;
     }

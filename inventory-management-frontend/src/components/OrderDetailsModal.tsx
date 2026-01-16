@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { OrdersService, type OrderResponse } from '../api/index';
+import { OrdersService, type OrderResponse, OpenAPI } from '../api/index';
 
 interface OrderDetailsModalProps {
   orderId: string;
@@ -26,6 +26,37 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
     if (statusLower.includes('cancelled') || statusLower.includes('canceled')) return 'status-cancelled';
     return '';
   };
+
+  const downloadReceipt = () => {
+    if (!orderId) return;
+    
+    // Get base URL from OpenAPI config
+    let baseUrl = OpenAPI.BASE || '';
+    
+    // If baseUrl is relative (starts with /), we need to construct the full URL
+    if (baseUrl.startsWith('/')) {
+      // Get the current origin (protocol + hostname + port)
+      const origin = window.location.origin;
+      // Remove leading slash from baseUrl and construct full URL
+      baseUrl = `${origin}${baseUrl}`;
+    }
+    
+    // Remove trailing slash if present
+    baseUrl = baseUrl.replace(/\/+$/, '');
+    
+    // Construct the receipt URL properly
+    // The base URL should already include /api/inventory, so we just need to add the path
+    // Ensure we don't have double slashes
+    const receiptPath = `/orders/${orderId}/receipt/?format=pdf`;
+    const receiptUrl = `${baseUrl}${receiptPath}`;
+    
+    // Open in new tab to download
+    window.open(receiptUrl, '_blank');
+  };
+
+  // Check if order is paid (receipts are only available for paid orders)
+  const isPaid = data?.status?.toLowerCase().includes('paid') || 
+                 data?.status_display?.toLowerCase().includes('paid');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -198,6 +229,32 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <p className="no-items">No items in this order</p>
                 )}
               </div>
+
+              {/* Receipt Download Button - Only show for paid orders */}
+              {isPaid && (
+                <div className="order-actions-section" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color, #e0e0e0)' }}>
+                  <button
+                    onClick={downloadReceipt}
+                    className="btn-action btn-primary"
+                    style={{ width: '100%' }}
+                  >
+                    <svg 
+                      style={{ width: '1rem', height: '1rem', marginRight: '0.5rem', display: 'inline-block', verticalAlign: 'middle' }}
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth={2} 
+                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" 
+                      />
+                    </svg>
+                    Download Receipt
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>

@@ -15,8 +15,15 @@ export default function PaymentSuccessPage() {
     if (!orderId) return;
     
     // Get API base URL from brand config
-    const apiBaseUrl = brandConfig.apiBaseUrl || 'http://localhost:8000';
+    let apiBaseUrl = brandConfig.apiBaseUrl || 'http://localhost:8000';
+    
+    // Remove trailing slash if present
+    apiBaseUrl = apiBaseUrl.replace(/\/+$/, '');
+    
+    // Construct the receipt URL properly, ensuring no double slashes
     const receiptUrl = `${apiBaseUrl}/api/inventory/orders/${orderId}/receipt/?format=pdf`;
+    
+    console.log('Downloading receipt from URL:', receiptUrl);
     
     // Open in new tab to download
     window.open(receiptUrl, '_blank');

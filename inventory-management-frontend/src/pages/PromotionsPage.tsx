@@ -74,13 +74,22 @@ export const PromotionsPage: React.FC = () => {
   });
 
   const hasRole = (roleName: string) => {
-    if (!adminProfile?.roles) return false;
-    return adminProfile.roles.some((role) => role.name === roleName || role.role_code === roleName);
+    if (!adminProfile?.roles || adminProfile.roles.length === 0) return false;
+    return adminProfile.roles.some((role: any) => {
+      // Check both name and role_code fields (name is the role code like 'MM', 'SP', etc.)
+      const roleCode = role.name || role.role_code;
+      const roleNameCheck = role.display_name || role.role_name;
+      // Check exact match for role code (e.g., 'MM') or case-insensitive match for display name
+      return roleCode === roleName || 
+             roleNameCheck?.toLowerCase() === roleName.toLowerCase() ||
+             roleNameCheck?.toLowerCase().includes(roleName.toLowerCase());
+    });
   };
 
   const isSuperuser = adminProfile?.user?.is_superuser === true;
+  const isGlobalAdmin = (adminProfile as any)?.is_global_admin === true;
   const isMarketingManager = hasRole('MM') && !isSuperuser;
-  const canCreatePromotions = isSuperuser || isMarketingManager;
+  const canCreatePromotions = isSuperuser || isGlobalAdmin || isMarketingManager;
 
   // Get admin's brands
   const adminBrands = useMemo(() => {
@@ -204,15 +213,7 @@ export const PromotionsPage: React.FC = () => {
   const handleDelete = (promotion: Promotion) => {
     if (!promotion.id) return;
     
-    // Marketing Managers can only delete their own promotions
-    if (isMarketingManager && !isSuperuser) {
-      const currentUserId = adminProfile?.id;
-      if (promotion.created_by !== currentUserId) {
-        setSnackbar({ open: true, message: 'You can only delete promotions you created.', severity: 'warning' });
-        return;
-      }
-    }
-    
+    // Marketing Managers now have full access - no restriction needed
     setDeleteConfirmPromotion(promotion);
   };
 
@@ -223,15 +224,7 @@ export const PromotionsPage: React.FC = () => {
   };
 
   const handleEdit = (promotion: Promotion) => {
-    // Marketing Managers can only edit their own promotions
-    if (isMarketingManager && !isSuperuser) {
-      const currentUserId = adminProfile?.id;
-      if (promotion.created_by !== currentUserId) {
-        setSnackbar({ open: true, message: 'You can only edit promotions you created.', severity: 'warning' });
-        return;
-      }
-    }
-    
+    // Marketing Managers now have full access - no restriction needed
     setEditingPromotion(promotion);
     setShowCreateModal(true);
   };
@@ -526,7 +519,8 @@ export const PromotionsPage: React.FC = () => {
       ) : (
         <Grid container spacing={2}>
           {filteredPromotions.map((promotion) => {
-            const canEdit = isSuperuser || (isMarketingManager && promotion.created_by === adminProfile?.id);
+            // Superusers, Global Admins, and Marketing Managers can edit/delete all promotions (full access)
+            const canEdit = isSuperuser || isGlobalAdmin || isMarketingManager;
             return (
               <Grid item xs={12} sm={6} md={4} key={promotion.id}>
                 <Card
@@ -935,8 +929,9 @@ export const PromotionsPage: React.FC = () => {
               >
                 Close
               </Button>
-                {(isSuperuser || (isMarketingManager && selectedPromotion.created_by === adminProfile?.id)) && (
-                  <>
+              {/* Superusers, Global Admins, and Marketing Managers can edit/delete all promotions (full access) */}
+              {(isSuperuser || isGlobalAdmin || isMarketingManager) && (
+                <>
                   <Button
                     variant="contained"
                     size="small"
@@ -972,8 +967,8 @@ export const PromotionsPage: React.FC = () => {
                   >
                     Delete
                   </Button>
-                  </>
-                )}
+                </>
+              )}
             </DialogActions>
           </>
         )}
