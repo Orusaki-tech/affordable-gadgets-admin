@@ -22,7 +22,7 @@ export const AdminLayout: React.FC = () => {
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
 
   // Fetch admin profile to get roles
-  const { data: adminProfile, error: adminProfileError, isLoading: isLoadingAdminProfile } = useQuery<AdminProfileResponse>({
+  const { data: adminProfile, error: adminProfileError } = useQuery<AdminProfileResponse>({
     queryKey: ['admin-profile', user?.id],
     queryFn: async () => {
       try {
