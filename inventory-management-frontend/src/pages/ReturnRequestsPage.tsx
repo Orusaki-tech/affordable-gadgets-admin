@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { ReturnRequestsService, ProfilesService, Status214Enum } from '../api/index';
+import { ReturnRequestsService, ProfilesService, ReturnRequestStatusEnum } from '../api/index';
 
 export const ReturnRequestsPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -39,14 +39,11 @@ export const ReturnRequestsPage: React.FC = () => {
   }, [statusFilter]);
 
   // Fetch return requests
-  // Status filtering is now done server-side via API parameter
+  // Status filtering is done client-side (API has no filter param)
   const { data: requestsData, isLoading } = useQuery({
-    queryKey: ['return-requests', page, statusFilter],
+    queryKey: ['return-requests', page],
     queryFn: async () => {
-      const response = await ReturnRequestsService.returnRequestsList(
-        page,
-        statusFilter !== 'all' ? (statusFilter as any) : undefined
-      );
+      const response = await ReturnRequestsService.returnRequestsList(page);
       return response;
     },
   });
@@ -80,7 +77,12 @@ export const ReturnRequestsPage: React.FC = () => {
   const filteredRequests = React.useMemo(() => {
     let filtered = scopedRequests;
     
-    // Search filter (status filtering is now done server-side)
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((req) => req.status === statusFilter);
+    }
+
+    // Search filter
     if (search) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter((req) => {
@@ -91,7 +93,7 @@ export const ReturnRequestsPage: React.FC = () => {
       });
     }
     return filtered;
-  }, [scopedRequests, search]);
+  }, [scopedRequests, search, statusFilter]);
 
   // Calculate statistics from all requests (not filtered by status)
   const allScopedRequestsForStats = React.useMemo(() => {
@@ -158,13 +160,13 @@ export const ReturnRequestsPage: React.FC = () => {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, notes }: { id: number; status: string; notes?: string }) => {
       return ReturnRequestsService.returnRequestsPartialUpdate(id, {
-        status: status as Status214Enum,
+        status: status as ReturnRequestStatusEnum,
         notes: notes || '',
       });
     },
     onSuccess: (updatedRequest, variables) => {
       queryClient.setQueryData(
-        ['return-requests', page, statusFilter],
+        ['return-requests', page],
         (oldData: any) => {
           if (!oldData?.results) return oldData;
           return {

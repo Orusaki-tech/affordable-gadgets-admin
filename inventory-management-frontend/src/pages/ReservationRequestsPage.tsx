@@ -62,14 +62,11 @@ export const ReservationRequestsPage: React.FC = () => {
   };
 
   // Fetch reservation requests (paginated for display)
-  // Status filtering is now done server-side via API parameter
+  // Status filtering is done client-side (API has no filter param)
   const { data: requestsData, isLoading, error: queryError, refetch: refetchRequests } = useQuery({
-    queryKey: ['reservation-requests', page, pageSize, statusFilter, isSalesperson, isInventoryManager],
+    queryKey: ['reservation-requests', page, pageSize, isSalesperson, isInventoryManager],
     queryFn: async () => {
-      const response = await ReservationRequestsService.reservationRequestsList(
-        page,
-        statusFilter !== 'all' ? (statusFilter as any) : undefined
-      );
+      const response = await ReservationRequestsService.reservationRequestsList(page);
       return response;
     },
     refetchOnWindowFocus: true,
@@ -191,13 +188,18 @@ export const ReservationRequestsPage: React.FC = () => {
     });
   }, [allRequestsDataForStats]);
 
-  // Filter by search client-side (status filtering is now done server-side)
+  // Filter by search/status client-side (API has no status filter param)
   // Note: Backend already filters by salesperson role, so no need to filter again here
   const filteredRequests = React.useMemo(() => {
     if (!requestsWithDerivedStatus.length) {
       return [];
     }
     let filtered = requestsWithDerivedStatus;
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((req) => (req.derived_status ?? req.status) === statusFilter);
+    }
     
     // Filter by search
     if (search.trim()) {
@@ -213,7 +215,7 @@ export const ReservationRequestsPage: React.FC = () => {
     }
     
     return filtered;
-  }, [requestsWithDerivedStatus, search]);
+  }, [requestsWithDerivedStatus, search, statusFilter]);
 
 
   const updateStatusMutation = useMutation({

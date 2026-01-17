@@ -38,6 +38,7 @@ export type { DiscountCalculator } from './models/DiscountCalculator';
 export type { DiscountCalculatorRequest } from './models/DiscountCalculatorRequest';
 export type { FixProductVisibilityRequest } from './models/FixProductVisibilityRequest';
 export { GradeEnum } from './models/GradeEnum';
+export type { InitiatePaymentRequestRequest } from './models/InitiatePaymentRequestRequest';
 export type { InventoryUnit } from './models/InventoryUnit';
 export type { InventoryUnitImage } from './models/InventoryUnitImage';
 export type { InventoryUnitImageRequest } from './models/InventoryUnitImageRequest';

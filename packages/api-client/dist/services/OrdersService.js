@@ -133,7 +133,7 @@ export class OrdersService {
      * Initiate Pesapal payment for an order.
      * @param orderId A UUID string identifying this order.
      * @param requestBody
-     * @returns Order
+     * @returns any
      * @throws ApiError
      */
     static ordersInitiatePaymentCreate(orderId, requestBody) {

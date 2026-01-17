@@ -1,3 +1,4 @@
+import type { InitiatePaymentRequestRequest } from '../models/InitiatePaymentRequestRequest';
 import type { Order } from '../models/Order';
 import type { OrderRequest } from '../models/OrderRequest';
 import type { PaginatedOrderList } from '../models/PaginatedOrderList';
@@ -75,10 +76,10 @@ export declare class OrdersService {
      * Initiate Pesapal payment for an order.
      * @param orderId A UUID string identifying this order.
      * @param requestBody
-     * @returns Order
+     * @returns any
      * @throws ApiError
      */
-    static ordersInitiatePaymentCreate(orderId: string, requestBody: OrderRequest): CancelablePromise<Order>;
+    static ordersInitiatePaymentCreate(orderId: string, requestBody: InitiatePaymentRequestRequest): CancelablePromise<Record<string, any>>;
     /**
      * Get payment status for an order.
      * @param orderId A UUID string identifying this order.

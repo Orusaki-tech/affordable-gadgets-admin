@@ -129,9 +129,9 @@ export const AdminLayout: React.FC = () => {
   // Fetch stock alerts count for badge (only if user has inventory manager or superuser access)
   const { data: stockAlertsData } = useQuery<StockAlertsResponse>({
     queryKey: ['stock-alerts'],
-    queryFn: async () => {
+    queryFn: async (): Promise<StockAlertsResponse> => {
       try {
-        return await StockAlertsService.stockAlertsRetrieve();
+        return (await StockAlertsService.stockAlertsRetrieve()) as StockAlertsResponse;
       } catch {
         return { count: 0, alerts: [] };
       }

@@ -277,13 +277,17 @@ export class ApiService {
     }
     /**
      * Check if customer is returning (by phone).
-     * @returns Cart
+     * @param phone
+     * @returns any
      * @throws ApiError
      */
-    static apiV1PublicCartRecognizeRetrieve() {
+    static apiV1PublicCartRecognizeRetrieve(phone) {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/public/cart/recognize/',
+            query: {
+                'phone': phone,
+            },
         });
     }
     /**

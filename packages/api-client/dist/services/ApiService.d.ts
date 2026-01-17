@@ -155,10 +155,11 @@ export declare class ApiService {
     static apiV1PublicCartItemsDestroy(id: number, itemId: string): CancelablePromise<void>;
     /**
      * Check if customer is returning (by phone).
-     * @returns Cart
+     * @param phone
+     * @returns any
      * @throws ApiError
      */
-    static apiV1PublicCartRecognizeRetrieve(): CancelablePromise<Cart>;
+    static apiV1PublicCartRecognizeRetrieve(phone: string): CancelablePromise<Record<string, any>>;
     /**
      * GET: Allows customers to search for available phone Products
      * within a specified budget range.

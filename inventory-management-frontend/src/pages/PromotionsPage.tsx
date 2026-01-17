@@ -130,13 +130,10 @@ export const PromotionsPage: React.FC = () => {
     },
   });
 
-  // Fetch promotions - is_active filtering is now done server-side via API parameter
+  // Fetch promotions - is_active filtering is done client-side (API has no filter param)
   const { data, isLoading, error } = useQuery({
     queryKey: ['promotions', page, filters.is_active],
-    queryFn: () => PromotionsService.promotionsList(
-      page,
-      filters.is_active !== '' ? filters.is_active === 'true' : undefined
-    ),
+    queryFn: () => PromotionsService.promotionsList(page),
   });
 
   // Fetch all promotions for stats (without is_active filter)
@@ -145,7 +142,7 @@ export const PromotionsPage: React.FC = () => {
     queryFn: () => PromotionsService.promotionsList(1),
   });
 
-  // Client-side filtering by search and brand (not supported by API)
+  // Client-side filtering by search, brand, and is_active (not supported by API)
   const filteredPromotions = useMemo(() => {
     if (!data?.results) return [];
     let filtered = data.results;
@@ -158,6 +155,12 @@ export const PromotionsPage: React.FC = () => {
     }
     // #endregion
     
+    // Filter by active status
+    if (filters.is_active !== '') {
+      const isActive = filters.is_active === 'true';
+      filtered = filtered.filter((promo) => Boolean(promo.is_currently_active) === isActive);
+    }
+
     // Filter by brand
     if (filters.brand) {
       const brandId = parseInt(filters.brand);
@@ -175,7 +178,7 @@ export const PromotionsPage: React.FC = () => {
     }
     
     return filtered;
-  }, [data, search, filters.brand]);
+  }, [data, search, filters.brand, filters.is_active]);
 
   // Calculate statistics from all promotions (not filtered by is_active)
   const stats = useMemo(() => {

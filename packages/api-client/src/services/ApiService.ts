@@ -342,13 +342,19 @@ export class ApiService {
     }
     /**
      * Check if customer is returning (by phone).
-     * @returns Cart
+     * @param phone
+     * @returns any
      * @throws ApiError
      */
-    public static apiV1PublicCartRecognizeRetrieve(): CancelablePromise<Cart> {
+    public static apiV1PublicCartRecognizeRetrieve(
+        phone: string,
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/public/cart/recognize/',
+            query: {
+                'phone': phone,
+            },
         });
     }
     /**

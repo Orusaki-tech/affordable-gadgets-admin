@@ -24,18 +24,28 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
   const [notes, setNotes] = useState(lead.salesperson_notes || '');
   const [showNotesInput, setShowNotesInput] = useState(false);
   const queryClient = useQueryClient();
+  const leadId = Number(lead.id);
 
   // Fetch full lead details to get items
   const { data: fullLead, isLoading } = useQuery({
     queryKey: ['lead-details', lead.id],
-    queryFn: () => LeadsService.leadsRetrieve(lead.id!.toString()),
+    queryFn: () => {
+      if (!Number.isFinite(leadId)) {
+        throw new Error('Lead id is missing');
+      }
+      return LeadsService.leadsRetrieve(leadId);
+    },
     initialData: lead,
+    enabled: Number.isFinite(leadId),
   });
 
   // Update notes mutation
   const updateNotesMutation = useMutation({
     mutationFn: async (newNotes: string) => {
-      return LeadsService.leadsPartialUpdate(lead.id!.toString(), { salesperson_notes: newNotes });
+      if (!Number.isFinite(leadId)) {
+        throw new Error('Lead id is missing');
+      }
+      return LeadsService.leadsPartialUpdate(leadId, { salesperson_notes: newNotes });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lead-details', lead.id] });
@@ -293,7 +303,10 @@ export const LeadDetailsModal: React.FC<LeadDetailsModalProps> = ({
                   <button
                     className="btn-primary"
                     onClick={() => {
-                      LeadsService.leadsAssignCreate(lead.id!.toString(), {
+                      if (!Number.isFinite(leadId)) {
+                        return;
+                      }
+                      LeadsService.leadsAssignCreate(leadId, {
                         customer_name: '',
                         customer_phone: '',
                         brand: 0,

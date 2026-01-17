@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { InitiatePaymentRequestRequest } from '../models/InitiatePaymentRequestRequest';
 import type { Order } from '../models/Order';
 import type { OrderRequest } from '../models/OrderRequest';
 import type { PaginatedOrderList } from '../models/PaginatedOrderList';
@@ -159,13 +160,13 @@ export class OrdersService {
      * Initiate Pesapal payment for an order.
      * @param orderId A UUID string identifying this order.
      * @param requestBody
-     * @returns Order
+     * @returns any
      * @throws ApiError
      */
     public static ordersInitiatePaymentCreate(
         orderId: string,
-        requestBody: OrderRequest,
-    ): CancelablePromise<Order> {
+        requestBody: InitiatePaymentRequestRequest,
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/orders/{order_id}/initiate_payment/',

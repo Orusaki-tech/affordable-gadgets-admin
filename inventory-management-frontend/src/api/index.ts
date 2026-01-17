@@ -1,7 +1,3 @@
-export * from '@shwari/api-client';
-export { OpenAPI } from '@shwari/api-client';
-export type { OpenAPIConfig } from '@shwari/api-client';
-
 // Import User type for UserCompat
 import type {
   User,
@@ -15,6 +11,10 @@ import type {
   CustomerLogin,
   Admin,
 } from '@shwari/api-client';
+
+export * from '@shwari/api-client';
+export { OpenAPI } from '@shwari/api-client';
+export type { OpenAPIConfig } from '@shwari/api-client';
 
 // Type aliases for backward compatibility
 export type InventoryUnitRW = InventoryUnit;

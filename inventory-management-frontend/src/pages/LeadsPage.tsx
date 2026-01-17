@@ -47,14 +47,11 @@ export const LeadsPage: React.FC = () => {
   }, [statusFilter]);
 
   // Fetch leads - event-driven only (no polling)
-  // Status filtering is now done server-side via API parameter
+  // Status filtering is done client-side (API does not accept a status param)
   const { data: leadsData, isLoading, refetch: refetchLeads } = useQuery({
     queryKey: ['leads', page, statusFilter],
     queryFn: async () => {
-      const response = await LeadsService.leadsList(
-        page,
-        statusFilter !== 'all' ? (statusFilter as any) : undefined
-      );
+      const response = await LeadsService.leadsList(page);
       return response;
     },
     // Event-driven only - no automatic polling
@@ -82,6 +79,11 @@ export const LeadsPage: React.FC = () => {
   const filteredLeads = useMemo(() => {
     if (!leadsData?.results) return [];
     let filtered = leadsData.results;
+
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((lead) => lead.status === statusFilter);
+    }
     
     // Filter by assigned status
     if (assignedFilter === 'my' && currentAdminId) {
@@ -104,13 +106,13 @@ export const LeadsPage: React.FC = () => {
     }
     
     return filtered;
-  }, [leadsData, assignedFilter, search, currentAdminId]);
+  }, [leadsData, assignedFilter, search, currentAdminId, statusFilter]);
 
   // Assign lead mutation
   const assignMutation = useMutation({
     mutationFn: async (leadId: number) => {
       // Request body is optional per OpenAPI but type requires it - provide minimal valid request
-      return LeadsService.leadsAssignCreate(leadId.toString(), {
+      return LeadsService.leadsAssignCreate(leadId, {
         customer_name: '',
         customer_phone: '',
         brand: 0,
@@ -127,8 +129,16 @@ export const LeadsPage: React.FC = () => {
 
   // Mark contacted mutation
   const markContactedMutation = useMutation({
-    mutationFn: async ({ leadId, notes }: { leadId: number; notes?: string }) => {
-      return LeadsService.leadsContactCreate(leadId.toString(), notes ? { notes } : {});
+    mutationFn: async ({ lead, notes }: { lead: LeadAdmin; notes?: string }) => {
+      if (!lead.id) {
+        throw new Error('Lead id is missing');
+      }
+      return LeadsService.leadsContactCreate(lead.id, {
+        customer_name: lead.customer_name,
+        customer_phone: lead.customer_phone,
+        brand: lead.brand,
+        ...(notes ? { salesperson_notes: notes } : {}),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
@@ -142,13 +152,15 @@ export const LeadsPage: React.FC = () => {
 
   // Convert to order mutation
   const convertMutation = useMutation({
-    mutationFn: async (leadId: number) => {
-      // Request body is optional per OpenAPI but type requires it - provide minimal valid request
-      return LeadsService.leadsConvertCreate(leadId.toString(), {
-        customer_name: '',
-        customer_phone: '',
-        brand: 0,
-      } as any);
+    mutationFn: async (lead: LeadAdmin) => {
+      if (!lead.id) {
+        throw new Error('Lead id is missing');
+      }
+      return LeadsService.leadsConvertCreate(lead.id, {
+        customer_name: lead.customer_name,
+        customer_phone: lead.customer_phone,
+        brand: lead.brand,
+      });
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
@@ -163,13 +175,15 @@ export const LeadsPage: React.FC = () => {
 
   // Reject lead mutation (releases items back to stock)
   const rejectMutation = useMutation({
-    mutationFn: async (leadId: number) => {
-      // Request body is optional per OpenAPI but type requires it - provide minimal valid request
-      return LeadsService.leadsCloseCreate(leadId.toString(), {
-        customer_name: '',
-        customer_phone: '',
-        brand: 0,
-      } as any);
+    mutationFn: async (lead: LeadAdmin) => {
+      if (!lead.id) {
+        throw new Error('Lead id is missing');
+      }
+      return LeadsService.leadsCloseCreate(lead.id, {
+        customer_name: lead.customer_name,
+        customer_phone: lead.customer_phone,
+        brand: lead.brand,
+      });
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
@@ -606,11 +620,11 @@ export const LeadsPage: React.FC = () => {
             setShowDetailsModal(false);
             setSelectedLead(null);
           }}
-          onMarkContacted={(notes) => markContactedMutation.mutate({ leadId: selectedLead.id!, notes })}
-          onConvertToOrder={() => convertMutation.mutate(selectedLead.id!)}
+          onMarkContacted={(notes) => markContactedMutation.mutate({ lead: selectedLead, notes })}
+          onConvertToOrder={() => convertMutation.mutate(selectedLead)}
           onReject={() => {
             if (window.confirm('Close this lead? This action cannot be undone.')) {
-              rejectMutation.mutate(selectedLead.id!);
+              rejectMutation.mutate(selectedLead);
             }
           }}
           isSalesperson={isSalesperson}

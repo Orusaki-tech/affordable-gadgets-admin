@@ -28,10 +28,10 @@ export const StockAlertsPage: React.FC = () => {
 
   const { data, isLoading, error, refetch } = useQuery<StockAlertsResponse>({
     queryKey: ['stock-alerts'],
-    queryFn: async () => {
+    queryFn: async (): Promise<StockAlertsResponse> => {
       const response = await StockAlertsService.stockAlertsRetrieve();
       setLastUpdated(new Date());
-      return response;
+      return response as StockAlertsResponse;
     },
     refetchInterval: 60000, // Refetch every minute
   });
