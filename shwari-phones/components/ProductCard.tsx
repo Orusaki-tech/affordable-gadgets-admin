@@ -2,12 +2,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Product } from '@/lib/api/products';
+import { PublicProduct } from '@/lib/api/generated';
 import { formatPrice, formatPriceRange } from '@/lib/utils/format';
 import { getPlaceholderProductImage } from '@/lib/utils/placeholders';
 
 interface ProductCardProps {
-  product: Product;
+  product: PublicProduct;
   showInterestCount?: boolean;
 }
 

@@ -1,18 +1,18 @@
 # API Client Generation
 
-This admin frontend uses auto-generated TypeScript API clients from the backend's OpenAPI specification.
+This admin frontend uses the shared TypeScript API client generated from the backend's OpenAPI specification.
 
 ## Regenerating API Clients
 
 When the backend API changes:
 
-1. **Copy the latest `openapi.yaml` from the backend repository** to this repository's root
-2. **Run the generation script:**
+1. **Regenerate the OpenAPI spec in the backend and rebuild the shared client**
+2. **Run the sync script from the workspace root:**
    ```bash
-   ./scripts/generate-api.sh
+   ./scripts/sync-api.sh
    ```
 
-This will regenerate all TypeScript API clients in `src/api/` based on the latest API specification.
+This will regenerate the OpenAPI spec and rebuild the shared client package used by all frontends.
 
 ## Manual Generation
 
@@ -20,13 +20,13 @@ If you prefer to generate manually:
 
 ```bash
 npx openapi-typescript-codegen \
-  --input ./openapi.yaml \
-  --output ./src/api \
+  --input ../affordable-gadgets-backend/openapi.yaml \
+  --output ../packages/api-client/src \
   --client axios
 ```
 
 ## Notes
 
-- The generated clients are in `src/api/`
+- The generated clients live in `packages/api-client`
 - Always commit the generated files to version control
-- Update `openapi.yaml` whenever the backend API changes
+- `openapi.yaml` is generated in the backend and should not be edited here

@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@shwari/api-client": "file:../../packages/api-client",
     "@tanstack/react-query": "^5.90.7",
     "axios": "^1.13.2",
     "date-fns": "^4.1.0",

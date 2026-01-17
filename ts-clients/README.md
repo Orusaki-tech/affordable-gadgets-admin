@@ -1,41 +1,29 @@
 # TypeScript API Clients (Generated from openapi.yaml)
 
-This folder contains tooling to generate fully typed TypeScript clients for all backend endpoints using your `openapi.yaml`.
+This folder is deprecated. We now use the shared client package in `packages/api-client`.
 
-## Generator: typescript-axios
-We use OpenAPI Generator to emit an Axios-based client with TypeScript types for requests and responses.
+## Generator: openapi-typescript-codegen (shared package)
+The shared client is generated once and consumed by all frontends.
 
 ## Prerequisites
 - Node.js 18+
 - npm or yarn or pnpm
 
-## Install generator (one-time)
-```bash
-npm install --save-dev @openapitools/openapi-generator-cli
-```
-
 ## Generate clients
 ```bash
-# From this directory
-npx openapi-generator-cli generate \
-  -i ../../openapi.yaml \
-  -g typescript-axios \
-  -o ./generated \
-  --additional-properties=supportsES6=true,withoutPrefixEnums=true,enumPropertyNaming=original
+# From the workspace root
+./scripts/sync-api.sh
 ```
 
-This will create `./generated/` with:
-- API classes (one per tag/path)
-- Models and type definitions for all schemas
-- Configuration helpers
+This will create `packages/api-client/src` and `packages/api-client/dist`.
 
 ## Using the generated client
 Example (React/TypeScript):
 ```ts
-import { Configuration, ProductsApi } from './generated';
+import { OpenAPI, ProductsService } from '@shwari/api-client';
 
-const config = new Configuration({ basePath: 'http://localhost:8000/api/inventory' });
-const productsApi = new ProductsApi(config);
+OpenAPI.BASE = 'http://localhost:8000';
+const res = await ProductsService.productsList();
 
 async function loadProducts() {
   const res = await productsApi.listProductTemplates();
@@ -58,10 +46,10 @@ const cfg = new Configuration({
 Alternatively, pass an Axios instance with an interceptor to inject `Authorization: Token <key>`.
 
 ## Regenerate on API changes
-Any time `openapi.yaml` changes, rerun the generate command to update types and endpoints.
+Any time `openapi.yaml` changes, rerun `./scripts/sync-api.sh`.
 
 ## Notes
 - The generator does not manage state; pair it with React Query/Redux for caching and loading states.
-- For multiple frontends, you can copy `./generated` into each project or publish it as a private shared package.
+- The shared client is already a local package under `packages/api-client`.
 
 

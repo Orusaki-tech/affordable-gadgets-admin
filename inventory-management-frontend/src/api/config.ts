@@ -1,4 +1,4 @@
-import { OpenAPI } from './index';
+import { OpenAPI } from '@shwari/api-client';
 
 // Configure base URL from environment variable or auto-detect from current hostname
 const getApiBaseUrl = () => {

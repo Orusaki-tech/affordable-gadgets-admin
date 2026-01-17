@@ -4,7 +4,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import { cartApi, Cart, CartItem, CheckoutData, CheckoutResponse } from '@/lib/api/cart';
+import { ApiService, Cart, CartItem, CheckoutResponse, Checkout } from '@/lib/api/generated';
 
 interface CartContextType {
   cart: Cart | null;
@@ -13,7 +13,7 @@ interface CartContextType {
   addToCart: (inventoryUnitId: number, quantity?: number, promotionId?: number, unitPrice?: number) => Promise<void>;
   removeFromCart: (itemId: number) => Promise<void>;
   updateCart: () => Promise<void>;
-  checkout: (checkoutData: CheckoutData) => Promise<CheckoutResponse>;
+  checkout: (checkoutData: Checkout) => Promise<CheckoutResponse>;
   clearCart: () => void;
   itemCount: number;
   totalValue: number;
@@ -41,7 +41,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
         
         console.log('Initializing cart with session key:', sessionKey);
-        const newCart = await cartApi.getOrCreateCart(sessionKey);
+        const newCart = await ApiService.apiV1PublicCartCreate({
+          session_key: sessionKey,
+        });
         setCart(newCart);
         console.log('Cart initialized successfully:', newCart.id);
       } catch (err: any) {
@@ -89,7 +91,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateCart = useCallback(async () => {
     if (!cart) return;
     try {
-      const updatedCart = await cartApi.getCart(cart.id);
+      const updatedCart = await ApiService.apiV1PublicCartRetrieve(cart.id);
       // If cart has no items, clear it
       if (!updatedCart.items || updatedCart.items.length === 0) {
         console.log('Cart is empty, clearing from state');
@@ -123,7 +125,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.log('Cart not found, creating new cart...');
         const sessionKey = typeof window !== 'undefined' ? localStorage.getItem('session_key') || undefined : undefined;
         try {
-          currentCart = await cartApi.getOrCreateCart(sessionKey);
+          currentCart = await ApiService.apiV1PublicCartCreate({
+            session_key: sessionKey,
+          });
           setCart(currentCart);
           console.log('Cart created successfully:', currentCart.id);
         } catch (cartErr: any) {
@@ -144,13 +148,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         promotionId,
         unitPrice
       });
-      await cartApi.addItem(
-        currentCart.id, 
-        inventoryUnitId, 
+      await ApiService.apiV1PublicCartItemsCreate(currentCart.id, {
+        inventory_unit_id: inventoryUnitId,
         quantity,
-        promotionId,
-        unitPrice
-      );
+        promotion_id: promotionId,
+        unit_price: unitPrice,
+      });
       await updateCart();
       console.log('Item added successfully');
     } catch (err: any) {
@@ -174,7 +177,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     try {
       console.log(`Removing item ${itemId} from cart ${cart.id}`);
-      await cartApi.removeItem(cart.id, itemId);
+      await ApiService.apiV1PublicCartItemsDestroy(cart.id, String(itemId));
       console.log('Item removed successfully, updating cart...');
       await updateCart();
       console.log('Cart updated successfully');
@@ -186,10 +189,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [cart, updateCart]);
 
-  const checkout = useCallback(async (checkoutData: CheckoutData): Promise<CheckoutResponse> => {
+  const checkout = useCallback(async (checkoutData: Checkout): Promise<CheckoutResponse> => {
     if (!cart) throw new Error('No cart available');
     try {
-      const response = await cartApi.checkout(cart.id, checkoutData);
+      const response = await ApiService.apiV1PublicCartCheckoutCreate(cart.id, checkoutData);
       // Don't clear cart - keep it for reference until lead is converted to order
       // The cart is now linked to the lead via cart.lead
       // Just refresh the cart to show it's submitted

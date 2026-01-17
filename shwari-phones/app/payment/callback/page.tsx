@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
-import { paymentApi } from '@/lib/api/payment';
+import { OpenAPI, OrdersService } from '@/lib/api/generated';
+import { inventoryBaseUrl } from '@/lib/api/openapi';
 import Link from 'next/link';
 
 export default function PaymentCallbackPage() {
@@ -38,7 +39,10 @@ export default function PaymentCallbackPage() {
     const checkStatus = async () => {
       try {
         console.log('[PESAPAL] Checking payment status for order:', orderId);
-        const paymentStatus = await paymentApi.getPaymentStatus(orderId);
+        const previousBase = OpenAPI.BASE;
+        OpenAPI.BASE = inventoryBaseUrl;
+        const paymentStatus = await OrdersService.ordersPaymentStatusRetrieve(orderId);
+        OpenAPI.BASE = previousBase;
         console.log('[PESAPAL] Payment Status:', JSON.stringify(paymentStatus, null, 2));
         
         if (paymentStatus.status === 'COMPLETED') {

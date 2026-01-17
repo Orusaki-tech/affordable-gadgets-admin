@@ -4,12 +4,15 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { accessoriesApi, ProductAccessoryLink } from '@/lib/api/accessories';
+import { ApiService, ProductAccessory } from '@/lib/api/generated';
 
 export function useProductAccessories(productId: number) {
-  return useQuery<ProductAccessoryLink[]>({
+  return useQuery<ProductAccessory[]>({
     queryKey: ['product-accessories', productId],
-    queryFn: () => accessoriesApi.getProductAccessories(productId),
+    queryFn: () =>
+      ApiService.apiV1PublicAccessoriesLinkList(undefined, productId, 1).then(
+        (response) => response.results
+      ),
     enabled: !!productId,
     staleTime: 300000, // 5 minutes (accessories don't change often)
   });

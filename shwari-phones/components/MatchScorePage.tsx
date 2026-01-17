@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useProducts } from '@/lib/hooks/useProducts';
 import { useProductUnits } from '@/lib/hooks/useProducts';
 import { calculateMatchScores, MatchCriteria } from '@/lib/utils/matchScore';
-import { Product } from '@/lib/api/products';
+import { PublicProduct } from '@/lib/api/generated';
 import { formatPrice } from '@/lib/utils/format';
 import Link from 'next/link';
 

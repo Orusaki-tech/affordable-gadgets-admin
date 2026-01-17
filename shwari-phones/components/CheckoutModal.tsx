@@ -4,10 +4,8 @@ import { useState, useEffect } from 'react';
 import { useCart } from '@/lib/hooks/useCart';
 import { formatPrice } from '@/lib/utils/format';
 import { useRouter } from 'next/navigation';
-import apiClient from '@/lib/api/client';
-import { brandConfig } from '@/lib/config/brand';
-import { orderApi } from '@/lib/api/order';
-import { paymentApi } from '@/lib/api/payment';
+import { ApiService, OpenAPI, OrdersService, OrderRequest } from '@/lib/api/generated';
+import { inventoryBaseUrl } from '@/lib/api/openapi';
 import { PaymentMethodModal } from './PaymentMethodModal';
 
 interface CheckoutModalProps {
@@ -43,11 +41,9 @@ export function CheckoutModal({ onClose, totalValue }: CheckoutModalProps) {
       if (formData.customer_phone && formData.customer_phone.length >= 10) {
         setIsRecognizing(true);
         try {
-          const response = await apiClient.get('/cart/recognize/', {
-            params: { phone: formData.customer_phone },
-          });
-          if (response.data.is_returning_customer && response.data.customer) {
-            const customer = response.data.customer;
+          const response = await ApiService.apiV1PublicCartRecognizeRetrieve(formData.customer_phone);
+          if ((response as any).is_returning_customer && (response as any).customer) {
+            const customer = (response as any).customer;
             setFormData((prev) => ({
               ...prev,
               customer_name: customer.name || prev.customer_name,
@@ -103,14 +99,17 @@ export function CheckoutModal({ onClose, totalValue }: CheckoutModalProps) {
           });
 
           // Create order
-          const order = await orderApi.createOrder({
+          const previousBase = OpenAPI.BASE;
+          OpenAPI.BASE = inventoryBaseUrl;
+          const order = await OrdersService.ordersCreate({
             order_items: orderItems,
             customer_name: formData.customer_name,
             customer_phone: formData.customer_phone,
             customer_email: formData.customer_email || undefined,
             delivery_address: formData.delivery_address || undefined,
             order_source: 'ONLINE', // Explicitly set for online orders
-          });
+          } as OrderRequest);
+          OpenAPI.BASE = previousBase;
 
           console.log('Order created:', order);
 
@@ -231,7 +230,9 @@ export function CheckoutModal({ onClose, totalValue }: CheckoutModalProps) {
         name: formData.customer_name,
       });
 
-      const paymentResult = await paymentApi.initiatePayment(createdOrderId, {
+      const previousBase = OpenAPI.BASE;
+      OpenAPI.BASE = inventoryBaseUrl;
+      const paymentResult = await OrdersService.ordersInitiatePaymentCreate(createdOrderId, {
         callback_url: callbackUrl,
         cancellation_url: cancellationUrl,
         customer: {
@@ -240,19 +241,20 @@ export function CheckoutModal({ onClose, totalValue }: CheckoutModalProps) {
           first_name: formData.customer_name.split(' ')[0] || formData.customer_name,
           last_name: formData.customer_name.split(' ').slice(1).join(' ') || '',
         },
-      });
+      } as OrderRequest);
+      OpenAPI.BASE = previousBase;
 
       console.log('[PESAPAL] Payment initiation result:', JSON.stringify(paymentResult, null, 2));
 
-      if (paymentResult.success && paymentResult.redirect_url) {
+      if ((paymentResult as any).success && (paymentResult as any).redirect_url) {
         console.log('[PESAPAL] Payment initiated successfully - redirecting to payment page');
-        console.log('[PESAPAL] Redirect URL:', paymentResult.redirect_url);
+        console.log('[PESAPAL] Redirect URL:', (paymentResult as any).redirect_url);
         // Redirect to Pesapal payment page
-        window.location.href = paymentResult.redirect_url;
+        window.location.href = (paymentResult as any).redirect_url;
         console.log('[PESAPAL] ========== CHECKOUT: INITIATE PAYMENT SUCCESS ==========\n');
       } else {
         // Order created but payment failed - show helpful message
-        const errorMsg = paymentResult.error || 'Unknown error';
+        const errorMsg = (paymentResult as any).error || 'Unknown error';
         console.log('[PESAPAL] ========== CHECKOUT: INITIATE PAYMENT FAILED ==========');
         console.log('[PESAPAL] Error:', errorMsg);
         console.log('[PESAPAL] =======================================================\n');

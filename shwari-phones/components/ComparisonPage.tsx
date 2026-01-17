@@ -3,14 +3,14 @@
 import { useState, useMemo } from 'react';
 import { useProducts, useProductUnits } from '@/lib/hooks/useProducts';
 import { useCompare } from '@/lib/hooks/useCompare';
-import { Product, InventoryUnit } from '@/lib/api/products';
+import { PublicProduct, PublicInventoryUnit } from '@/lib/api/generated';
 import { formatPrice } from '@/lib/utils/format';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getPlaceholderProductImage } from '@/lib/utils/placeholders';
 
-interface ProductWithSpecs extends Product {
-  units?: InventoryUnit[];
+interface ProductWithSpecs extends PublicProduct {
+  units?: PublicInventoryUnit[];
   storageRange?: string;
   ramRange?: string;
   batteryRange?: string;
@@ -63,7 +63,7 @@ function getHighlightClass(
 }
 
 // Component for rendering product image cell
-function ProductImageCell({ product }: { product: Product }) {
+function ProductImageCell({ product }: { product: PublicProduct }) {
   return (
     <td className="border-b border-gray-100 p-4">
       <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded overflow-hidden bg-gray-100">
@@ -80,7 +80,7 @@ function ProductImageCell({ product }: { product: Product }) {
 }
 
 // Component for rendering price cell with highlighting
-function PriceCell({ product, allProducts }: { product: Product; allProducts: Product[] }) {
+function PriceCell({ product, allProducts }: { product: PublicProduct; allProducts: PublicProduct[] }) {
   const price = product.min_price !== null && product.max_price !== null
     ? product.min_price === product.max_price
       ? product.min_price
@@ -278,7 +278,7 @@ function UnitAttributeCell({
 }
 
 // Component for rendering regular field cell
-function FieldCell({ product, fieldKey, allProducts }: { product: Product; fieldKey: string; allProducts: Product[] }) {
+function FieldCell({ product, fieldKey, allProducts }: { product: PublicProduct; fieldKey: string; allProducts: PublicProduct[] }) {
   const fieldValue = (product as any)[fieldKey];
   
   // Add highlighting for numeric fields
