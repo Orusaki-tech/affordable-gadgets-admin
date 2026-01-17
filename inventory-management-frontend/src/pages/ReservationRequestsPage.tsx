@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
-import { ReservationRequestsService, ReturnRequestsService, ProfilesService, StatusC79Enum, type InventoryUnitRW } from '../api/index';
+import { ReservationRequestsService, ReturnRequestsService, ProfilesService, ReservationRequestStatusEnum, type InventoryUnitRW } from '../api/index';
 import { ReservationRequestDetailsModal } from '../components/ReservationRequestDetailsModal';
 
 export const ReservationRequestsPage: React.FC = () => {
@@ -220,7 +220,7 @@ export const ReservationRequestsPage: React.FC = () => {
     mutationFn: async ({ id, status, notes }: { id: number; status: string; notes?: string }) => {
       try {
         const result = await ReservationRequestsService.reservationRequestsPartialUpdate(id, {
-          status: status as StatusC79Enum,
+          status: status as ReservationRequestStatusEnum,
           notes: notes || '',
         });
         return result;
@@ -549,7 +549,7 @@ export const ReservationRequestsPage: React.FC = () => {
   const bulkApproveMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       return Promise.all(ids.map(id => 
-        ReservationRequestsService.reservationRequestsPartialUpdate(id, { status: StatusC79Enum.AP, notes: '' })
+        ReservationRequestsService.reservationRequestsPartialUpdate(id, { status: ReservationRequestStatusEnum.AP, notes: '' })
       ));
     },
     onSuccess: () => {
@@ -565,7 +565,7 @@ export const ReservationRequestsPage: React.FC = () => {
   const bulkRejectMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       return Promise.all(ids.map(id => 
-        ReservationRequestsService.reservationRequestsPartialUpdate(id, { status: StatusC79Enum.RE, notes: '' })
+        ReservationRequestsService.reservationRequestsPartialUpdate(id, { status: ReservationRequestStatusEnum.RE, notes: '' })
       ));
     },
     onSuccess: () => {
