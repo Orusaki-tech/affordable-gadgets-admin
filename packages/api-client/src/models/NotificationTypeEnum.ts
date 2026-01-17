@@ -1,0 +1,30 @@
+/* generated using openapi-typescript-codegen -- do no edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+/**
+ * * `RA` - Reservation Approved
+ * * `RR` - Reservation Rejected
+ * * `RE` - Reservation Expired
+ * * `TA` - Return Approved
+ * * `TR` - Return Rejected
+ * * `FA` - Transfer Approved
+ * * `FR` - Transfer Rejected
+ * * `OC` - Order Created
+ * * `UR` - Unit Reserved
+ * * `RP` - Request Pending Approval
+ * * `NL` - New Lead
+ */
+export enum NotificationTypeEnum {
+    RA = 'RA',
+    RR = 'RR',
+    RE = 'RE',
+    TA = 'TA',
+    TR = 'TR',
+    FA = 'FA',
+    FR = 'FR',
+    OC = 'OC',
+    UR = 'UR',
+    RP = 'RP',
+    NL = 'NL',
+}
