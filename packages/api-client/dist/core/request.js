@@ -138,7 +138,8 @@ export const getHeaders = async (config, options, formData) => {
         [key]: String(value),
     }), {});
     if (isStringWithValue(token)) {
-        headers['Authorization'] = `Bearer ${token}`;
+        // DRF TokenAuthentication expects "Token <key>"
+        headers['Authorization'] = `Token ${token}`;
     }
     if (isStringWithValue(username) && isStringWithValue(password)) {
         const credentials = base64(`${username}:${password}`);

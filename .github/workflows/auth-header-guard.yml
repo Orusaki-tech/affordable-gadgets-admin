@@ -1,0 +1,59 @@
+name: Auth Header Guard
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  auth-header-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install root deps
+        run: npm install
+
+      - name: Regenerate API clients
+        run: |
+          cd ts-clients
+          npm install
+          npm run generate:all
+
+          cd ../packages/api-client
+          npm install
+          npm run generate
+          npm run build
+
+      - name: Ensure generated clients are committed
+        run: |
+          git status --porcelain
+          git diff --exit-code
+
+      - name: Ensure DRF Token auth header
+        run: |
+          set -euo pipefail
+          files=(
+            "packages/api-client/src/core/request.ts"
+            "packages/api-client/dist/core/request.js"
+            "ts-clients/generated/core/request.ts"
+            "inventory-management-frontend/src/api/core/request.ts"
+          )
+
+          echo "Checking generated clients for Bearer auth header..."
+          for f in "${files[@]}"; do
+            if [ -f "$f" ]; then
+              if grep -n "Bearer \\${token}" "$f"; then
+                echo "❌ Found Bearer auth header in $f"
+                exit 1
+              fi
+              echo "✅ $f OK"
+            else
+              echo "ℹ️  $f not found, skipping"
+            fi
+          done

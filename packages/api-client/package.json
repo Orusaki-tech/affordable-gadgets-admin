@@ -8,7 +8,7 @@
     "dist"
   ],
   "scripts": {
-    "generate": "openapi --input ../../affordable-gadgets-backend/openapi.yaml --output src --client axios && node scripts/fix-blank-enum.js",
+    "generate": "openapi --input ../../affordable-gadgets-backend/openapi.yaml --output src --client axios && node scripts/fix-auth-header.js && node scripts/fix-blank-enum.js",
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
