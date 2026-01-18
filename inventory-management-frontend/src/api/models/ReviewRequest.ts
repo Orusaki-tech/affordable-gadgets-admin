@@ -17,9 +17,6 @@ export type ReviewRequest = {
      * Optional link to a video (Google Drive, YouTube, etc.). If both file and URL are provided, URL takes precedence.
      */
     video_url?: string | null;
-    /**
-     * Optional photo uploaded by the reviewer
-     */
     review_image?: Blob | null;
     /**
      * Condition at time of purchase (e.g. New, Refurbished, Pre-owned)

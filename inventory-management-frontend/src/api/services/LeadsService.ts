@@ -4,7 +4,6 @@
 /* eslint-disable */
 import type { Lead } from '../models/Lead';
 import type { LeadRequest } from '../models/LeadRequest';
-import type { LeadStatusEnum } from '../models/LeadStatusEnum';
 import type { PaginatedLeadList } from '../models/PaginatedLeadList';
 import type { PatchedLeadRequest } from '../models/PatchedLeadRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -14,20 +13,17 @@ export class LeadsService {
     /**
      * Lead management for salespersons only.
      * @param page A page number within the paginated result set.
-     * @param status Filter leads by status.
      * @returns PaginatedLeadList
      * @throws ApiError
      */
     public static leadsList(
         page?: number,
-        status?: LeadStatusEnum,
     ): CancelablePromise<PaginatedLeadList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/leads/',
             query: {
                 'page': page,
-                'status': status,
             },
         });
     }
@@ -54,7 +50,7 @@ export class LeadsService {
      * @throws ApiError
      */
     public static leadsRetrieve(
-        id: string,
+        id: number,
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -72,7 +68,7 @@ export class LeadsService {
      * @throws ApiError
      */
     public static leadsUpdate(
-        id: string,
+        id: number,
         requestBody: LeadRequest,
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {
@@ -93,7 +89,7 @@ export class LeadsService {
      * @throws ApiError
      */
     public static leadsPartialUpdate(
-        id: string,
+        id: number,
         requestBody?: PatchedLeadRequest,
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {
@@ -113,7 +109,7 @@ export class LeadsService {
      * @throws ApiError
      */
     public static leadsDestroy(
-        id: string,
+        id: number,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -131,7 +127,7 @@ export class LeadsService {
      * @throws ApiError
      */
     public static leadsAssignCreate(
-        id: string,
+        id: number,
         requestBody: LeadRequest,
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {
@@ -146,14 +142,14 @@ export class LeadsService {
     }
     /**
      * Close lead (no sale) and release inventory units back to stock. Only salespersons can close leads.
-     * @param id
+     * @param id A unique integer value identifying this lead.
      * @param requestBody
      * @returns Lead
      * @throws ApiError
      */
     public static leadsCloseCreate(
-        id: string,
-        requestBody?: LeadRequest,
+        id: number,
+        requestBody: LeadRequest,
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -167,16 +163,14 @@ export class LeadsService {
     }
     /**
      * Mark lead as contacted. Only salespersons can mark leads as contacted.
-     * @param id
+     * @param id A unique integer value identifying this lead.
      * @param requestBody
      * @returns Lead
      * @throws ApiError
      */
     public static leadsContactCreate(
-        id: string,
-        requestBody?: {
-            notes?: string;
-        },
+        id: number,
+        requestBody: LeadRequest,
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -190,13 +184,13 @@ export class LeadsService {
     }
     /**
      * Convert lead to order. Only salespersons can convert leads.
-     * @param id
+     * @param id A unique integer value identifying this lead.
      * @param requestBody
      * @returns Lead
      * @throws ApiError
      */
     public static leadsConvertCreate(
-        id: string,
+        id: number,
         requestBody: LeadRequest,
     ): CancelablePromise<Lead> {
         return __request(OpenAPI, {

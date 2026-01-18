@@ -13,7 +13,7 @@ export type Cart = {
     customer_phone?: string;
     customer_email?: string | null;
     delivery_address?: string | null;
-    readonly total_value?: string;
+    readonly total_value?: number;
     expires_at: string;
     is_submitted?: boolean;
 };

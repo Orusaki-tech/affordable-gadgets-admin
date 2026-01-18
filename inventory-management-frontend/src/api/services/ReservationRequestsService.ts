@@ -6,7 +6,6 @@ import type { PaginatedReservationRequestList } from '../models/PaginatedReserva
 import type { PatchedReservationRequestRequest } from '../models/PatchedReservationRequestRequest';
 import type { ReservationRequest } from '../models/ReservationRequest';
 import type { ReservationRequestRequest } from '../models/ReservationRequestRequest';
-import type { StatusC79Enum } from '../models/StatusC79Enum';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -16,20 +15,17 @@ export class ReservationRequestsService {
      * - Salespersons can create requests and view their own
      * - Inventory Managers can approve/reject and view all pending requests
      * @param page A page number within the paginated result set.
-     * @param status Filter reservation requests by status.
      * @returns PaginatedReservationRequestList
      * @throws ApiError
      */
     public static reservationRequestsList(
         page?: number,
-        status?: StatusC79Enum,
     ): CancelablePromise<PaginatedReservationRequestList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/reservation-requests/',
             query: {
                 'page': page,
-                'status': status,
             },
         });
     }

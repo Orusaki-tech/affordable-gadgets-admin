@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Status214Enum } from './Status214Enum';
+import type { ReturnRequestStatusEnum } from './ReturnRequestStatusEnum';
 /**
  * Serializer for UnitTransfer model.
  */
@@ -14,7 +14,7 @@ export type UnitTransfer = {
     readonly from_salesperson_username?: string;
     to_salesperson: number;
     readonly to_salesperson_username?: string;
-    readonly status?: Status214Enum;
+    readonly status?: ReturnRequestStatusEnum;
     readonly status_display?: string;
     readonly requested_at?: string;
     readonly approved_at?: string | null;

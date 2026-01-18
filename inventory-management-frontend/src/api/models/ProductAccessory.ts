@@ -13,9 +13,9 @@ export type ProductAccessory = {
     readonly main_product_name?: string;
     readonly accessory_name?: string;
     readonly accessory_slug?: string;
-    readonly accessory_primary_image?: string;
+    readonly accessory_primary_image?: string | null;
     readonly accessory_video_url?: string;
-    readonly accessory_price_range?: string;
-    readonly accessory_color_variants?: string;
+    readonly accessory_price_range?: Record<string, number | null>;
+    readonly accessory_color_variants?: Array<Record<string, any>>;
 };
 

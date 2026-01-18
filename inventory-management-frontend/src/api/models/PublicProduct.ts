@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ProductTypeEnum } from './ProductTypeEnum';
+import type { ProductTypesEnum } from './ProductTypesEnum';
 /**
  * Public product serializer (stripped down).
  */
@@ -17,15 +17,27 @@ export type PublicProduct = {
      * e.g., S series, Fold, XPS
      */
     model_series?: string;
-    product_type?: ProductTypeEnum;
+    product_type?: ProductTypesEnum;
     product_description?: string;
     readonly long_description?: string;
     readonly product_highlights?: Array<string>;
-    readonly available_units_count?: string;
-    readonly interest_count?: string;
-    readonly min_price?: string;
-    readonly max_price?: string;
-    readonly primary_image?: string;
+    /**
+     * Count available units for current brand - use prefetched list for accurate brand filtering.
+     */
+    readonly available_units_count?: number;
+    /**
+     * Get total interest count for product - optimized version.
+     */
+    readonly interest_count?: number;
+    /**
+     * Get min price for available units - use prefetched list for accurate brand filtering.
+     */
+    readonly min_price?: number;
+    /**
+     * Get max price for available units - use prefetched list for accurate brand filtering.
+     */
+    readonly max_price?: number;
+    readonly primary_image?: string | null;
     /**
      * URL-friendly slug (auto-generated from product_name if not provided)
      */
@@ -34,6 +46,6 @@ export type PublicProduct = {
      * Link to product video (YouTube, Vimeo, etc.)
      */
     product_video_url?: string | null;
-    readonly tags?: string;
+    readonly tags?: Array<string>;
 };
 

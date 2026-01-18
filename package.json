@@ -1,0 +1,6 @@
+{
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.9.15",
+    "axios": "^1.6.0"
+  }
+}

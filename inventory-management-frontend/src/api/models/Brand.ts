@@ -12,7 +12,7 @@ export type Brand = {
     description?: string;
     is_active?: boolean;
     logo?: string | null;
-    readonly logo_url?: string;
+    readonly logo_url?: string | null;
     /**
      * Hex color code
      */

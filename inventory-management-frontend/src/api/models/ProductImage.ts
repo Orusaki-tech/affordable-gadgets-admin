@@ -11,7 +11,7 @@ export type ProductImage = {
     readonly id?: number;
     product: number;
     is_primary?: boolean;
-    readonly image_url?: string;
+    readonly image_url?: string | null;
     /**
      * Required for SEO and accessibility
      */

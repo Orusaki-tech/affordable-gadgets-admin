@@ -5,9 +5,11 @@
 import type { AuthToken } from '../models/AuthToken';
 import type { AuthTokenRequest } from '../models/AuthTokenRequest';
 import type { Cart } from '../models/Cart';
+import type { CartCreateRequest } from '../models/CartCreateRequest';
 import type { CartRequest } from '../models/CartRequest';
 import type { PaginatedCartList } from '../models/PaginatedCartList';
 import type { PaginatedProductAccessoryList } from '../models/PaginatedProductAccessoryList';
+import type { PaginatedPublicInventoryUnitPublicList } from '../models/PaginatedPublicInventoryUnitPublicList';
 import type { PaginatedPublicProductList } from '../models/PaginatedPublicProductList';
 import type { PaginatedPublicPromotionList } from '../models/PaginatedPublicPromotionList';
 import type { PaginatedReviewList } from '../models/PaginatedReviewList';
@@ -25,6 +27,8 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ApiService {
     /**
+     * Custom token login view that updates last_login field.
+     * Use this instead of the default obtain_auth_token for admin users.
      * @param formData
      * @returns AuthToken
      * @throws ApiError
@@ -190,7 +194,7 @@ export class ApiService {
      * @throws ApiError
      */
     public static apiV1PublicCartCreate(
-        requestBody: CartRequest,
+        requestBody?: CartCreateRequest,
     ): CancelablePromise<Cart> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -339,13 +343,19 @@ export class ApiService {
     }
     /**
      * Check if customer is returning (by phone).
-     * @returns Cart
+     * @param phone
+     * @returns any
      * @throws ApiError
      */
-    public static apiV1PublicCartRecognizeRetrieve(): CancelablePromise<Cart> {
+    public static apiV1PublicCartRecognizeRetrieve(
+        phone: string,
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/public/cart/recognize/',
+            query: {
+                'phone': phone,
+            },
         });
     }
     /**
@@ -358,41 +368,71 @@ export class ApiService {
      * - max_price (required, decimal)
      *
      * Example URL: /api/v1/public/phone-search/?min_price=15000&max_price=30000
-     * @param page A page number within the paginated result set.
+     * @param maxPrice
+     * @param minPrice
+     * @param page
+     * @param pageSize
      * @returns PaginatedPublicProductList
      * @throws ApiError
      */
     public static apiV1PublicPhoneSearchList(
+        maxPrice?: number,
+        minPrice?: number,
         page?: number,
+        pageSize?: number,
     ): CancelablePromise<PaginatedPublicProductList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/public/phone-search/',
             query: {
+                'max_price': maxPrice,
+                'min_price': minPrice,
                 'page': page,
+                'page_size': pageSize,
             },
         });
     }
     /**
-     * Public product browsing.
-     * @param ordering Which field to use when ordering the results.
-     * @param page A page number within the paginated result set.
-     * @param search A search term.
+     * Override list to catch exceptions during queryset evaluation.
+     * @param brandFilter
+     * @param maxPrice
+     * @param minPrice
+     * @param ordering
+     * @param page
+     * @param pageSize
+     * @param promotion
+     * @param search
+     * @param slug
+     * @param type
      * @returns PaginatedPublicProductList
      * @throws ApiError
      */
     public static apiV1PublicProductsList(
+        brandFilter?: string,
+        maxPrice?: number,
+        minPrice?: number,
         ordering?: string,
         page?: number,
+        pageSize?: number,
+        promotion?: number,
         search?: string,
+        slug?: string,
+        type?: string,
     ): CancelablePromise<PaginatedPublicProductList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/public/products/',
             query: {
+                'brand_filter': brandFilter,
+                'max_price': maxPrice,
+                'min_price': minPrice,
                 'ordering': ordering,
                 'page': page,
+                'page_size': pageSize,
+                'promotion': promotion,
                 'search': search,
+                'slug': slug,
+                'type': type,
             },
         });
     }
@@ -416,17 +456,28 @@ export class ApiService {
     /**
      * Get available units for a product with interest count.
      * @param id A unique integer value identifying this product.
-     * @returns PublicProduct
+     * @param ordering Which field to use when ordering the results.
+     * @param page A page number within the paginated result set.
+     * @param search A search term.
+     * @returns PaginatedPublicInventoryUnitPublicList
      * @throws ApiError
      */
-    public static apiV1PublicProductsUnitsRetrieve(
+    public static apiV1PublicProductsUnitsList(
         id: number,
-    ): CancelablePromise<PublicProduct> {
+        ordering?: string,
+        page?: number,
+        search?: string,
+    ): CancelablePromise<PaginatedPublicInventoryUnitPublicList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/public/products/{id}/units/',
             path: {
                 'id': id,
+            },
+            query: {
+                'ordering': ordering,
+                'page': page,
+                'search': search,
             },
         });
     }

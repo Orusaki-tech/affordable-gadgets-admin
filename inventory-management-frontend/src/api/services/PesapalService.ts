@@ -8,13 +8,34 @@ import { request as __request } from '../core/request';
 export class PesapalService {
     /**
      * Handle Pesapal IPN (Instant Payment Notification) callbacks.
-     * @returns any No response body
+     * @param orderMerchantReference
+     * @param orderNotificationType
+     * @param orderTrackingId
+     * @param paymentAccount
+     * @param paymentMethod
+     * @param paymentStatusDescription
+     * @returns any
      * @throws ApiError
      */
-    public static pesapalIpnRetrieve(): CancelablePromise<any> {
+    public static pesapalIpnRetrieve(
+        orderMerchantReference?: string,
+        orderNotificationType?: string,
+        orderTrackingId?: string,
+        paymentAccount?: string,
+        paymentMethod?: string,
+        paymentStatusDescription?: string,
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pesapal/ipn/',
+            query: {
+                'OrderMerchantReference': orderMerchantReference,
+                'OrderNotificationType': orderNotificationType,
+                'OrderTrackingId': orderTrackingId,
+                'PaymentAccount': paymentAccount,
+                'PaymentMethod': paymentMethod,
+                'PaymentStatusDescription': paymentStatusDescription,
+            },
         });
     }
     /**

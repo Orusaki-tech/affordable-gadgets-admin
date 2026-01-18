@@ -26,6 +26,7 @@ export type InventoryUnit = {
     condition?: ConditionEnum;
     source?: SourceEnum;
     readonly sale_status?: string;
+    available_online?: boolean;
     grade?: (GradeEnum | BlankEnum | NullEnum) | null;
     /**
      * Date the unit was acquired
@@ -53,12 +54,18 @@ export type InventoryUnit = {
     battery_mah?: number | null;
     is_sim_enabled?: boolean;
     processor_details?: string;
-    readonly images?: string;
+    readonly images?: Array<Record<string, any>>;
     readonly reserved_by_id?: number;
     readonly reserved_by_username?: string;
     readonly reserved_until?: string;
-    readonly can_reserve?: string;
-    readonly can_transfer?: string;
+    /**
+     * Check if current user can reserve this unit.
+     */
+    readonly can_reserve?: boolean;
+    /**
+     * Check if current user can request transfer of this unit.
+     */
+    readonly can_transfer?: boolean;
     readonly is_reservation_expired?: boolean;
 };
 

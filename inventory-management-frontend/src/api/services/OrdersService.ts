@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { InitiatePaymentRequestRequest } from '../models/InitiatePaymentRequestRequest';
 import type { Order } from '../models/Order';
 import type { OrderRequest } from '../models/OrderRequest';
 import type { PaginatedOrderList } from '../models/PaginatedOrderList';
@@ -31,10 +32,8 @@ export class OrdersService {
         });
     }
     /**
-     * Handles Order creation and management.
-     * - Admins can view/manage all orders.
-     * - Customers can only view/manage their own orders.
-     * - Guest users can create orders (no login required).
+     * Override create to handle idempotency via Idempotency-Key header.
+     * If an order with the same idempotency key exists, return it instead of creating a new one.
      * @param requestBody
      * @returns Order
      * @throws ApiError
@@ -50,42 +49,43 @@ export class OrdersService {
         });
     }
     /**
-     * Handles Order creation and management.
-     * - Admins can view/manage all orders.
-     * - Customers can only view/manage their own orders.
-     * - Guest users can create orders (no login required).
-     * @param id
+     * Override retrieve to allow unauthenticated users to view paid orders.
+     * This enables guest checkout users to view their order details after payment.
+     *
+     * CRITICAL FIX: Also check if this is actually a receipt request that was
+     * incorrectly routed to retrieve. If the path contains '/receipt/', redirect to receipt method.
+     * @param orderId A UUID string identifying this order.
      * @returns Order
      * @throws ApiError
      */
     public static ordersRetrieve(
-        id: string,
+        orderId: string,
     ): CancelablePromise<Order> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/orders/{id}/',
+            url: '/orders/{order_id}/',
             path: {
-                'id': id,
+                'order_id': orderId,
             },
         });
     }
     /**
      * Override update to allow partial updates (status-only updates).
      * This allows updating just the status without requiring all fields.
-     * @param id
+     * @param orderId A UUID string identifying this order.
      * @param requestBody
      * @returns Order
      * @throws ApiError
      */
     public static ordersUpdate(
-        id: string,
+        orderId: string,
         requestBody: OrderRequest,
     ): CancelablePromise<Order> {
         return __request(OpenAPI, {
             method: 'PUT',
-            url: '/orders/{id}/',
+            url: '/orders/{order_id}/',
             path: {
-                'id': id,
+                'order_id': orderId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -96,20 +96,20 @@ export class OrdersService {
      * - Admins can view/manage all orders.
      * - Customers can only view/manage their own orders.
      * - Guest users can create orders (no login required).
-     * @param id
+     * @param orderId A UUID string identifying this order.
      * @param requestBody
      * @returns Order
      * @throws ApiError
      */
     public static ordersPartialUpdate(
-        id: string,
+        orderId: string,
         requestBody?: PatchedOrderRequest,
     ): CancelablePromise<Order> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/orders/{id}/',
+            url: '/orders/{order_id}/',
             path: {
-                'id': id,
+                'order_id': orderId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -120,37 +120,37 @@ export class OrdersService {
      * - Admins can view/manage all orders.
      * - Customers can only view/manage their own orders.
      * - Guest users can create orders (no login required).
-     * @param id
+     * @param orderId A UUID string identifying this order.
      * @returns void
      * @throws ApiError
      */
     public static ordersDestroy(
-        id: string,
+        orderId: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/orders/{id}/',
+            url: '/orders/{order_id}/',
             path: {
-                'id': id,
+                'order_id': orderId,
             },
         });
     }
     /**
      * Confirm payment for an order - transitions units from PENDING_PAYMENT to SOLD and status to PAID.
-     * @param id
+     * @param orderId A UUID string identifying this order.
      * @param requestBody
      * @returns Order
      * @throws ApiError
      */
     public static ordersConfirmPaymentCreate(
-        id: string,
+        orderId: string,
         requestBody: OrderRequest,
     ): CancelablePromise<Order> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/orders/{id}/confirm_payment/',
+            url: '/orders/{order_id}/confirm_payment/',
             path: {
-                'id': id,
+                'order_id': orderId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -158,20 +158,20 @@ export class OrdersService {
     }
     /**
      * Initiate Pesapal payment for an order.
-     * @param id
+     * @param orderId A UUID string identifying this order.
      * @param requestBody
-     * @returns Order
+     * @returns any
      * @throws ApiError
      */
     public static ordersInitiatePaymentCreate(
-        id: string,
-        requestBody: OrderRequest,
-    ): CancelablePromise<Order> {
+        orderId: string,
+        requestBody: InitiatePaymentRequestRequest,
+    ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/orders/{id}/initiate_payment/',
+            url: '/orders/{order_id}/initiate_payment/',
             path: {
-                'id': id,
+                'order_id': orderId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -179,35 +179,40 @@ export class OrdersService {
     }
     /**
      * Get payment status for an order.
-     * @param id
+     * @param orderId A UUID string identifying this order.
      * @returns Order
      * @throws ApiError
      */
     public static ordersPaymentStatusRetrieve(
-        id: string,
+        orderId: string,
     ): CancelablePromise<Order> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/orders/{id}/payment_status/',
+            url: '/orders/{order_id}/payment_status/',
             path: {
-                'id': id,
+                'order_id': orderId,
             },
         });
     }
     /**
      * Generate and return receipt HTML/PDF.
-     * @param id
-     * @returns Order
+     *
+     * Security validations:
+     * 1. Order must exist
+     * 2. For unauthenticated users: Order must be PAID
+     * 3. For authenticated users: Must be their own order (unless staff)
+     * @param orderId
+     * @returns binary
      * @throws ApiError
      */
     public static ordersReceiptRetrieve(
-        id: string,
-    ): CancelablePromise<Order> {
+        orderId: string,
+    ): CancelablePromise<Blob> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/orders/{id}/receipt/',
+            url: '/orders/{order_id}/receipt/',
             path: {
-                'id': id,
+                'order_id': orderId,
             },
         });
     }

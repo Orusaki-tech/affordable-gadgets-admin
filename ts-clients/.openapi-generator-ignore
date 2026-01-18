@@ -1,4 +1,0 @@
-# Ignore node modules and lockfiles within output
-node_modules/
-*.log
-*.lock

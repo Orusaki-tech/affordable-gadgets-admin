@@ -19,11 +19,8 @@ export type Promotion = {
     readonly promotion_type_code?: string;
     title: string;
     description?: string;
-    /**
-     * Banner image for promotion (required for Stories Carousel)
-     */
     banner_image?: string | null;
-    readonly banner_image_url?: string;
+    readonly banner_image_url?: string | null;
     /**
      * Auto-generated promotion code (editable)
      */
@@ -32,6 +29,10 @@ export type Promotion = {
      * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales'
      */
     display_locations?: any;
+    /**
+     * Position in stories carousel (1-5). 1 = Large banner, 2-5 = Grid positions
+     */
+    carousel_position?: number | null;
     /**
      * Discount percentage (e.g., 20.00 for 20%)
      */
@@ -60,6 +61,9 @@ export type Promotion = {
     created_by?: number | null;
     readonly created_at?: string;
     readonly updated_at?: string;
-    readonly product_count?: string;
+    /**
+     * Get count of products this promotion applies to.
+     */
+    readonly product_count?: number;
 };
 

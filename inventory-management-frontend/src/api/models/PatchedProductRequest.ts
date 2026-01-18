@@ -2,12 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ProductTypeEnum } from './ProductTypeEnum';
+import type { ProductTypesEnum } from './ProductTypesEnum';
 /**
  * Serializes the generic Product template.
  */
 export type PatchedProductRequest = {
-    product_type?: ProductTypeEnum;
+    product_type?: ProductTypesEnum;
     product_name?: string;
     product_description?: string;
     /**

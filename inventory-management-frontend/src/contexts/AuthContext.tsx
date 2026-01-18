@@ -118,26 +118,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient, validateToken]);
 
   const login = async (username: string, password: string) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:120',message:'Login attempt started',data:{username,hasPassword:!!password},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     const loginData = {
       username_or_email: username,
       password: password,
     };
     
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:127',message:'Login request data prepared',data:loginData,timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     try {
       const response: TokenResponse = await LoginService.loginCreate(loginData);
       
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:135',message:'Login successful',data:{hasToken:!!response.token,userId:response.user_id,email:response.email},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-
       // Check if user is admin - CustomerLogin doesn't have is_staff, we'll check via admin profile
 
     // Store token FIRST before updating state
@@ -199,9 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('✅ Login successful (admin profile fetch failed):', { user_id: response.user_id, email: response.email });
     }
     } catch (error: any) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:201',message:'Login error caught',data:{errorMessage:error?.message,errorStatus:error?.status,errorBody:error?.body,errorUrl:error?.url},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       console.error('Login error:', error);
       
       // Extract detailed error message from API response body

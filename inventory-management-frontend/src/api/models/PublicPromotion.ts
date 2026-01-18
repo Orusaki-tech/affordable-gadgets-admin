@@ -11,11 +11,8 @@ export type PublicPromotion = {
     readonly id?: number;
     title: string;
     description?: string;
-    /**
-     * Banner image for promotion (required for Stories Carousel)
-     */
-    banner_image?: string | null;
-    readonly banner_image_url?: string;
+    readonly banner_image?: string | null;
+    readonly banner_image_url?: string | null;
     /**
      * Discount percentage (e.g., 20.00 for 20%)
      */
@@ -24,7 +21,7 @@ export type PublicPromotion = {
      * Fixed discount amount
      */
     discount_amount?: string | null;
-    readonly discount_display?: string;
+    readonly discount_display?: string | null;
     start_date: string;
     end_date: string;
     readonly is_currently_active?: boolean;
@@ -41,6 +38,10 @@ export type PublicPromotion = {
      * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales'
      */
     display_locations?: any;
-    readonly products?: string;
+    /**
+     * Position in stories carousel (1-5). 1 = Large banner, 2-5 = Grid positions
+     */
+    carousel_position?: number | null;
+    readonly products?: Array<number>;
 };
 

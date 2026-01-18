@@ -2,13 +2,13 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Status214Enum } from './Status214Enum';
+import type { ReturnRequestStatusEnum } from './ReturnRequestStatusEnum';
 /**
  * Serializer for ReturnRequest model (bulk returns).
  */
 export type PatchedReturnRequestRequest = {
     unit_ids?: Array<number>;
-    status?: Status214Enum;
+    status?: ReturnRequestStatusEnum;
     /**
      * Optional notes from salesperson
      */

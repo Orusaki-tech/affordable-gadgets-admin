@@ -15,9 +15,6 @@ export type PromotionRequest = {
     promotion_type?: number | null;
     title: string;
     description?: string;
-    /**
-     * Banner image for promotion (required for Stories Carousel)
-     */
     banner_image?: Blob | null;
     /**
      * Auto-generated promotion code (editable)
@@ -27,6 +24,10 @@ export type PromotionRequest = {
      * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales'
      */
     display_locations?: any;
+    /**
+     * Position in stories carousel (1-5). 1 = Large banner, 2-5 = Grid positions
+     */
+    carousel_position?: number | null;
     /**
      * Discount percentage (e.g., 20.00 for 20%)
      */

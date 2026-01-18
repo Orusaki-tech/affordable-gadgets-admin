@@ -11,7 +11,7 @@ import type { Color } from './Color';
 export type InventoryUnitImage = {
     readonly id?: number;
     is_primary?: boolean;
-    readonly image_url?: string;
+    readonly image_url?: string | null;
     readonly color?: Color;
     readonly color_name?: string;
     readonly created_at?: string;

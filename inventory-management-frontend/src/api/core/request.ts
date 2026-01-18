@@ -4,7 +4,6 @@
 /* eslint-disable */
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse, AxiosInstance } from 'axios';
-import FormData from 'form-data';
 
 import { ApiError } from './ApiError';
 import type { ApiRequestOptions } from './ApiRequestOptions';
@@ -38,8 +37,14 @@ export const isBlob = (value: any): value is Blob => {
     );
 };
 
-export const isFormData = (value: any): value is FormData => {
-    return value instanceof FormData;
+const getFormDataConstructor = (): any => {
+    const FormDataCtor = (globalThis as any)?.FormData;
+    return typeof FormDataCtor === 'function' ? FormDataCtor : undefined;
+};
+
+export const isFormData = (value: any): value is any => {
+    const FormDataCtor = getFormDataConstructor();
+    return Boolean(FormDataCtor && value instanceof FormDataCtor);
 };
 
 export const isSuccess = (status: number): boolean => {
@@ -101,24 +106,20 @@ const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
             return substring;
         });
 
-    // Normalize BASE and path to prevent double slashes
-    let base = config.BASE || '';
-    // Remove trailing slashes from base
-    base = base.replace(/\/+$/, '');
-    // Ensure path starts with a single slash
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    
-    const url = `${base}${normalizedPath}`;
-    
+    const url = `${config.BASE}${path}`;
     if (options.query) {
         return `${url}${getQueryString(options.query)}`;
     }
     return url;
 };
 
-export const getFormData = (options: ApiRequestOptions): FormData | undefined => {
+export const getFormData = (options: ApiRequestOptions): any | undefined => {
     if (options.formData) {
-        const formData = new FormData();
+        const FormDataCtor = getFormDataConstructor();
+        if (!FormDataCtor) {
+            throw new Error('FormData is not available in this environment');
+        }
+        const formData = new FormDataCtor();
 
         const process = (key: string, value: any) => {
             if (isString(value) || isBlob(value)) {
@@ -152,7 +153,7 @@ export const resolve = async <T>(options: ApiRequestOptions, resolver?: T | Reso
     return resolver;
 };
 
-export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptions, formData?: FormData): Promise<Record<string, string>> => {
+export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptions, formData?: any): Promise<Record<string, string>> => {
     const [token, username, password, additionalHeaders] = await Promise.all([
         resolve(options, config.TOKEN),
         resolve(options, config.USERNAME),
@@ -160,7 +161,8 @@ export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptio
         resolve(options, config.HEADERS),
     ]);
 
-    const formHeaders = typeof formData?.getHeaders === 'function' && formData?.getHeaders() || {}
+    const formHeaders =
+        typeof (formData as any)?.getHeaders === 'function' ? (formData as any).getHeaders() : {}
 
     const headers = Object.entries({
         Accept: 'application/json',
@@ -176,13 +178,6 @@ export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptio
 
     if (isStringWithValue(token)) {
         headers['Authorization'] = `Token ${token}`;
-        // #region agent log
-        console.log(`🔐 Adding Authorization header: Token ${token.substring(0, 10)}...`);
-        // #endregion
-    } else {
-        // #region agent log
-        console.warn('⚠️ No token available for request:', options.url);
-        // #endregion
     }
 
     if (isStringWithValue(username) && isStringWithValue(password)) {
@@ -234,42 +229,12 @@ export const sendRequest = async <T>(
         cancelToken: source.token,
     };
 
-    // #region agent log
-    if (url.includes('/login/')) {
-      fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:212',message:'Axios request config',data:{url:requestConfig.url,method:requestConfig.method,headers:requestConfig.headers,hasBody:!!requestConfig.data,bodyType:typeof requestConfig.data,bodyKeys:requestConfig.data?Object.keys(requestConfig.data):null},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-    }
-    // #endregion
-
     onCancel(() => source.cancel('The user aborted a request.'));
 
     try {
-        const response = await axiosClient.request(requestConfig);
-        
-        // #region agent log
-        if (url.includes('/login/')) {
-          fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:225',message:'Axios response received',data:{status:response.status,statusText:response.statusText,hasData:!!response.data},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-        }
-        // #endregion
-        
-        return response;
+        return await axiosClient.request(requestConfig);
     } catch (error) {
         const axiosError = error as AxiosError<T>;
-        
-        // #region agent log
-        if (url.includes('/login/')) {
-          const errorInfo = {
-            hasResponse:!!axiosError.response,
-            status:axiosError.response?.status,
-            statusText:axiosError.response?.statusText,
-            responseData:axiosError.response?.data,
-            requestUrl:axiosError.config?.url,
-            requestMethod:axiosError.config?.method,
-            requestData:axiosError.config?.data,
-          };
-          fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:232',message:'Axios error caught',data:errorInfo,timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-        }
-        // #endregion
-        
         if (axiosError.response) {
             return axiosError.response;
         }
@@ -343,27 +308,9 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
             const formData = getFormData(options);
             const body = getRequestBody(options);
             const headers = await getHeaders(config, options, formData);
-            
-            // #region agent log
-            console.log(`🌐 API Request: ${options.method} ${url}`);
-            console.log(`📡 Base URL: ${config.BASE}`);
-            console.log(`🔑 Headers:`, Object.keys(headers).filter(k => k !== 'Authorization').concat(headers['Authorization'] ? ['Authorization: Token ***'] : []));
-            // #endregion
-
-            // #region agent log
-            if (url.includes('/login/')) {
-              fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:297',message:'Login request prepared',data:{url,baseUrl:config.BASE,path:options.url,method:options.method,body,bodyStringified:JSON.stringify(body),headers:Object.keys(headers),headerValues:headers,hasFormData:!!formData},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-            }
-            // #endregion
 
             if (!onCancel.isCancelled) {
                 const response = await sendRequest<T>(config, options, url, body, formData, headers, onCancel, axiosClient);
-                
-                // #region agent log
-                if (url.includes('/login/')) {
-                  fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'request.ts:304',message:'Login response received',data:{status:response.status,statusText:response.statusText,hasBody:!!response.data},timestamp:Date.now(),sessionId:'debug-session',runId:'login-debug',hypothesisId:'A'})}).catch(()=>{});
-                }
-                // #endregion
                 const responseBody = getResponseBody(response);
                 const responseHeader = getResponseHeader(response, options.responseHeader);
 
@@ -379,22 +326,7 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
 
                 resolve(result.body);
             }
-        } catch (error: any) {
-            // #region agent log
-            const axiosError = error as AxiosError;
-            if (axiosError.response?.status === 401) {
-              const requestUrl = axiosError.config?.url || getUrl(config, options);
-              console.error(`❌ 401 Unauthorized for: ${options.method} ${requestUrl}`);
-              console.error(`   Request URL: ${requestUrl}`);
-              console.error(`   Base URL: ${config.BASE}`);
-              console.error(`   Response:`, axiosError.response?.data);
-              console.error(`   This usually means:`);
-              console.error(`   1. Token is invalid or expired`);
-              console.error(`   2. Backend doesn't recognize the token format`);
-              console.error(`   3. CORS issue - backend not allowing requests from this origin`);
-              console.error(`   4. Backend URL is incorrect`);
-            }
-            // #endregion
+        } catch (error) {
             reject(error);
         }
     });

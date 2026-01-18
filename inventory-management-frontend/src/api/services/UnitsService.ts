@@ -5,7 +5,7 @@
 import type { InventoryUnit } from '../models/InventoryUnit';
 import type { InventoryUnitRequest } from '../models/InventoryUnitRequest';
 import type { PaginatedInventoryUnitList } from '../models/PaginatedInventoryUnitList';
-import type { PaginatedPublicInventoryUnitList } from '../models/PaginatedPublicInventoryUnitList';
+import type { PaginatedPublicInventoryUnitAdminList } from '../models/PaginatedPublicInventoryUnitAdminList';
 import type { PatchedInventoryUnitRequest } from '../models/PatchedInventoryUnitRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -211,6 +211,9 @@ export class UnitsService {
     /**
      * Admin action to approve a RETURNED buyback item and make it AVAILABLE.
      * Only buyback items (source=BB) with status RETURNED can be approved.
+     *
+     * Note: If a pending ReturnRequest exists for this unit, it should be approved via
+     * the ReturnRequestViewSet instead to maintain proper workflow.
      * @param id A unique integer value identifying this inventory unit.
      * @param requestBody
      * @returns InventoryUnit
@@ -255,12 +258,12 @@ export class UnitsService {
      * Public: Browse all available units (public fields), with optional filters.
      * Intended for storefront discovery pages (shop/browse/search).
      * @param page A page number within the paginated result set.
-     * @returns PaginatedPublicInventoryUnitList
+     * @returns PaginatedPublicInventoryUnitAdminList
      * @throws ApiError
      */
     public static unitsAvailableList(
         page?: number,
-    ): CancelablePromise<PaginatedPublicInventoryUnitList> {
+    ): CancelablePromise<PaginatedPublicInventoryUnitAdminList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/units/available/',

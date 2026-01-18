@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { PaginatedPublicInventoryUnitList } from '../models/PaginatedPublicInventoryUnitList';
+import type { PaginatedPublicInventoryUnitAdminList } from '../models/PaginatedPublicInventoryUnitAdminList';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -17,12 +17,12 @@ export class PhoneSearchService {
      *
      * Example URL: /api/phone-search/?min_price=15000&max_price=30000
      * @param page A page number within the paginated result set.
-     * @returns PaginatedPublicInventoryUnitList
+     * @returns PaginatedPublicInventoryUnitAdminList
      * @throws ApiError
      */
     public static phoneSearchList(
         page?: number,
-    ): CancelablePromise<PaginatedPublicInventoryUnitList> {
+    ): CancelablePromise<PaginatedPublicInventoryUnitAdminList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/phone-search/',

@@ -2,14 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ProductTypeEnum } from './ProductTypeEnum';
+import type { ProductTypesEnum } from './ProductTypesEnum';
 import type { Tag } from './Tag';
 /**
  * Serializes the generic Product template.
  */
 export type Product = {
     readonly id?: number;
-    product_type?: ProductTypeEnum;
+    product_type?: ProductTypesEnum;
     readonly product_type_display?: string;
     product_name: string;
     product_description?: string;
@@ -37,7 +37,7 @@ export type Product = {
     readonly updated_at?: string;
     readonly created_by?: number | null;
     readonly updated_by?: number | null;
-    readonly images?: string;
+    readonly images?: Array<Record<string, any>>;
     /**
      * SEO title (50-60 chars recommended)
      */
@@ -58,7 +58,7 @@ export type Product = {
      * Social sharing image (Open Graph)
      */
     og_image?: string | null;
-    readonly og_image_url?: string;
+    readonly og_image_url?: string | null;
     /**
      * List of key features/highlights (bullet points)
      */
@@ -79,13 +79,16 @@ export type Product = {
      * Upload product video file
      */
     product_video_file?: string | null;
-    readonly product_video_file_url?: string;
+    readonly product_video_file_url?: string | null;
     readonly tags?: Array<Tag>;
-    readonly brands?: string;
+    readonly brands?: Array<Record<string, any>>;
     /**
      * If True, product is available to all brands regardless of brand assignment
      */
     is_global?: boolean;
-    readonly seo_score?: string;
+    /**
+     * Calculate SEO completion score (0-100)
+     */
+    readonly seo_score?: number;
 };
 

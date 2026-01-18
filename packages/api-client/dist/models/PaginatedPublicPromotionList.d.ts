@@ -1,7 +1,0 @@
-import type { PublicPromotion } from './PublicPromotion';
-export type PaginatedPublicPromotionList = {
-    count: number;
-    next?: string | null;
-    previous?: string | null;
-    results: Array<PublicPromotion>;
-};

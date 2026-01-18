@@ -2,4 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type BlankEnum = '';
+export type FixProductVisibilityRequest = {
+    secret_key?: string;
+};
+

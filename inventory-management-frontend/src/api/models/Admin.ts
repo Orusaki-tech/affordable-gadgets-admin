@@ -17,8 +17,11 @@ export type Admin = {
     readonly last_login?: string;
     readonly date_joined?: string;
     readonly roles?: Array<AdminRole>;
-    readonly brands?: string;
+    readonly brands?: Array<Record<string, any>>;
     readonly is_global_admin?: boolean;
-    readonly reserved_units_count?: string;
+    /**
+     * Count of units currently reserved by this admin.
+     */
+    readonly reserved_units_count?: number;
 };
 

@@ -9,10 +9,10 @@ export class LogoutService {
     /**
      * POST: Logs out the user by deleting their authentication token.
      * Requires authentication (IsAuthenticated) via the provided token header.
-     * @returns any No response body
+     * @returns any
      * @throws ApiError
      */
-    public static logoutCreate(): CancelablePromise<any> {
+    public static logoutCreate(): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/logout/',

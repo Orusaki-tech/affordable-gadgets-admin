@@ -34,6 +34,6 @@ export type Lead = {
     total_value?: string;
     expires_at?: string | null;
     readonly items?: Array<LeadItem>;
-    readonly customer_name_display?: string;
+    readonly customer_name_display?: string | null;
 };
 

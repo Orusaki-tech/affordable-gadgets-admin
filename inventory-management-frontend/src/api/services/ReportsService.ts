@@ -8,10 +8,10 @@ import { request as __request } from '../core/request';
 export class ReportsService {
     /**
      * Get aging inventory report.
-     * @returns any No response body
+     * @returns any
      * @throws ApiError
      */
-    public static reportsAgingInventoryRetrieve(): CancelablePromise<any> {
+    public static reportsAgingInventoryRetrieve(): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/reports/aging_inventory/',
@@ -19,10 +19,10 @@ export class ReportsService {
     }
     /**
      * Get inventory value report.
-     * @returns any No response body
+     * @returns any
      * @throws ApiError
      */
-    public static reportsInventoryValueRetrieve(): CancelablePromise<any> {
+    public static reportsInventoryValueRetrieve(): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/reports/inventory_value/',
@@ -30,10 +30,10 @@ export class ReportsService {
     }
     /**
      * Get product performance report.
-     * @returns any No response body
+     * @returns any
      * @throws ApiError
      */
-    public static reportsProductPerformanceRetrieve(): CancelablePromise<any> {
+    public static reportsProductPerformanceRetrieve(): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/reports/product_performance/',
@@ -41,10 +41,10 @@ export class ReportsService {
     }
     /**
      * Get request management statistics.
-     * @returns any No response body
+     * @returns any
      * @throws ApiError
      */
-    public static reportsRequestManagementRetrieve(): CancelablePromise<any> {
+    public static reportsRequestManagementRetrieve(): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/reports/request_management/',
@@ -52,10 +52,10 @@ export class ReportsService {
     }
     /**
      * Get salesperson performance report.
-     * @returns any No response body
+     * @returns any
      * @throws ApiError
      */
-    public static reportsSalespersonPerformanceRetrieve(): CancelablePromise<any> {
+    public static reportsSalespersonPerformanceRetrieve(): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/reports/salesperson_performance/',
@@ -63,10 +63,10 @@ export class ReportsService {
     }
     /**
      * Get stock movement report.
-     * @returns any No response body
+     * @returns any
      * @throws ApiError
      */
-    public static reportsStockMovementRetrieve(): CancelablePromise<any> {
+    public static reportsStockMovementRetrieve(): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/reports/stock_movement/',

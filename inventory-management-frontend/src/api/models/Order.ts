@@ -13,7 +13,7 @@ export type Order = {
     readonly order_id?: string;
     readonly user?: User;
     readonly customer?: number;
-    readonly customer_username?: string;
+    readonly customer_username?: string | null;
     readonly customer_phone?: string;
     readonly delivery_address?: string;
     readonly created_at?: string;
@@ -24,6 +24,6 @@ export type Order = {
     readonly total_amount?: string;
     order_items: Array<OrderItem>;
     readonly brand?: number | null;
-    readonly brand_name?: string;
+    readonly brand_name?: string | null;
 };
 
