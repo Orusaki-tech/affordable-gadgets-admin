@@ -17,7 +17,7 @@ export type { AdminRoleRequest } from './models/AdminRoleRequest';
 export type { AuditLog } from './models/AuditLog';
 export type { AuthToken } from './models/AuthToken';
 export type { AuthTokenRequest } from './models/AuthTokenRequest';
-export type { BlankEnum } from './models/BlankEnum';
+export { BlankEnum } from './models/BlankEnum';
 export type { Brand } from './models/Brand';
 export type { BrandRequest } from './models/BrandRequest';
 export type { Cart } from './models/Cart';
