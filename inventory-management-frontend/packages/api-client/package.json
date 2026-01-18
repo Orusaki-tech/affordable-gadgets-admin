@@ -1,0 +1,22 @@
+{
+  "name": "@shwari/api-client",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "generate": "openapi --input ../../openapi.yaml --output src --client axios && node scripts/fix-auth-header.js && node scripts/fix-formdata.js && node scripts/fix-blank-enum.js",
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "openapi-typescript-codegen": "^0.27.0",
+    "typescript": "^5.3.3"
+  }
+}
+
