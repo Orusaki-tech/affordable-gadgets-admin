@@ -305,6 +305,11 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
     return new CancelablePromise(async (resolve, reject, onCancel) => {
         try {
             const url = getUrl(config, options);
+            if (typeof window !== 'undefined') {
+                // Log the final resolved URL to help diagnose base URL issues in production
+                // eslint-disable-next-line no-console
+                console.debug('API request URL:', url);
+            }
             const formData = getFormData(options);
             const body = getRequestBody(options);
             const headers = await getHeaders(config, options, formData);
