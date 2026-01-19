@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ProfilesService, LoginService, LogoutService, TokenResponse, User } from '../api/index';
-import { setAuthToken, clearAuthToken } from '../api/config';
+import { ProfilesService, LogoutService, User } from '../api/index';
+import { setAuthToken, clearAuthToken, getAuthLoginUrl } from '../api/config';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -118,74 +118,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient, validateToken]);
 
   const login = async (username: string, password: string) => {
-    const loginData = {
-      username_or_email: username,
-      password: password,
-    };
-    
     try {
-      const response: TokenResponse = await LoginService.loginCreate(loginData);
-      
-      // Check if user is admin - CustomerLogin doesn't have is_staff, we'll check via admin profile
+      const formData = new URLSearchParams();
+      formData.set('username', username);
+      formData.set('password', password);
 
-    // Store token FIRST before updating state
-    if (response.token) {
-      setAuthToken(response.token);
-      console.log('✅ Token stored in localStorage:', response.token.substring(0, 10) + '...');
+      const authUrl = getAuthLoginUrl();
+      const authResponse = await fetch(authUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: formData.toString(),
+      });
+
+      const contentType = authResponse.headers.get('content-type') || '';
+      const authBody = contentType.includes('application/json')
+        ? await authResponse.json()
+        : await authResponse.text();
+
+      if (!authResponse.ok) {
+        const error: any = new Error('Login failed. Please check your credentials.');
+        error.status = authResponse.status;
+        error.body = authBody;
+        throw error;
+      }
+
+      const token = authBody?.token;
+      if (!token) {
+        const error: any = new Error('Login failed: No token received');
+        error.status = authResponse.status;
+        error.body = authBody;
+        throw error;
+      }
+
+      // Store token FIRST before updating state
+      setAuthToken(token);
+      console.log('✅ Token stored in localStorage:', token.substring(0, 10) + '...');
       // Verify it was stored
       const stored = localStorage.getItem('auth_token');
-      if (stored !== response.token) {
-        console.error('❌ Token storage failed! Expected:', response.token.substring(0, 10), 'Got:', stored?.substring(0, 10));
+      if (stored !== token) {
+        console.error('❌ Token storage failed! Expected:', token.substring(0, 10), 'Got:', stored?.substring(0, 10));
       } else {
         console.log('✅ Token storage verified in localStorage');
       }
-    } else {
-      console.error('❌ No token in login response!');
-      throw new Error('Login failed: No token received');
-    }
-    
-    // Fetch admin profile to get is_superuser
-    try {
+
+      // Fetch admin profile to get user details
       const adminProfile = await ProfilesService.profilesAdminRetrieve();
-      // Update state - mark as validated since we just logged in successfully
       setHasValidated(true);
       setIsAuthenticated(true);
       setIsAdmin(true);
-      if (response.user_id && response.email && adminProfile.user) {
-        setUser({ 
-          id: response.user_id, 
-          email: response.email,
-          username: response.email, // Use email as username fallback
+      if (adminProfile.user) {
+        setUser({
+          id: adminProfile.user.id,
+          email: adminProfile.user.email,
+          username: adminProfile.user.username || adminProfile.user.email || username,
           is_staff: adminProfile.user.is_staff || false,
           is_superuser: adminProfile.user.is_superuser || false,
         });
-      } else if (response.user_id && response.email) {
-        // Fallback if admin profile fetch fails
-        setUser({ 
-          id: response.user_id, 
-          email: response.email,
-          username: response.email,
-          is_staff: false,
-          is_superuser: false,
+      } else {
+        setUser({
+          username,
         });
       }
-      console.log('✅ Login successful, user authenticated:', { user_id: response.user_id, email: response.email, is_superuser: adminProfile.user?.is_superuser });
-    } catch (error) {
-      // If admin profile fetch fails, still set basic user info
-      setHasValidated(true);
-      setIsAuthenticated(true);
-      setIsAdmin(true);
-      if (response.user_id && response.email) {
-        setUser({ 
-          id: response.user_id, 
-          email: response.email,
-          username: response.email,
-          is_staff: false,
-          is_superuser: false,
-        });
-      }
-      console.log('✅ Login successful (admin profile fetch failed):', { user_id: response.user_id, email: response.email });
-    }
+      console.log('✅ Login successful, user authenticated:', {
+        user_id: adminProfile.user?.id,
+        email: adminProfile.user?.email,
+        is_superuser: adminProfile.user?.is_superuser,
+      });
     } catch (error: any) {
       console.error('Login error:', error);
       

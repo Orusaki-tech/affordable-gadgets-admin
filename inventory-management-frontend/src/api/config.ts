@@ -97,3 +97,13 @@ export const clearAuthToken = () => {
   localStorage.removeItem('auth_token');
 };
 
+// Helper to build absolute auth URL from the current API base
+export const getAuthLoginUrl = () => {
+  const base = OpenAPI.BASE || '';
+  const normalized = base.replace(/\/$/, '');
+  const inventorySuffix = '/api/inventory';
+  const root = normalized.endsWith(inventorySuffix)
+    ? normalized.slice(0, -inventorySuffix.length)
+    : normalized;
+  return `${root || ''}/api/auth/token/login/`;
+};
