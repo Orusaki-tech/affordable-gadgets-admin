@@ -65,6 +65,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     display_locations: (promotion as any)?.display_locations || [] as string[],
     carousel_position: (promotion as any)?.carousel_position || null as number | null,
   });
+  const [bannerImageWarning, setBannerImageWarning] = useState<string | null>(null);
 
   // #region agent log
   useEffect(() => {
@@ -662,7 +663,31 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
+                  const objectUrl = URL.createObjectURL(file);
+                  const img = new Image();
+                  img.onload = () => {
+                    const isSquare = img.width === img.height;
+                    if (!isSquare) {
+                      setBannerImageWarning(`Image is ${img.width}x${img.height}. Stories carousel requires a square image (e.g. 1200x1200).`);
+                    } else {
+                      setBannerImageWarning(null);
+                    }
+                    // #region agent log
+                    fetch('http://127.0.0.1:7248/ingest/c7e9cd5d-25bc-49e1-b867-7ef6aa4798bb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:banner_image',message:'banner image selected',data:{name:file.name,size:file.size,type:file.type,width:img.width,height:img.height},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4'}),}).catch(()=>{});
+                    // #endregion agent log
+                    URL.revokeObjectURL(objectUrl);
+                  };
+                  img.onerror = () => {
+                    setBannerImageWarning('Could not read image dimensions. Please upload a square image.');
+                    // #region agent log
+                    fetch('http://127.0.0.1:7248/ingest/c7e9cd5d-25bc-49e1-b867-7ef6aa4798bb',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PromotionForm.tsx:banner_image',message:'banner image load error',data:{name:file.name,size:file.size,type:file.type},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4'}),}).catch(()=>{});
+                    // #endregion agent log
+                    URL.revokeObjectURL(objectUrl);
+                  };
+                  img.src = objectUrl;
                   setFormData({ ...formData, banner_image: file });
+                } else {
+                  setBannerImageWarning(null);
                 }
               }}
               disabled={isLoading}
@@ -673,6 +698,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
               </div>
             )}
             {errors.banner_image && <span className="error-text">{errors.banner_image}</span>}
+            {bannerImageWarning && <div className="warning-message">{bannerImageWarning}</div>}
             <small className="form-help">Required if "Stories Carousel" is selected as a display location</small>
           </div>
 
