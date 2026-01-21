@@ -35,6 +35,8 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
   const [selectedUnitForOrder, setSelectedUnitForOrder] = useState<InventoryUnitRW | null>(null);
   const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerEmail, setCustomerEmail] = useState<string>('');
+  const [deliveryAddress, setDeliveryAddress] = useState<string>('');
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
 
   // Helper function to get sale status display
@@ -215,12 +217,28 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
 
   // Create order from reserved unit mutation
   const createOrderMutation = useMutation({
-    mutationFn: async ({ unitId, customerName, customerPhone, brandId }: { unitId: number; customerName: string; customerPhone: string; brandId: number }) => {
+    mutationFn: async ({
+      unitId,
+      customerName,
+      customerPhone,
+      customerEmail,
+      deliveryAddress,
+      brandId,
+    }: {
+      unitId: number;
+      customerName: string;
+      customerPhone: string;
+      customerEmail?: string;
+      deliveryAddress?: string;
+      brandId: number;
+    }) => {
       // Use the standard createOrder endpoint with a single reserved unit
       return OrdersService.ordersCreate({
         order_items: [{ inventory_unit_id: unitId, quantity: 1 }],
         customer_name: customerName,
         customer_phone: customerPhone,
+        customer_email: customerEmail || undefined,
+        delivery_address: deliveryAddress || undefined,
         brand: brandId
       } as OrderRequest);
     },
@@ -234,6 +252,8 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
       setSelectedUnitForOrder(null);
       setCustomerName('');
       setCustomerPhone('');
+      setCustomerEmail('');
+      setDeliveryAddress('');
       onClose();
       navigate(`/orders?orderId=${data.order_id}`);
     },
@@ -276,6 +296,8 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
       unitId: selectedUnitForOrder.id,
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim(),
+      customerEmail: customerEmail.trim(),
+      deliveryAddress: deliveryAddress.trim(),
       brandId: brandForOrder.id,
     });
   };
@@ -723,6 +745,36 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
                     ? 'Enter phone number to search for existing customer (name will be auto-filled if found)'
                     : 'Enter customer phone number'}
                 </small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="customer_email">
+                  Customer Email (optional)
+                </label>
+                <input
+                  id="customer_email"
+                  type="email"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  className="form-control"
+                  placeholder="Enter customer email"
+                  disabled={createOrderMutation.isPending}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="delivery_address">
+                  Delivery Address (optional)
+                </label>
+                <textarea
+                  id="delivery_address"
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  className="form-control"
+                  placeholder="Enter delivery address"
+                  rows={3}
+                  disabled={createOrderMutation.isPending}
+                />
               </div>
 
               <div className="order-warning-note">
