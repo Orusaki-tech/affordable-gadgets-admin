@@ -154,15 +154,6 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="admin-layout">
-      {/* Mobile Menu Toggle Button */}
-      <button 
-        className="mobile-menu-toggle" 
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        aria-label="Toggle menu"
-      >
-        {sidebarOpen ? '✕' : '☰'}
-      </button>
-
       {/* Sidebar Overlay for Mobile */}
       {sidebarOpen && (
         <div 
@@ -252,6 +243,9 @@ export const AdminLayout: React.FC = () => {
               <div className="nav-section-header">Management</div>
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
+              </Link>
+              <Link to="/units" className={isActive('/units')} onClick={() => setSidebarOpen(false)}>
+                Inventory Units
               </Link>
               <Link to="/orders" className={isActive('/orders')} onClick={() => setSidebarOpen(false)}>
                 Orders
@@ -551,7 +545,16 @@ export const AdminLayout: React.FC = () => {
       <main className="main-content">
         <header className="main-header">
           <div className="header-content">
-            <h1 className="page-title">{location.pathname.split('/').pop()?.replace('-', ' ') || 'Dashboard'}</h1>
+            <div className="header-left">
+              <button 
+                className="mobile-menu-toggle" 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                aria-label="Toggle menu"
+              >
+                {sidebarOpen ? '✕' : '☰'}
+              </button>
+              <h1 className="page-title">{location.pathname.split('/').pop()?.replace('-', ' ') || 'Dashboard'}</h1>
+            </div>
             <NotificationBell />
           </div>
         </header>
