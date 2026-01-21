@@ -16,6 +16,7 @@ export const OrdersPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const pendingPaymentKey = 'pending_payment_order_id';
   
   // Fetch admin profile to check roles
   const { data: adminProfile, isLoading: isLoadingProfile } = useQuery({
@@ -33,10 +34,121 @@ export const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     const orderIdParam = searchParams.get('orderId');
-    if (orderIdParam && orderIdParam !== selectedOrderId) {
-      setSelectedOrderId(orderIdParam);
+    const storedOrderId = sessionStorage.getItem(pendingPaymentKey);
+    const orderIdToOpen = orderIdParam || storedOrderId;
+    if (orderIdToOpen && orderIdToOpen !== selectedOrderId) {
+      setSelectedOrderId(orderIdToOpen);
     }
-  }, [searchParams, selectedOrderId]);
+  }, [pendingPaymentKey, searchParams, selectedOrderId]);
+
+  useEffect(() => {
+    const orderIdParam = searchParams.get('orderId');
+    const paymentReturn = searchParams.get('payment_return');
+    const storedOrderId = sessionStorage.getItem(pendingPaymentKey);
+    const orderIdToCheck = orderIdParam || storedOrderId;
+    if (!orderIdToCheck || !paymentReturn) {
+      return;
+    }
+
+    let cancelled = false;
+    let timeoutId: number | undefined;
+    let attempts = 0;
+    const maxAttempts = 12;
+
+    const updateOrderStatusInCache = (status: string, statusDisplay?: string) => {
+      queryClient.setQueriesData(
+        { queryKey: ['orders'], exact: false },
+        (old: any) => {
+          if (!old?.results) {
+            return old;
+          }
+          return {
+            ...old,
+            results: old.results.map((order: any) => {
+              if (order.order_id === orderIdToCheck) {
+                return {
+                  ...order,
+                  status,
+                  status_display: statusDisplay || status,
+                };
+              }
+              return order;
+            }),
+          };
+        }
+      );
+      queryClient.setQueryData(['order-details', orderIdToCheck], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          status,
+          status_display: statusDisplay || status,
+        };
+      });
+    };
+
+    const finishPolling = () => {
+      sessionStorage.removeItem(pendingPaymentKey);
+      if (searchParams.get('payment_return')) {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('payment_return');
+        setSearchParams(nextParams);
+      }
+    };
+
+    const pollStatus = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const paymentStatus = await OrdersService.ordersPaymentStatusRetrieve(orderIdToCheck);
+        const rawStatus = (paymentStatus?.status || paymentStatus?.status_display || '') as string;
+        const normalizedStatus = rawStatus.toLowerCase();
+        const statusDisplay = paymentStatus?.status_display || paymentStatus?.status || rawStatus;
+        if (rawStatus) {
+          let statusValue = rawStatus;
+          if (normalizedStatus.includes('paid')) {
+            statusValue = OrderStatusEnum.PAID;
+          } else if (normalizedStatus.includes('delivered')) {
+            statusValue = OrderStatusEnum.DELIVERED;
+          } else if (normalizedStatus.includes('canceled') || normalizedStatus.includes('cancelled')) {
+            statusValue = OrderStatusEnum.CANCELED;
+          } else if (normalizedStatus.includes('pending')) {
+            statusValue = OrderStatusEnum.PENDING;
+          }
+          updateOrderStatusInCache(statusValue, statusDisplay);
+        }
+        if (normalizedStatus.includes('paid') || normalizedStatus.includes('delivered')) {
+          queryClient.invalidateQueries({ queryKey: ['orders'] });
+          queryClient.invalidateQueries({ queryKey: ['order-details', orderIdToCheck] });
+          alert('Payment successful. Receipt will be sent automatically and is ready to download.');
+          finishPolling();
+          return;
+        }
+        if (normalizedStatus.includes('canceled') || normalizedStatus.includes('cancelled')) {
+          alert(statusDisplay || 'Payment was canceled.');
+          finishPolling();
+          return;
+        }
+      } catch (error) {
+        console.warn('Failed to check payment status:', error);
+      }
+
+      if (attempts < maxAttempts) {
+        timeoutId = window.setTimeout(pollStatus, 5000);
+      } else {
+        finishPolling();
+      }
+    };
+
+    pollStatus();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [pendingPaymentKey, queryClient, searchParams, setSearchParams]);
 
   // Client-side filtering
   const filteredOrders = useMemo(() => {
@@ -130,14 +242,17 @@ export const OrdersPage: React.FC = () => {
     mutationFn: async (orderId: string) => {
       const callbackUrl =
         process.env.REACT_APP_PESAPAL_CALLBACK_URL ||
-        `${window.location.origin}/orders`;
+        `${window.location.origin}/orders?orderId=${orderId}&payment_return=1`;
       const result = await OrdersService.ordersInitiatePaymentCreate(orderId, {
         callback_url: callbackUrl,
       });
       return result;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, orderId: string) => {
       if (data?.redirect_url) {
+        if (orderId) {
+          sessionStorage.setItem(pendingPaymentKey, orderId);
+        }
         window.location.href = data.redirect_url;
         return;
       }

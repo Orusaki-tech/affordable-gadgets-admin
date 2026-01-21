@@ -275,6 +275,9 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               {/* Receipt Download Button - Only show for paid orders */}
               {isPaid && (
                 <div className="order-actions-section" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color, #e0e0e0)' }}>
+                  <div style={{ marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary, #666)' }}>
+                    Receipt is sent automatically to the customer email and WhatsApp (if configured).
+                  </div>
                   <button
                     onClick={downloadReceipt}
                     className="btn-action btn-primary"

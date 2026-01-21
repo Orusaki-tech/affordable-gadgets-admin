@@ -14,6 +14,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const AUTH_USER_KEY = 'auth_user';
+const AUTH_IS_ADMIN_KEY = 'auth_is_admin';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,13 +46,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Token validation successful:', { user_id: adminProfile.user.id, email: adminProfile.user.email });
         setIsAdmin(true);
         setIsAuthenticated(true);
-        setUser({ 
+        const nextUser = { 
           id: adminProfile.user.id, 
           username: adminProfile.user.username || adminProfile.user.email || '',
           email: adminProfile.user.email,
           is_staff: adminProfile.user.is_staff,
           is_superuser: adminProfile.user.is_superuser,
-        });
+        };
+        setUser(nextUser);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
+        localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
       } else {
         throw new Error('Invalid admin profile');
       }
@@ -61,6 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Only clear token on actual auth errors, not network issues
         console.error('Token validation failed - authentication error:', error);
         clearAuthToken();
+        localStorage.removeItem(AUTH_USER_KEY);
+        localStorage.removeItem(AUTH_IS_ADMIN_KEY);
         setIsAuthenticated(false);
         setIsAdmin(false);
         setUser(null);
@@ -78,6 +86,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     console.log('AuthContext mount - token exists:', !!token, 'hasValidated:', hasValidated);
+    
+    if (token) {
+      // Optimistically restore cached auth state so full-page redirects don't look logged out.
+      try {
+        const cachedUser = localStorage.getItem(AUTH_USER_KEY);
+        const cachedIsAdminRaw = localStorage.getItem(AUTH_IS_ADMIN_KEY);
+        const cachedIsAdmin = cachedIsAdminRaw === 'true';
+        if (cachedUser) {
+          setUser(JSON.parse(cachedUser));
+        }
+        setIsAuthenticated(true);
+        setIsAdmin(cachedIsAdminRaw ? cachedIsAdmin : true);
+      } catch (error) {
+        console.warn('Failed to restore cached auth state:', error);
+      }
+    }
     
     if (token && !hasValidated) {
       // Validate token by fetching admin profile
@@ -102,6 +126,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!event.newValue) {
         console.log('Auth token removed in another tab, logging out locally');
         queryClient.clear();
+        localStorage.removeItem(AUTH_USER_KEY);
+        localStorage.removeItem(AUTH_IS_ADMIN_KEY);
         setIsAuthenticated(false);
         setIsAdmin(false);
         setUser(null);
@@ -169,17 +195,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsAuthenticated(true);
       setIsAdmin(true);
       if (adminProfile.user) {
-        setUser({
+        const nextUser = {
           id: adminProfile.user.id,
           email: adminProfile.user.email,
           username: adminProfile.user.username || adminProfile.user.email || username,
           is_staff: adminProfile.user.is_staff || false,
           is_superuser: adminProfile.user.is_superuser || false,
-        });
+        };
+        setUser(nextUser);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
+        localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
       } else {
-        setUser({
+        const nextUser = {
           username,
-        });
+        };
+        setUser(nextUser);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
+        localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
       }
       console.log('✅ Login successful, user authenticated:', {
         user_id: adminProfile.user?.id,
@@ -222,6 +254,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear React Query cache to prevent stale data from previous user
       queryClient.clear();
       clearAuthToken();
+      localStorage.removeItem(AUTH_USER_KEY);
+      localStorage.removeItem(AUTH_IS_ADMIN_KEY);
+      clearAuthToken();
+      localStorage.removeItem(AUTH_USER_KEY);
+      localStorage.removeItem(AUTH_IS_ADMIN_KEY);
       setIsAuthenticated(false);
       setIsAdmin(false);
       setUser(null);
