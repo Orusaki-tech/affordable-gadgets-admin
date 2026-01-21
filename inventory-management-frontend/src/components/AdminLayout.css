@@ -380,6 +380,22 @@
   text-overflow: ellipsis;
 }
 
+@media (max-width: 480px) {
+  .main-header {
+    padding: var(--spacing-sm);
+  }
+
+  .mobile-menu-toggle {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
+
+  .page-title {
+    font-size: var(--font-size-18);
+  }
+}
+
 .content-wrapper {
   display: flex;
   flex: 1 1; /* Match production exactly */
@@ -387,6 +403,7 @@
   min-height: 0;
   overflow: visible;
   padding: var(--spacing-md) 0;
+  padding-bottom: calc(var(--spacing-2xl, 4rem) + env(safe-area-inset-bottom));
 }
 
 /* Tablet - 768px and up */
