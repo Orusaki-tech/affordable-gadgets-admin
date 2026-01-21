@@ -638,9 +638,22 @@ export const OrdersPage: React.FC = () => {
           onInitiatePayment={(orderId) => initiatePaymentMutation.mutate(orderId)}
           onClose={() => {
             setSelectedOrderId(null);
-            if (searchParams.get('orderId')) {
-              searchParams.delete('orderId');
-              setSearchParams(searchParams, { replace: true });
+            const nextParams = new URLSearchParams(searchParams);
+            const keysToClear = [
+              'orderId',
+              'OrderTrackingId',
+              'OrderMerchantReference',
+              'payment_return',
+            ];
+            let changed = false;
+            keysToClear.forEach((key) => {
+              if (nextParams.has(key)) {
+                nextParams.delete(key);
+                changed = true;
+              }
+            });
+            if (changed) {
+              setSearchParams(nextParams, { replace: true });
             }
           }}
         />
