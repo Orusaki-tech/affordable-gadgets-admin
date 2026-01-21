@@ -34,8 +34,9 @@ export const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     const orderIdParam = searchParams.get('orderId');
+    const orderMerchantReference = searchParams.get('OrderMerchantReference');
     const storedOrderId = sessionStorage.getItem(pendingPaymentKey);
-    const orderIdToOpen = orderIdParam || storedOrderId;
+    const orderIdToOpen = orderMerchantReference || orderIdParam || storedOrderId;
     if (orderIdToOpen && orderIdToOpen !== selectedOrderId) {
       setSelectedOrderId(orderIdToOpen);
     }
@@ -43,10 +44,12 @@ export const OrdersPage: React.FC = () => {
 
   useEffect(() => {
     const orderIdParam = searchParams.get('orderId');
+    const orderMerchantReference = searchParams.get('OrderMerchantReference');
+    const orderTrackingId = searchParams.get('OrderTrackingId');
     const paymentReturn = searchParams.get('payment_return');
     const storedOrderId = sessionStorage.getItem(pendingPaymentKey);
-    const orderIdToCheck = orderIdParam || storedOrderId;
-    if (!orderIdToCheck || !paymentReturn) {
+    const orderIdToCheck = orderMerchantReference || orderIdParam || storedOrderId;
+    if (!orderIdToCheck || !(paymentReturn || orderTrackingId || orderMerchantReference)) {
       return;
     }
 
@@ -106,7 +109,7 @@ export const OrdersPage: React.FC = () => {
         const statusDisplay = paymentStatus?.status_display || paymentStatus?.status || rawStatus;
         if (rawStatus) {
           let statusValue = rawStatus;
-          if (normalizedStatus.includes('paid')) {
+          if (normalizedStatus.includes('paid') || normalizedStatus.includes('completed')) {
             statusValue = OrderStatusEnum.PAID;
           } else if (normalizedStatus.includes('delivered')) {
             statusValue = OrderStatusEnum.DELIVERED;
@@ -117,7 +120,7 @@ export const OrdersPage: React.FC = () => {
           }
           updateOrderStatusInCache(statusValue, statusDisplay);
         }
-        if (normalizedStatus.includes('paid') || normalizedStatus.includes('delivered')) {
+        if (normalizedStatus.includes('paid') || normalizedStatus.includes('completed') || normalizedStatus.includes('delivered')) {
           queryClient.invalidateQueries({ queryKey: ['orders'] });
           queryClient.invalidateQueries({ queryKey: ['order-details', orderIdToCheck] });
           alert('Payment successful. Receipt will be sent automatically and is ready to download.');
@@ -725,13 +728,22 @@ const OrderCard: React.FC<OrderCardProps> = ({
         </div>
       </div>
 
-      <div className="order-card-footer">
+      <div
+        className="order-card-footer"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}
+      >
         <button
           className="btn-action btn-view"
           onClick={(e) => {
             e.stopPropagation();
             onViewDetails(order.order_id);
           }}
+          style={{ width: '100%', maxWidth: '220px' }}
         >
           View Details
         </button>
@@ -742,7 +754,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
               e.stopPropagation();
               onConfirmPayment(order.order_id);
             }}
-            style={{ marginLeft: '0.5rem' }}
+            style={{ width: '100%', maxWidth: '220px' }}
           >
             Confirm Cash
           </button>
@@ -754,7 +766,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
               e.stopPropagation();
               onInitiatePayment(order.order_id);
             }}
-            style={{ marginLeft: '0.5rem' }}
+            style={{ width: '100%', maxWidth: '220px' }}
           >
             Proceed to Checkout
           </button>
@@ -766,7 +778,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
               e.stopPropagation();
               onMarkDelivered(order.order_id);
             }}
-            style={{ marginLeft: '0.5rem' }}
+            style={{ width: '100%', maxWidth: '220px' }}
           >
             Mark as Delivered
           </button>
