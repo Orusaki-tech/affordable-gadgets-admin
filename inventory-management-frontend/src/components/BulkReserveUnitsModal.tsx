@@ -16,6 +16,7 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
   onSuccess,
 }) => {
   const [selectedUnitIds, setSelectedUnitIds] = useState<Set<number>>(new Set());
+  const [reserveQuantity, setReserveQuantity] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [notes, setNotes] = useState('');
   const queryClient = useQueryClient();
@@ -51,14 +52,31 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
       newSelected.add(unitId);
     }
     setSelectedUnitIds(newSelected);
+    setReserveQuantity(newSelected.size);
   };
 
   const selectAll = () => {
-    setSelectedUnitIds(new Set(filteredUnits.map(u => u.id).filter((id): id is number => id !== undefined)));
+    const allIds = filteredUnits.map(u => u.id).filter((id): id is number => id !== undefined);
+    setSelectedUnitIds(new Set(allIds));
+    setReserveQuantity(allIds.length);
   };
 
   const deselectAll = () => {
     setSelectedUnitIds(new Set());
+    setReserveQuantity(0);
+  };
+
+  const applyQuantitySelection = () => {
+    const selectableIds = filteredUnits.map(u => u.id).filter((id): id is number => id !== undefined);
+    if (selectableIds.length === 0) {
+      alert('No available units to reserve.');
+      return;
+    }
+    const clampedQuantity = Math.max(0, Math.min(reserveQuantity, selectableIds.length));
+    if (clampedQuantity !== reserveQuantity) {
+      setReserveQuantity(clampedQuantity);
+    }
+    setSelectedUnitIds(new Set(selectableIds.slice(0, clampedQuantity)));
   };
 
   const bulkReserveMutation = useMutation({
@@ -132,6 +150,34 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
               <button type="button" onClick={deselectAll} className="btn-link">Deselect All</button>
               <span className="selected-count" style={{ marginLeft: 'auto', fontWeight: 'var(--font-weight-semibold)' }}>
                 {selectedUnitIds.size} selected
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <label htmlFor="reserve-quantity" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
+                Quantity
+              </label>
+              <input
+                id="reserve-quantity"
+                type="number"
+                min={0}
+                max={filteredUnits.length}
+                value={reserveQuantity}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value, 10);
+                  setReserveQuantity(Number.isNaN(value) ? 0 : value);
+                }}
+                style={{ width: '90px' }}
+              />
+              <button
+                type="button"
+                className="btn-link"
+                onClick={applyQuantitySelection}
+                disabled={filteredUnits.length === 0}
+              >
+                Select Quantity
+              </button>
+              <span style={{ color: '#666', fontSize: '0.85rem' }}>
+                Max {filteredUnits.length}
               </span>
             </div>
           </div>
