@@ -65,6 +65,7 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                  data?.status_display?.toLowerCase().includes('paid');
   const isPending = data?.status?.toLowerCase().includes('pending') || 
                     data?.status_display?.toLowerCase().includes('pending');
+  const customerEmail = (data as any)?.customer_email || '';
   const isWalkIn = data?.order_source === 'WALK_IN';
   const canShowPaymentActions = isSalesperson && isPending && isWalkIn;
 
@@ -98,6 +99,12 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <div className="info-row">
                     <label>Phone Number:</label>
                     <span>{data.customer_phone}</span>
+                  </div>
+                )}
+                {customerEmail && (
+                  <div className="info-row">
+                    <label>Email:</label>
+                    <span>{customerEmail}</span>
                   </div>
                 )}
                 {/* Delivery Address - Show prominently for online orders */}
