@@ -35,10 +35,27 @@ export const OrdersPage: React.FC = () => {
   useEffect(() => {
     const orderIdParam = searchParams.get('orderId');
     const orderMerchantReference = searchParams.get('OrderMerchantReference');
+    const orderTrackingId = searchParams.get('OrderTrackingId');
+    const hasPaymentParams = Boolean(
+      searchParams.get('payment_return') || orderTrackingId || orderMerchantReference
+    );
     const storedOrderId = sessionStorage.getItem(pendingPaymentKey);
-    const orderIdToOpen = orderMerchantReference || orderIdParam || storedOrderId;
-    if (orderIdToOpen && orderIdToOpen !== selectedOrderId) {
-      setSelectedOrderId(orderIdToOpen);
+
+    if (!hasPaymentParams && storedOrderId) {
+      sessionStorage.removeItem(pendingPaymentKey);
+      if (selectedOrderId === storedOrderId) {
+        setSelectedOrderId(null);
+      }
+      return;
+    }
+
+    if (hasPaymentParams) {
+      const orderIdToOpen = orderMerchantReference || orderIdParam || storedOrderId;
+      if (orderIdToOpen && orderIdToOpen !== selectedOrderId) {
+        setSelectedOrderId(orderIdToOpen);
+      }
+    } else if (orderIdParam && orderIdParam !== selectedOrderId) {
+      setSelectedOrderId(orderIdParam);
     }
   }, [pendingPaymentKey, searchParams, selectedOrderId]);
 
