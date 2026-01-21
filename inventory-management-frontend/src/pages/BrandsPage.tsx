@@ -83,7 +83,9 @@ const BrandCard: React.FC<BrandCardProps> = ({
   };
 
   return (
-    <div style={{
+    <div
+      className="brand-card"
+      style={{
       backgroundColor: '#2d2d2d',
       border: '1px solid #3a3a3a',
       borderRadius: '12px',
@@ -105,10 +107,10 @@ const BrandCard: React.FC<BrandCardProps> = ({
     }}
     >
       {/* Header with Logo and Actions */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+      <div className="brand-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div className="brand-card-info" style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
           {/* Logo */}
-          <div style={{ flexShrink: 0 }}>
+          <div className="brand-card-logo" style={{ flexShrink: 0 }}>
             {brand.logo_url ? (
               <div style={{ 
                 width: '80px', 
@@ -151,7 +153,7 @@ const BrandCard: React.FC<BrandCardProps> = ({
           </div>
 
           {/* Brand Info */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="brand-card-content" style={{ flex: 1, minWidth: 0 }}>
             <div style={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -342,7 +344,7 @@ const BrandCard: React.FC<BrandCardProps> = ({
       <div style={{ height: '1px', backgroundColor: '#3a3a3a', margin: '0 -20px' }} />
 
       {/* Footer with Stats and Actions */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+      <div className="brand-card-footer" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
         {/* Status Badge */}
         {brand.is_active !== false ? (
           <span style={{ 
@@ -419,16 +421,15 @@ const BrandCard: React.FC<BrandCardProps> = ({
               href={brand.ecommerce_domain.startsWith('http') ? brand.ecommerce_domain : `https://${brand.ecommerce_domain}`}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ 
+              style={{
                 color: '#90caf9', 
                 textDecoration: 'none',
                 fontSize: '0.85rem',
                 flex: 1,
                 minWidth: 0,
-                overflow: 'hidden', 
-                textOverflow: 'ellipsis', 
-                whiteSpace: 'nowrap',
-                maxWidth: '200px'
+                whiteSpace: 'normal',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word'
               }}
               onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
               onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
@@ -640,7 +641,7 @@ export const BrandsPage: React.FC = () => {
 
       {/* Summary Statistics Cards */}
       {data && (
-        <div className="summary-stats">
+        <div className="summary-stats summary-stats--brands">
           <button
             type="button"
             className={`summary-stat-button summary-stat-button--total ${activeTab === 'list' ? 'is-active' : ''}`}

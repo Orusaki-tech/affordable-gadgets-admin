@@ -403,7 +403,7 @@
   min-height: 0;
   overflow: visible;
   padding: var(--spacing-md) 0;
-  padding-bottom: calc(var(--spacing-2xl, 4rem) + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--spacing-3xl, 6rem) + env(safe-area-inset-bottom));
 }
 
 /* Tablet - 768px and up */

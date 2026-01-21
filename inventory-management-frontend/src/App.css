@@ -3780,6 +3780,65 @@ p, body {
   flex: 0 0 auto; /* Don't grow, maintain natural size */
 }
 
+.summary-stats--brands .summary-stat-button {
+  flex: 1 1 auto;
+}
+
+@media (max-width: 600px) {
+  .summary-stats--brands {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+    align-items: stretch;
+  }
+
+  .summary-stats--brands .summary-stat-button--total {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .summary-stats--brands .summary-stat-button--inactive {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .summary-stats--brands .summary-stat-button--active {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .summary-stats--brands .summary-stat-button--domain {
+    grid-column: 2;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 600px) {
+  .brand-card {
+    padding: 16px !important;
+    gap: 12px !important;
+  }
+
+  .brand-card-header {
+    flex-direction: column !important;
+    gap: 12px;
+  }
+
+  .brand-card-info {
+    width: 100%;
+  }
+
+  .brand-card-logo > div {
+    width: 64px !important;
+    height: 64px !important;
+  }
+
+  .brand-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 .summary-stat-button:hover:not(:disabled),
 .summary-stat-button:focus-visible {
   background-color: rgba(255, 255, 255, 0.04);
