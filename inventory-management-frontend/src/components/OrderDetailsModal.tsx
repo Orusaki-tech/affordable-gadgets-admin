@@ -4,11 +4,17 @@ import { OrdersService, type OrderResponse, OpenAPI } from '../api/index';
 
 interface OrderDetailsModalProps {
   orderId: string;
+  isSalesperson?: boolean;
+  onConfirmCash?: (orderId: string) => void;
+  onInitiatePayment?: (orderId: string) => void;
   onClose: () => void;
 }
 
 export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   orderId,
+  isSalesperson = false,
+  onConfirmCash,
+  onInitiatePayment,
   onClose,
 }) => {
   const { data, isLoading, error } = useQuery<OrderResponse>({
@@ -57,6 +63,10 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   // Check if order is paid (receipts are only available for paid orders)
   const isPaid = data?.status?.toLowerCase().includes('paid') || 
                  data?.status_display?.toLowerCase().includes('paid');
+  const isPending = data?.status?.toLowerCase().includes('pending') || 
+                    data?.status_display?.toLowerCase().includes('pending');
+  const isWalkIn = data?.order_source === 'WALK_IN';
+  const canShowPaymentActions = isSalesperson && isPending && isWalkIn;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -229,6 +239,38 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                   <p className="no-items">No items in this order</p>
                 )}
               </div>
+
+              {/* Payment Actions for walk-in pending orders */}
+              {canShowPaymentActions && (
+                <div className="order-actions-section" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color, #e0e0e0)' }}>
+                  {onInitiatePayment && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Proceed to Pesapal checkout for this order?')) {
+                          onInitiatePayment(orderId);
+                        }
+                      }}
+                      className="btn-action btn-primary"
+                      style={{ width: '100%', marginBottom: '0.75rem' }}
+                    >
+                      Proceed to Checkout (M-Pesa/Card)
+                    </button>
+                  )}
+                  {onConfirmCash && (
+                    <button
+                      onClick={() => {
+                        if (window.confirm('Confirm CASH payment for this order?')) {
+                          onConfirmCash(orderId);
+                        }
+                      }}
+                      className="btn-action btn-primary"
+                      style={{ width: '100%' }}
+                    >
+                      Confirm Cash Payment
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Receipt Download Button - Only show for paid orders */}
               {isPaid && (

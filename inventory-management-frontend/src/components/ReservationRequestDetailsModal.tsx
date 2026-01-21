@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ReservationRequestsService, InventoryUnitRW, OrdersService, BrandsService, type ReservationRequest, type Brand, type OrderRequest } from '../api/index';
 
@@ -23,6 +24,7 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
   isMyRequest,
   isInventoryManager = false,
 }) => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [notes, setNotes] = useState('');
@@ -232,6 +234,8 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
       setSelectedUnitForOrder(null);
       setCustomerName('');
       setCustomerPhone('');
+      onClose();
+      navigate(`/orders?orderId=${data.order_id}`);
     },
     onError: (err: any) => {
       const errorMessage = err?.response?.data?.error || err?.message || 'Failed to create order';

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfilesService, OrdersService, OrderStatusEnum, type OrderResponse } from '../api/index';
 import { OrderDetailsModal } from '../components/OrderDetailsModal';
@@ -14,6 +14,7 @@ export const OrdersPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   
   // Fetch admin profile to check roles
@@ -29,6 +30,13 @@ export const OrdersPage: React.FC = () => {
     queryFn: () => OrdersService.ordersList(page) as Promise<{ results: OrderResponse[]; count: number; next?: string; previous?: string }>,
     enabled: !!user?.is_staff || !!user, // Enable for staff users or authenticated users
   });
+
+  useEffect(() => {
+    const orderIdParam = searchParams.get('orderId');
+    if (orderIdParam && orderIdParam !== selectedOrderId) {
+      setSelectedOrderId(orderIdParam);
+    }
+  }, [searchParams, selectedOrderId]);
 
   // Client-side filtering
   const filteredOrders = useMemo(() => {
@@ -80,7 +88,12 @@ export const OrdersPage: React.FC = () => {
   };
 
   const createOrderMutation = useMutation({
-    mutationFn: (orderData: { order_items: Array<{ inventory_unit_id: number; quantity: number }> }) => {
+    mutationFn: (orderData: {
+      order_items: Array<{ inventory_unit_id: number; quantity: number }>;
+      customer_name: string;
+      customer_phone: string;
+      customer_email?: string;
+    }) => {
       return OrdersService.ordersCreate(orderData);
     },
     onSuccess: () => {
@@ -96,12 +109,11 @@ export const OrdersPage: React.FC = () => {
 
   // Confirm payment mutation (for salespersons)
   const confirmPaymentMutation = useMutation({
-    mutationFn: async (orderId: string) => {
-      // Request body is optional per OpenAPI but type requires it - provide minimal valid request
+    mutationFn: async ({ orderId, paymentMethod }: { orderId: string; paymentMethod: 'CASH' }) => {
       const result = await OrdersService.ordersConfirmPaymentCreate(orderId, {
         order_items: [],
+        payment_method: paymentMethod,
       } as any);
-      // Backend may return Order but we expect { message: string }, handle both
       return (result as any).message ? { message: (result as any).message } : { message: 'Payment confirmed successfully!' };
     },
     onSuccess: (data: { message: string }) => {
@@ -110,6 +122,29 @@ export const OrdersPage: React.FC = () => {
     },
     onError: (err: any) => {
       const errorMessage = err?.response?.data?.error || err?.message || 'Failed to confirm payment.';
+      alert(`Error: ${errorMessage}`);
+    },
+  });
+
+  const initiatePaymentMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const callbackUrl =
+        process.env.REACT_APP_PESAPAL_CALLBACK_URL ||
+        `${window.location.origin}/orders`;
+      const result = await OrdersService.ordersInitiatePaymentCreate(orderId, {
+        callback_url: callbackUrl,
+      });
+      return result;
+    },
+    onSuccess: (data: any) => {
+      if (data?.redirect_url) {
+        window.location.href = data.redirect_url;
+        return;
+      }
+      alert('Payment initiated, but no redirect URL was returned.');
+    },
+    onError: (err: any) => {
+      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to initiate payment.';
       alert(`Error: ${errorMessage}`);
     },
   });
@@ -417,8 +452,13 @@ export const OrdersPage: React.FC = () => {
               getStatusBadgeClass={getStatusBadgeClass}
               onViewDetails={(orderId) => orderId && setSelectedOrderId(orderId)}
               onConfirmPayment={isSalesperson && order.status === 'Pending' ? (orderId) => {
-                if (window.confirm('Confirm payment for this order?')) {
-                  confirmPaymentMutation.mutate(orderId);
+                if (window.confirm('Confirm CASH payment for this order?')) {
+                  confirmPaymentMutation.mutate({ orderId, paymentMethod: 'CASH' });
+                }
+              } : undefined}
+              onInitiatePayment={isSalesperson && order.status === 'Pending' ? (orderId) => {
+                if (window.confirm('Proceed to Pesapal checkout for this order?')) {
+                  initiatePaymentMutation.mutate(orderId);
                 }
               } : undefined}
               onMarkDelivered={isOrderManager && order.status === 'Paid' && order.order_source === 'ONLINE' ? (orderId) => {
@@ -475,7 +515,16 @@ export const OrdersPage: React.FC = () => {
       {selectedOrderId && (
         <OrderDetailsModal
           orderId={selectedOrderId}
-          onClose={() => setSelectedOrderId(null)}
+          isSalesperson={isSalesperson}
+          onConfirmCash={(orderId) => confirmPaymentMutation.mutate({ orderId, paymentMethod: 'CASH' })}
+          onInitiatePayment={(orderId) => initiatePaymentMutation.mutate(orderId)}
+          onClose={() => {
+            setSelectedOrderId(null);
+            if (searchParams.get('orderId')) {
+              searchParams.delete('orderId');
+              setSearchParams(searchParams, { replace: true });
+            }
+          }}
         />
       )}
 
@@ -497,6 +546,7 @@ interface OrderCardProps {
   getStatusBadgeClass: (status?: string) => string;
   onViewDetails: (orderId: string | null) => void;
   onConfirmPayment?: (orderId: string) => void;
+  onInitiatePayment?: (orderId: string) => void;
   onMarkDelivered?: (orderId: string) => void;
   isSalesperson?: boolean;
   isOrderManager?: boolean;
@@ -507,6 +557,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
   getStatusBadgeClass,
   onViewDetails,
   onConfirmPayment,
+  onInitiatePayment,
   onMarkDelivered,
   isSalesperson = false,
   isOrderManager = false,
@@ -515,6 +566,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
   const isWalkIn = order.order_source === 'WALK_IN';
   const isOnline = order.order_source === 'ONLINE';
   const canConfirmPayment = isSalesperson && order.status === 'Pending' && onConfirmPayment;
+  const canInitiatePayment = isSalesperson && order.status === 'Pending' && onInitiatePayment && isWalkIn;
   // Order Managers can only mark ONLINE orders as delivered (not walk-in orders)
   const canMarkDelivered = isOrderManager && order.status === 'Paid' && (order as any).order_source === 'ONLINE' && onMarkDelivered;
 
@@ -577,7 +629,19 @@ const OrderCard: React.FC<OrderCardProps> = ({
             }}
             style={{ marginLeft: '0.5rem' }}
           >
-            Confirm Payment
+            Confirm Cash
+          </button>
+        )}
+        {canInitiatePayment && (
+          <button
+            className="btn-action btn-primary"
+            onClick={(e) => {
+              e.stopPropagation();
+              onInitiatePayment(order.order_id);
+            }}
+            style={{ marginLeft: '0.5rem' }}
+          >
+            Proceed to Checkout
           </button>
         )}
         {canMarkDelivered && (
@@ -600,13 +664,21 @@ const OrderCard: React.FC<OrderCardProps> = ({
 // Create Order Modal Component
 interface CreateOrderModalProps {
   onClose: () => void;
-  onCreate: (data: { order_items: Array<{ inventory_unit_id: number; quantity: number }> }) => void;
+  onCreate: (data: {
+    order_items: Array<{ inventory_unit_id: number; quantity: number }>;
+    customer_name: string;
+    customer_phone: string;
+    customer_email?: string;
+  }) => void;
   isLoading: boolean;
 }
 
 const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, isLoading }) => {
   const [selectedUnits, setSelectedUnits] = useState<Array<{ inventory_unit_id: number; quantity: number }>>([]);
   const [reservedUnits, setReservedUnits] = useState<any[]>([]);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
 
   // Fetch reserved units
   const { data: reservedUnitsData } = useQuery({
@@ -655,7 +727,20 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
       alert('Please select at least one unit');
       return;
     }
-    onCreate({ order_items: selectedUnits });
+    if (!customerName.trim()) {
+      alert('Please enter a customer name');
+      return;
+    }
+    if (!customerPhone.trim()) {
+      alert('Please enter a customer phone number');
+      return;
+    }
+    onCreate({
+      order_items: selectedUnits,
+      customer_name: customerName.trim(),
+      customer_phone: customerPhone.trim(),
+      customer_email: customerEmail.trim() || undefined,
+    });
   };
 
   return (
@@ -666,6 +751,35 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <form onSubmit={handleSubmit} className="form-section">
+          <div className="form-group">
+            <label>Customer Name <span className="required">*</span></label>
+            <input
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="Enter customer name"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Customer Phone <span className="required">*</span></label>
+            <input
+              type="tel"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              placeholder="Enter customer phone"
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label>Customer Email (optional)</label>
+            <input
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder="Enter customer email"
+            />
+          </div>
           <div className="form-group">
             <label>Select RESERVED Units <span className="required">*</span></label>
             <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
