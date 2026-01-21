@@ -57,7 +57,7 @@ export const ProductAccessoriesPage: React.FC = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['product-accessories', page, pageSize],
-    queryFn: () => AccessoriesLinkService.accessoriesLinkList(page),
+    queryFn: () => AccessoriesLinkService.accessoriesLinkList(undefined, undefined, page, pageSize),
   });
 
   // Fetch all products for the form dropdowns
