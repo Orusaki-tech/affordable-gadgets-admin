@@ -792,8 +792,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
           )}
 
-          {/* Inventory Management Fields - Hidden for Content Creators and Inventory Managers */}
-          {!isContentCreator && !isInventoryManager && (
+          {/* Inventory Management Fields - Hidden for Content Creators */}
+          {!isContentCreator && (
             <div className="form-group" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #dee2e6' }}>
               <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: '#2c3e50' }}>Inventory Management</h3>
               
