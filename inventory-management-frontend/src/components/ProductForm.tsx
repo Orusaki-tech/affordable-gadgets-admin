@@ -598,6 +598,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <h2>{isContentCreator ? 'Edit Product Content' : (product ? 'Edit Product' : 'Create Product')}</h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
+        {isContentCreator && (
+          <div
+            style={{
+              background: '#eef5ff',
+              border: '1px solid #cfe0ff',
+              color: '#1f3b73',
+              padding: '0.75rem 1rem',
+              borderRadius: '8px',
+              margin: '0.75rem 1rem 0',
+              fontSize: '0.9rem',
+            }}
+          >
+            Content Creators can edit content-only fields. Inventory and pricing fields are read-only.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="form-section">
           <div className="form-group">

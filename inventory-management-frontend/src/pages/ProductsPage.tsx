@@ -73,6 +73,7 @@ export const ProductsPage: React.FC = () => {
   const isSalesperson = hasRole('SP') && !isSuperuser;
   const isContentCreator = hasRole('CC') && !isSuperuser;
   const isMarketingManager = hasRole('MM') && !isSuperuser;
+  const isInventoryManager = hasRole('IM') && !isSuperuser;
   
   // Debug: Log role detection (remove in production)
   useEffect(() => {
@@ -83,7 +84,8 @@ export const ProductsPage: React.FC = () => {
       console.log('Has MM role:', hasRole('MM'));
     }
   }, [adminProfile, isLoadingProfile, isMarketingManager, hasRole]);
-  const canCreateProducts = !isSalesperson && !isMarketingManager; // Salespersons and Marketing Managers cannot create products
+  const canCreateProducts = isSuperuser || isInventoryManager;
+  const canDeleteProducts = isSuperuser || isInventoryManager;
 
   // Use paginated products hook
   const { products: allProducts, isLoading, error, hasMore: hasMorePages, totalCount, loadMore, reset: resetPagination } = usePaginatedProducts();
@@ -351,8 +353,16 @@ export const ProductsPage: React.FC = () => {
 
   const handleDelete = (product: ProductTemplate) => {
     if (!product.id) return;
-    if (isMarketingManager) {
-      alert('Marketing Managers cannot delete products. They can only view products and attach promotions.');
+    if (!canDeleteProducts) {
+      if (isContentCreator) {
+        alert('Content Creators cannot delete products. They can only edit products.');
+      } else if (isMarketingManager) {
+        alert('Marketing Managers cannot delete products. They can only view products and attach promotions.');
+      } else if (isSalesperson) {
+        alert('Salespersons cannot delete products.');
+      } else {
+        alert('You do not have permission to delete products.');
+      }
       return;
     }
     if (window.confirm(`Are you sure you want to delete "${product.product_name}"?`)) {
@@ -707,12 +717,16 @@ export const ProductsPage: React.FC = () => {
   };
 
   const handleCreate = () => {
-    if (isContentCreator) {
-      alert('Content Creators can only edit existing products.');
-      return;
-    }
-    if (isMarketingManager) {
-      alert('Marketing Managers cannot create products. They can only view products and attach promotions.');
+    if (!canCreateProducts) {
+      if (isContentCreator) {
+        alert('Content Creators can only edit existing products.');
+      } else if (isMarketingManager) {
+        alert('Marketing Managers cannot create products. They can only view products and attach promotions.');
+      } else if (isSalesperson) {
+        alert('Salespersons cannot create products.');
+      } else {
+        alert('You do not have permission to create products.');
+      }
       return;
     }
     setEditingProduct(null);
@@ -940,7 +954,7 @@ export const ProductsPage: React.FC = () => {
               <span className="filter-badge">{activeFilterCount}</span>
             )}
           </button>
-        {canCreateProducts && !isContentCreator && (
+        {canCreateProducts && (
           <button className="btn-primary" onClick={handleCreate} style={{ marginLeft: '0.5rem' }}>
             + Create Product
           </button>
@@ -1307,8 +1321,8 @@ export const ProductsPage: React.FC = () => {
                     <button
                       className="btn-small btn-danger"
                       onClick={() => handleDelete(product)}
-                      disabled={deleteMutation.isPending}
-                      title="Delete product"
+                      disabled={deleteMutation.isPending || !canDeleteProducts}
+                      title={canDeleteProducts ? 'Delete product' : 'You do not have permission to delete products'}
                     >
                       Delete
                     </button>
