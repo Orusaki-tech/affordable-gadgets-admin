@@ -173,7 +173,7 @@ export const DashboardPage: React.FC = () => {
       
       return firstPage;
     },
-    enabled: !isContentCreator && !isOrderManager && (isInventoryManager || isSuperuser || !isLoadingProfile), // Only fetch for authorized users (Inventory Managers and Superusers, not Order Managers or Content Creators)
+    enabled: !isLoadingProfile && (isSuperuser || isInventoryManager), // Superusers and Inventory Managers have full access
     retry: 1,
   });
 

@@ -472,21 +472,33 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       return;
     }
     
+    const parsedPromotionType = typeof formData.promotion_type === 'number'
+      ? formData.promotion_type
+      : parseInt(String(formData.promotion_type), 10);
+    const promotionTypeId = Number.isFinite(parsedPromotionType) ? parsedPromotionType : undefined;
+    const parsedCarouselPosition = typeof formData.carousel_position === 'number'
+      ? formData.carousel_position
+      : parseInt(String(formData.carousel_position), 10);
+    const carouselPosition = Number.isFinite(parsedCarouselPosition) ? parsedCarouselPosition : null;
+
     const submitData: any = {
       brand: brandId,
-      promotion_type: typeof formData.promotion_type === 'number' ? formData.promotion_type : parseInt(formData.promotion_type),
       title: formData.title,
       description: formData.description,
       promotion_code: formData.promotion_code || undefined,
       display_locations: Array.isArray(formData.display_locations) 
         ? formData.display_locations 
         : [],
-      carousel_position: formData.carousel_position || null,
+      carousel_position: carouselPosition,
       start_date: new Date(formData.start_date).toISOString(),
       end_date: new Date(formData.end_date).toISOString(),
       is_active: formData.is_active,
       products: Array.from(selectedProductIds),
     };
+
+    if (promotionTypeId !== undefined) {
+      submitData.promotion_type = promotionTypeId;
+    }
 
     if (formData.banner_image) {
       submitData.banner_image = formData.banner_image;
@@ -610,6 +622,9 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
               ))}
             </select>
             {errors.promotion_type && <span className="error-text">{errors.promotion_type}</span>}
+            {!formData.promotion_type && !errors.promotion_type && (
+              <small className="warning-message">Please select a promotion type before saving.</small>
+            )}
           </div>
 
           <div className="form-group">
