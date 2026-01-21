@@ -199,11 +199,7 @@ const BrandCard: React.FC<BrandCardProps> = ({
                 margin: 0, 
                 fontSize: '0.9rem', 
                 color: '#b0b0b0',
-                lineHeight: '1.5',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
+                lineHeight: '1.5'
               }}>
                 {brand.description}
               </p>

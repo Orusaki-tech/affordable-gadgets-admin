@@ -1926,6 +1926,27 @@ p, body {
   overflow-wrap: break-word;
 }
 
+@media (max-width: 768px) {
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .detail-label {
+    min-width: auto;
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .detail-value {
+    width: 100%;
+    overflow: visible;
+  }
+}
+
 .admin-card {
   padding: clamp(3px, 0.4vw, 4px);
   cursor: pointer;
@@ -2044,6 +2065,28 @@ p, body {
   overflow-wrap: break-word;
   flex-shrink: 1;
   text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  .admin-info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .admin-info-row .info-label {
+    min-width: auto;
+    max-width: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .admin-info-row .info-value {
+    width: 100%;
+    overflow: visible;
+    text-overflow: clip;
+  }
 }
 
 .roles-container {

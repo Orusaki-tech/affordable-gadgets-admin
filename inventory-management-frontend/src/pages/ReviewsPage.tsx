@@ -368,16 +368,20 @@ export const ReviewsPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
-        mb={3}
-        sx={{
-          marginLeft: { xs: '80px', sm: 0 },
-        }}
+    <Box
+      display="flex"
+      justifyContent="space-between"
+      alignItems={{ xs: 'flex-start', sm: 'center' }}
+      flexDirection={{ xs: 'column', sm: 'row' }}
+      gap={{ xs: 1.5, sm: 2 }}
+      mb={3}
+    >
+      <Typography
+        variant="h4"
+        component="h1"
+        fontWeight="bold"
+        sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}
       >
-        <Typography variant="h4" component="h1" fontWeight="bold">
           Reviews
         </Typography>
         <Button
@@ -385,13 +389,13 @@ export const ReviewsPage: React.FC = () => {
           size="small"
           startIcon={<AddIcon />}
           onClick={handleCreate}
-          sx={{ 
+        sx={{
             backgroundColor: 'primary.main',
             borderRadius: 1,
             textTransform: 'none',
             px: 2,
             py: 0.75,
-            margin: 1,
+          width: { xs: '100%', sm: 'auto' },
           }}
         >
           Create Review

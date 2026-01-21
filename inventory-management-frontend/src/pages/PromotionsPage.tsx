@@ -300,20 +300,28 @@ export const PromotionsPage: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
-        mb={3}
-        sx={{
-          marginLeft: { xs: '80px', sm: 0 },
-        }}
+    <Box
+      display="flex"
+      justifyContent="space-between"
+      alignItems={{ xs: 'flex-start', sm: 'center' }}
+      flexDirection={{ xs: 'column', sm: 'row' }}
+      gap={{ xs: 1.5, sm: 2 }}
+      mb={3}
+    >
+      <Typography
+        variant="h4"
+        component="h1"
+        fontWeight="bold"
+        sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}
       >
-        <Typography variant="h4" component="h1" fontWeight="bold">
           Promotions
         </Typography>
           {canCreatePromotions && (
-          <Stack direction="row" spacing={1.5}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          sx={{ width: { xs: '100%', sm: 'auto' } }}
+        >
             <Button
               variant="outlined"
               size="small"
