@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { UnitTransfersService, ProfilesService } from '../api/index';
 
 export const UnitTransfersPage: React.FC = () => {
@@ -12,6 +13,7 @@ export const UnitTransfersPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Fetch admin profile to check roles
   const { data: adminProfile } = useQuery({
@@ -31,6 +33,16 @@ export const UnitTransfersPage: React.FC = () => {
   };
   const isInventoryManager = hasRole('IM');
   const isSalesperson = hasRole('SP');
+
+  useEffect(() => {
+    const transferIdParam = searchParams.get('transferId');
+    if (transferIdParam) {
+      setSearch(transferIdParam);
+      setPage(1);
+      searchParams.delete('transferId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch unit transfers
   const { data: transfersData, isLoading } = useQuery({

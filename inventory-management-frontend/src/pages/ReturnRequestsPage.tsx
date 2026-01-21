@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { ReturnRequestsService, ProfilesService, ReturnRequestStatusEnum } from '../api/index';
 
 export const ReturnRequestsPage: React.FC = () => {
@@ -12,6 +13,7 @@ export const ReturnRequestsPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Fetch admin profile to check roles
   const { data: adminProfile } = useQuery({
@@ -37,6 +39,16 @@ export const ReturnRequestsPage: React.FC = () => {
   useEffect(() => {
     setPage(1);
   }, [statusFilter]);
+
+  useEffect(() => {
+    const requestIdParam = searchParams.get('requestId');
+    if (requestIdParam) {
+      setSearch(requestIdParam);
+      setPage(1);
+      searchParams.delete('requestId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Fetch return requests
   // Status filtering is done client-side (API has no filter param)

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { NotificationsService, Notification } from '../api/index';
 
 export const NotificationsPage: React.FC = () => {
@@ -9,6 +10,7 @@ export const NotificationsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch notifications
   const { data: notificationsData, isLoading } = useQuery({
@@ -67,6 +69,56 @@ export const NotificationsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
     },
   });
+
+  const getNotificationRoute = (notification: Notification): string | null => {
+    if (!notification) return null;
+    const contentTypeModel = (notification as any).content_type_model as string | undefined;
+
+    if (notification.object_id) {
+      switch (contentTypeModel) {
+        case 'inventory.reservationrequest':
+          return `/reservation-requests?requestId=${notification.object_id}`;
+        case 'inventory.returnrequest':
+          return `/return-requests?requestId=${notification.object_id}`;
+        case 'inventory.unittransfer':
+          return `/unit-transfers?transferId=${notification.object_id}`;
+        case 'inventory.lead':
+          return `/leads?leadId=${notification.object_id}`;
+        default:
+          break;
+      }
+    }
+
+    switch (notification.notification_type) {
+      case 'RA':
+      case 'RR':
+      case 'RE':
+      case 'RP':
+        return notification.object_id ? `/reservation-requests?requestId=${notification.object_id}` : '/reservation-requests';
+      case 'TA':
+      case 'TR':
+        return notification.object_id ? `/return-requests?requestId=${notification.object_id}` : '/return-requests';
+      case 'FA':
+      case 'FR':
+      case 'UR':
+        return notification.object_id ? `/unit-transfers?transferId=${notification.object_id}` : '/unit-transfers';
+      case 'NL':
+        return notification.object_id ? `/leads?leadId=${notification.object_id}` : '/leads';
+      case 'OC':
+        return '/orders';
+      default:
+        return null;
+    }
+  };
+
+  const handleNotificationClick = (notification: Notification) => {
+    const route = getNotificationRoute(notification);
+    if (!route) return;
+    if (notification.id && !notification.is_read) {
+      markReadMutation.mutate(notification.id);
+    }
+    navigate(route);
+  };
 
   // Client-side filtering
   const filteredNotifications = useMemo(() => {
@@ -338,6 +390,7 @@ export const NotificationsPage: React.FC = () => {
               getNotificationTypeColor={getNotificationTypeColor}
               formatDate={formatDate}
               onMarkRead={(id) => id && markReadMutation.mutate(id)}
+              onOpen={handleNotificationClick}
             />
           ))}
         </div>
@@ -392,6 +445,7 @@ interface NotificationCardProps {
   getNotificationTypeColor: (type?: string) => string;
   formatDate: (dateString?: string) => string;
   onMarkRead: (id: number) => void;
+  onOpen?: (notification: Notification) => void;
 }
 
 const NotificationCard: React.FC<NotificationCardProps> = ({
@@ -400,6 +454,7 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   getNotificationTypeColor,
   formatDate,
   onMarkRead,
+  onOpen,
 }) => {
   const getIconTextColor = (type?: string) => {
     switch (type) {
@@ -419,7 +474,19 @@ const NotificationCard: React.FC<NotificationCardProps> = ({
   };
 
   return (
-    <div className={`notification-card ${!notification.is_read ? 'unread' : ''}`}>
+    <div
+      className={`notification-card ${!notification.is_read ? 'unread' : ''}`}
+      onClick={() => onOpen?.(notification)}
+      onKeyDown={(event) => {
+        if (!onOpen) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpen(notification);
+        }
+      }}
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+    >
       <div className="notification-card-header">
         <div 
           className="notification-card-icon" 

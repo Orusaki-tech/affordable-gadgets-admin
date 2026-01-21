@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LeadsService, ProfilesService, type LeadAdmin } from '../api/index';
 import { LeadDetailsModal } from '../components/LeadDetailsModal';
@@ -14,8 +14,10 @@ export const LeadsPage: React.FC = () => {
   const [selectedLead, setSelectedLead] = useState<LeadAdmin | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [toast, setToast] = useState<{message: string; type: 'success' | 'error'} | null>(null);
+  const [leadIdToOpen, setLeadIdToOpen] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Fetch admin profile to check roles
   const { data: adminProfile } = useQuery({
@@ -46,6 +48,20 @@ export const LeadsPage: React.FC = () => {
     setPage(1);
   }, [statusFilter]);
 
+  useEffect(() => {
+    const leadIdParam = searchParams.get('leadId');
+    if (leadIdParam) {
+      const leadId = Number(leadIdParam);
+      if (!Number.isNaN(leadId)) {
+        setLeadIdToOpen(leadId);
+        setSearch(leadIdParam);
+        setPage(1);
+      }
+      searchParams.delete('leadId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   // Fetch leads - event-driven only (no polling)
   // Status filtering is done client-side (API does not accept a status param)
   const { data: leadsData, isLoading, refetch: refetchLeads } = useQuery({
@@ -61,6 +77,16 @@ export const LeadsPage: React.FC = () => {
     staleTime: 0,                // Always consider data stale (refetch on focus)
     // NO refetchInterval - no automatic polling
   });
+
+  useEffect(() => {
+    if (!leadIdToOpen || !leadsData?.results) return;
+    const matchedLead = leadsData.results.find((lead) => lead.id === leadIdToOpen);
+    if (matchedLead) {
+      setSelectedLead(matchedLead);
+      setShowDetailsModal(true);
+      setLeadIdToOpen(null);
+    }
+  }, [leadIdToOpen, leadsData]);
 
   // Fetch all leads for accurate stats calculation (without status filter)
   const { data: allLeadsDataForStats } = useQuery({

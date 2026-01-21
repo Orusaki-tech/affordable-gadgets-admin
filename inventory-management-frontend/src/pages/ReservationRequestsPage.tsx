@@ -31,6 +31,18 @@ export const ReservationRequestsPage: React.FC = () => {
     }
   }, [searchParams, setSearchParams]);
 
+  useEffect(() => {
+    const requestIdParam = searchParams.get('requestId');
+    if (requestIdParam) {
+      const requestId = Number(requestIdParam);
+      if (!Number.isNaN(requestId)) {
+        setSelectedRequestId(requestId);
+      }
+      searchParams.delete('requestId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   // Reset page to 1 when status filter changes
   useEffect(() => {
     setPage(1);
