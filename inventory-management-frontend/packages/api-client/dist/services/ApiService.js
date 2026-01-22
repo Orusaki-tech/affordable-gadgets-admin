@@ -4,8 +4,11 @@ export class ApiService {
     /**
      * Custom token login view that updates last_login field.
      * Use this instead of the default obtain_auth_token for admin users.
+     *
+     * Supports both username and email login (username field can contain an email).
+     * Only allows users with is_staff=True or is_superuser=True to login.
      * @param formData
-     * @returns AuthToken
+     * @returns AdminAuthToken
      * @throws ApiError
      */
     static apiAuthTokenLoginCreate(formData) {
@@ -128,6 +131,38 @@ export class ApiService {
         });
     }
     /**
+     * Public bundle ViewSet.
+     * @param page
+     * @param product
+     * @returns PaginatedPublicBundleList
+     * @throws ApiError
+     */
+    static apiV1PublicBundlesList(page, product) {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/public/bundles/',
+            query: {
+                'page': page,
+                'product': product,
+            },
+        });
+    }
+    /**
+     * Public bundle ViewSet.
+     * @param id A unique integer value identifying this bundle.
+     * @returns PublicBundle
+     * @throws ApiError
+     */
+    static apiV1PublicBundlesRetrieve(id) {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/public/bundles/{id}/',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
      * Cart management.
      * @param page A page number within the paginated result set.
      * @returns PaginatedCartList
@@ -220,6 +255,24 @@ export class ApiService {
             path: {
                 'id': id,
             },
+        });
+    }
+    /**
+     * Add a bundle to cart.
+     * @param id A unique integer value identifying this cart.
+     * @param requestBody
+     * @returns Cart
+     * @throws ApiError
+     */
+    static apiV1PublicCartBundlesCreate(id, requestBody) {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/public/cart/{id}/bundles/',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
         });
     }
     /**
@@ -331,7 +384,7 @@ export class ApiService {
      * @param search
      * @param slug
      * @param type
-     * @returns PaginatedPublicProductList
+     * @returns PaginatedPublicProductListList
      * @throws ApiError
      */
     static apiV1PublicProductsList(brandFilter, maxPrice, minPrice, ordering, page, pageSize, promotion, search, slug, type) {
@@ -353,7 +406,7 @@ export class ApiService {
         });
     }
     /**
-     * Public product browsing.
+     * Cache public product detail responses.
      * @param id A unique integer value identifying this product.
      * @returns PublicProduct
      * @throws ApiError

@@ -5,6 +5,7 @@ import type { ReservationRequestStatusEnum } from './ReservationRequestStatusEnu
 export type ReservationRequestRequest = {
     inventory_unit_id?: number | null;
     inventory_unit_ids?: Array<number>;
+    inventory_unit_quantities?: Record<string, number>;
     status?: ReservationRequestStatusEnum;
     /**
      * Additional notes or comments

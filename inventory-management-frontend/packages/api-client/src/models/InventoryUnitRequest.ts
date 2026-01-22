@@ -31,7 +31,7 @@ export type InventoryUnitRequest = {
      */
     quantity?: number;
     /**
-     * Required for Phones/Laptops/Tablets. Not used for Accessories.
+     * Required for Phones/Laptops/Tablets. Optional for Accessories.
      */
     serial_number?: string | null;
     /**

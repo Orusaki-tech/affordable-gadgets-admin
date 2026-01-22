@@ -8,7 +8,7 @@ export declare class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param page A page number within the paginated result set.
@@ -20,7 +20,7 @@ export declare class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param requestBody
@@ -32,7 +32,7 @@ export declare class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param id A unique integer value identifying this product.
@@ -44,7 +44,7 @@ export declare class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param id A unique integer value identifying this product.
@@ -57,7 +57,7 @@ export declare class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param id A unique integer value identifying this product.
@@ -70,7 +70,7 @@ export declare class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param id A unique integer value identifying this product.

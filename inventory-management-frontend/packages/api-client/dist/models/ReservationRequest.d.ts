@@ -13,6 +13,7 @@ export type ReservationRequest = {
      * Inventory units in this reservation request
      */
     readonly inventory_units?: Array<number>;
+    inventory_unit_quantities?: Record<string, number>;
     readonly inventory_units_details?: Array<Record<string, any>>;
     status?: ReservationRequestStatusEnum;
     readonly status_display?: string;

@@ -358,8 +358,40 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
         
         return await response.json();
       } else {
-        // No file upload, use JSON
-        return PromotionsService.promotionsPartialUpdate(promotion.id, data as any);
+        // No file upload, use JSON (avoids multipart parsing issues for arrays)
+        const token = localStorage.getItem('auth_token');
+        let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+
+        // Auto-detect base URL from hostname (same logic as config.ts)
+        if (typeof window !== 'undefined' && window.location) {
+          const hostname = window.location.hostname;
+          if (hostname !== 'localhost' && hostname !== '127.0.0.1' && baseUrl.includes('localhost')) {
+            baseUrl = baseUrl.replace('localhost', hostname).replace('127.0.0.1', hostname);
+          }
+        }
+
+        const response = await fetch(`${baseUrl}/promotions/${promotion.id}/`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+          let errorData: any = {};
+          try {
+            errorData = await response.json();
+          } catch {
+            errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+          }
+          const error = new Error(errorData.detail || errorData.message || 'Failed to update promotion');
+          (error as any).response = { data: errorData, status: response.status };
+          throw error;
+        }
+
+        return await response.json();
       }
     },
     onSuccess: () => {

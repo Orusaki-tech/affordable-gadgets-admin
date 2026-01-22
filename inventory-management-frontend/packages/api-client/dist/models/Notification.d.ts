@@ -14,4 +14,5 @@ export type Notification = {
     readonly created_at?: string;
     content_type?: number | null;
     object_id?: number | null;
+    readonly content_type_model?: string | null;
 };

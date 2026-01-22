@@ -8,7 +8,7 @@ export declare class ImagesService {
      * CRUD for individual product images.
      * Only Admins can add/manage images; everyone can view product images
      * (which are nested in ProductViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsContentCreatorOrInventoryManagerOrReadOnly.
      * @param page A page number within the paginated result set.
      * @returns PaginatedProductImageList
      * @throws ApiError
@@ -18,7 +18,7 @@ export declare class ImagesService {
      * CRUD for individual product images.
      * Only Admins can add/manage images; everyone can view product images
      * (which are nested in ProductViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsContentCreatorOrInventoryManagerOrReadOnly.
      * @param formData
      * @returns ProductImage
      * @throws ApiError
@@ -28,7 +28,7 @@ export declare class ImagesService {
      * CRUD for individual product images.
      * Only Admins can add/manage images; everyone can view product images
      * (which are nested in ProductViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsContentCreatorOrInventoryManagerOrReadOnly.
      * @param id A unique integer value identifying this product image.
      * @returns ProductImage
      * @throws ApiError
@@ -38,7 +38,7 @@ export declare class ImagesService {
      * CRUD for individual product images.
      * Only Admins can add/manage images; everyone can view product images
      * (which are nested in ProductViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsContentCreatorOrInventoryManagerOrReadOnly.
      * @param id A unique integer value identifying this product image.
      * @param formData
      * @returns ProductImage
@@ -49,7 +49,7 @@ export declare class ImagesService {
      * CRUD for individual product images.
      * Only Admins can add/manage images; everyone can view product images
      * (which are nested in ProductViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsContentCreatorOrInventoryManagerOrReadOnly.
      * @param id A unique integer value identifying this product image.
      * @param formData
      * @returns ProductImage
@@ -60,7 +60,7 @@ export declare class ImagesService {
      * CRUD for individual product images.
      * Only Admins can add/manage images; everyone can view product images
      * (which are nested in ProductViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsContentCreatorOrInventoryManagerOrReadOnly.
      * @param id A unique integer value identifying this product image.
      * @returns void
      * @throws ApiError

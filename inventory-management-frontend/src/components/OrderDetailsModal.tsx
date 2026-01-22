@@ -179,6 +179,48 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
 
               <div className="order-items-section">
                 <h3>Order Items</h3>
+                {(() => {
+                  const bundleGroups = new Map<string, { title: string; total: number; items: any[] }>();
+                  (data.order_items || []).forEach((item: any) => {
+                    if (!item.bundle_group_id) return;
+                    const key = String(item.bundle_group_id);
+                    if (!bundleGroups.has(key)) {
+                      bundleGroups.set(key, {
+                        title: item.bundle_title || 'Bundle',
+                        total: 0,
+                        items: [],
+                      });
+                    }
+                    const unitPrice = Number(item.unit_price_at_purchase ?? 0);
+                    const quantity = Number(item.quantity ?? 0);
+                    const lineTotal = Number(item.sub_total ?? (unitPrice * quantity));
+                    const group = bundleGroups.get(key)!;
+                    group.items.push(item);
+                    group.total += lineTotal;
+                  });
+                  const bundleList = Array.from(bundleGroups.values());
+                  if (bundleList.length === 0) return null;
+                  return (
+                    <div className="bundle-summary-card" style={{ marginBottom: '16px' }}>
+                      <div className="bundle-summary-title">Bundle Summary</div>
+                      {bundleList.map((bundle, idx) => (
+                        <div key={`${bundle.title}-${idx}`} className="bundle-summary-item">
+                          <div className="bundle-summary-header">
+                            <span className="bundle-summary-name">{bundle.title}</span>
+                            <span className="bundle-summary-total">KES {bundle.total.toFixed(2)}</span>
+                          </div>
+                          <ul className="bundle-summary-list">
+                            {bundle.items.map((item, itemIdx) => (
+                              <li key={item.id || itemIdx}>
+                                {item.product_template_name || 'Item'} × {item.quantity}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
                 {data.order_items && data.order_items.length > 0 ? (
                   <table className="order-items-table">
                     <thead>
@@ -195,6 +237,11 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                         <tr key={item.id || index}>
                           <td>
                             <div className="product-name">{item.product_template_name || 'N/A'}</div>
+                            {item.bundle_group_id && (
+                              <div className="bundle-tag">
+                                Bundle: {item.bundle_title || 'Bundle'}
+                              </div>
+                            )}
                           </td>
                           <td>
                             <div className="unit-details-compact">

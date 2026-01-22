@@ -715,6 +715,10 @@ const OrderCard: React.FC<OrderCardProps> = ({
   const isOnline = order.order_source === 'ONLINE';
   const canConfirmPayment = isSalesperson && order.status === 'Pending' && onConfirmPayment;
   const canInitiatePayment = isSalesperson && order.status === 'Pending' && onInitiatePayment && isWalkIn;
+  const bundleGroups = Array.from(new Set((order.order_items || [])
+    .map((item: any) => item.bundle_group_id)
+    .filter(Boolean)));
+  const bundleCount = bundleGroups.length;
   // Order Managers can only mark ONLINE orders as delivered (not walk-in orders)
   const canMarkDelivered = isOrderManager && order.status === 'Paid' && (order as any).order_source === 'ONLINE' && onMarkDelivered;
 
@@ -756,6 +760,12 @@ const OrderCard: React.FC<OrderCardProps> = ({
           <span className="info-label">Items:</span>
           <span className="info-value">{order.order_items?.length || 0}</span>
         </div>
+        {bundleCount > 0 && (
+          <div className="order-info-item">
+            <span className="info-label">Bundles:</span>
+            <span className="info-value">{bundleCount}</span>
+          </div>
+        )}
       </div>
 
       <div

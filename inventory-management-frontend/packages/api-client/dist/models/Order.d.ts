@@ -11,6 +11,7 @@ export type Order = {
     readonly customer?: number;
     readonly customer_username?: string | null;
     readonly customer_phone?: string;
+    readonly customer_email?: string;
     readonly delivery_address?: string;
     readonly created_at?: string;
     status?: OrderStatusEnum;

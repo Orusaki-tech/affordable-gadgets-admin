@@ -1,12 +1,14 @@
-import type { AuthToken } from '../models/AuthToken';
-import type { AuthTokenRequest } from '../models/AuthTokenRequest';
+import type { AdminAuthToken } from '../models/AdminAuthToken';
+import type { AdminAuthTokenRequest } from '../models/AdminAuthTokenRequest';
 import type { Cart } from '../models/Cart';
 import type { CartCreateRequest } from '../models/CartCreateRequest';
 import type { CartRequest } from '../models/CartRequest';
 import type { PaginatedCartList } from '../models/PaginatedCartList';
 import type { PaginatedProductAccessoryList } from '../models/PaginatedProductAccessoryList';
+import type { PaginatedPublicBundleList } from '../models/PaginatedPublicBundleList';
 import type { PaginatedPublicInventoryUnitPublicList } from '../models/PaginatedPublicInventoryUnitPublicList';
 import type { PaginatedPublicProductList } from '../models/PaginatedPublicProductList';
+import type { PaginatedPublicProductListList } from '../models/PaginatedPublicProductListList';
 import type { PaginatedPublicPromotionList } from '../models/PaginatedPublicPromotionList';
 import type { PaginatedReviewList } from '../models/PaginatedReviewList';
 import type { PatchedCartRequest } from '../models/PatchedCartRequest';
@@ -14,6 +16,7 @@ import type { PatchedProductAccessoryRequest } from '../models/PatchedProductAcc
 import type { PatchedReviewRequest } from '../models/PatchedReviewRequest';
 import type { ProductAccessory } from '../models/ProductAccessory';
 import type { ProductAccessoryRequest } from '../models/ProductAccessoryRequest';
+import type { PublicBundle } from '../models/PublicBundle';
 import type { PublicProduct } from '../models/PublicProduct';
 import type { PublicPromotion } from '../models/PublicPromotion';
 import type { Review } from '../models/Review';
@@ -23,11 +26,14 @@ export declare class ApiService {
     /**
      * Custom token login view that updates last_login field.
      * Use this instead of the default obtain_auth_token for admin users.
+     *
+     * Supports both username and email login (username field can contain an email).
+     * Only allows users with is_staff=True or is_superuser=True to login.
      * @param formData
-     * @returns AuthToken
+     * @returns AdminAuthToken
      * @throws ApiError
      */
-    static apiAuthTokenLoginCreate(formData: AuthTokenRequest): CancelablePromise<AuthToken>;
+    static apiAuthTokenLoginCreate(formData: AdminAuthTokenRequest): CancelablePromise<AdminAuthToken>;
     /**
      * Link model between products and accessories. Admin-only write, public read.
      * Uses IsAdminOrReadOnly.
@@ -87,6 +93,21 @@ export declare class ApiService {
      */
     static apiV1PublicAccessoriesLinkDestroy(id: number): CancelablePromise<void>;
     /**
+     * Public bundle ViewSet.
+     * @param page
+     * @param product
+     * @returns PaginatedPublicBundleList
+     * @throws ApiError
+     */
+    static apiV1PublicBundlesList(page?: number, product?: number): CancelablePromise<PaginatedPublicBundleList>;
+    /**
+     * Public bundle ViewSet.
+     * @param id A unique integer value identifying this bundle.
+     * @returns PublicBundle
+     * @throws ApiError
+     */
+    static apiV1PublicBundlesRetrieve(id: number): CancelablePromise<PublicBundle>;
+    /**
      * Cart management.
      * @param page A page number within the paginated result set.
      * @returns PaginatedCartList
@@ -130,6 +151,14 @@ export declare class ApiService {
      * @throws ApiError
      */
     static apiV1PublicCartDestroy(id: number): CancelablePromise<void>;
+    /**
+     * Add a bundle to cart.
+     * @param id A unique integer value identifying this cart.
+     * @param requestBody
+     * @returns Cart
+     * @throws ApiError
+     */
+    static apiV1PublicCartBundlesCreate(id: number, requestBody: CartRequest): CancelablePromise<Cart>;
     /**
      * Checkout cart (convert to Lead).
      * @param id A unique integer value identifying this cart.
@@ -191,12 +220,12 @@ export declare class ApiService {
      * @param search
      * @param slug
      * @param type
-     * @returns PaginatedPublicProductList
+     * @returns PaginatedPublicProductListList
      * @throws ApiError
      */
-    static apiV1PublicProductsList(brandFilter?: string, maxPrice?: number, minPrice?: number, ordering?: string, page?: number, pageSize?: number, promotion?: number, search?: string, slug?: string, type?: string): CancelablePromise<PaginatedPublicProductList>;
+    static apiV1PublicProductsList(brandFilter?: string, maxPrice?: number, minPrice?: number, ordering?: string, page?: number, pageSize?: number, promotion?: number, search?: string, slug?: string, type?: string): CancelablePromise<PaginatedPublicProductListList>;
     /**
-     * Public product browsing.
+     * Cache public product detail responses.
      * @param id A unique integer value identifying this product.
      * @returns PublicProduct
      * @throws ApiError

@@ -8,4 +8,6 @@ export type CartItem = {
     quantity?: number;
     readonly unit_price?: string;
     readonly promotion_id?: number | null;
+    readonly bundle_id?: number | null;
+    readonly bundle_group_id?: string | null;
 };

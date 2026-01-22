@@ -1,0 +1,18 @@
+0 verbose cli /Users/shwariphones/.nvm/versions/node/v22.20.0/bin/node /Users/shwariphones/.nvm/versions/node/v22.20.0/bin/npm
+1 info using npm@10.9.3
+2 info using node@v22.20.0
+3 silly config load:file:/Users/shwariphones/.nvm/versions/node/v22.20.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/shwariphones/Desktop/shwari-django/affordable-gadgets-admin/inventory-management-frontend/packages/api-client/.npmrc
+5 silly config load:file:/Users/shwariphones/.npmrc
+6 silly config load:file:/Users/shwariphones/.nvm/versions/node/v22.20.0/etc/npmrc
+7 verbose title npm run generate
+8 verbose argv "run" "generate"
+9 verbose logfile logs-max:10 dir:/Users/shwariphones/Desktop/shwari-django/affordable-gadgets-admin/inventory-management-frontend/.npm_cache/_logs/2026-01-22T12_53_08_835Z-
+10 verbose logfile /Users/shwariphones/Desktop/shwari-django/affordable-gadgets-admin/inventory-management-frontend/.npm_cache/_logs/2026-01-22T12_53_08_835Z-debug-0.log
+11 silly logfile done cleaning log files
+12 verbose cwd /Users/shwariphones/Desktop/shwari-django/affordable-gadgets-admin/inventory-management-frontend/packages/api-client
+13 verbose os Darwin 21.6.0
+14 verbose node v22.20.0
+15 verbose npm  v10.9.3
+16 verbose exit 0
+17 info ok

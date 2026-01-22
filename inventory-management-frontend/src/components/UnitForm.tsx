@@ -560,8 +560,8 @@ export const UnitForm: React.FC<UnitFormProps> = ({
           ? formData.date_sourced.split('T')[0]  // Extract just the date part if it's a datetime string
           : formData.date_sourced)
         : undefined,
-      // Quantity: Always 1 for unique items (PH, LT, TB), required and can be > 1 for accessories (AC)
-      quantity: currentIsAccessory ? (formData.quantity || 1) : 1,
+      // Quantity: Always 1 for unique items (PH, LT, TB). Accessories can be > 1 unless a serial is provided.
+      quantity: currentIsAccessory ? (accessoryHasSerial ? 1 : (formData.quantity || 1)) : 1,
       storage_gb: formData.storage_gb || undefined,
       ram_gb: formData.ram_gb || undefined,
       battery_mah: formData.battery_mah || undefined,
@@ -587,6 +587,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   const isLoading = createMutation.isPending || updateMutation.isPending || uploadImageMutation.isPending;
   const isPhoneOrTablet = selectedProductType === 'PH' || selectedProductType === 'TB';
   const isAccessory = selectedProductType === 'AC';
+  const accessoryHasSerial = isAccessory && !!formData.serial_number?.trim();
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -1275,6 +1276,11 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                   onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
                   disabled={isLoading}
                 />
+                {isAccessory && (
+                  <small className="form-help">
+                    Optional for accessories. If provided, quantity is fixed to 1.
+                  </small>
+                )}
               </div>
 
               {isPhoneOrTablet && (
@@ -1452,11 +1458,17 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                       quantity: e.target.value ? parseInt(e.target.value) : 1,
                     })}
                     required={isAccessory}
-                    disabled={isLoading}
-                    title="Required for accessories. Can be > 1 for bulk items."
+                    disabled={isLoading || accessoryHasSerial}
+                    title={accessoryHasSerial
+                      ? "Quantity is fixed to 1 when an accessory has a serial number."
+                      : "Required for accessories. Can be > 1 for bulk items."
+                    }
                   />
                   <small className="form-help">
-                    Required for accessories. Each accessory unit can have quantity &gt; 1 (no unique identifier).
+                    {accessoryHasSerial
+                      ? 'Quantity is fixed to 1 because a serial number is provided.'
+                      : 'Required for accessories. Each accessory unit can have quantity > 1 (no unique identifier).'
+                    }
                   </small>
                 </div>
               )}

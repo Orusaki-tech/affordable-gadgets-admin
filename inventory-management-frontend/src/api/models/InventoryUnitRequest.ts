@@ -10,7 +10,7 @@ import type { SourceEnum } from './SourceEnum';
 /**
  * Serializes physical Inventory Units.
  * - Phones/Laptops/Tablets: Unique units (serial_number/IMEI), quantity=1.
- * - Accessories: Bulk items (no unique identifier), quantity required and can be > 1.
+ * - Accessories: Bulk items (quantity >= 1); serial numbers are optional (if provided, quantity must be 1).
  */
 export type InventoryUnitRequest = {
     product_template_id: number;

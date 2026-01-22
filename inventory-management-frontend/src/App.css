@@ -9112,3 +9112,96 @@ p, body {
   padding-top: clamp(var(--spacing-lg), 2vw, var(--spacing-xl));
 }
 
+/* Bundle summary in order details modal */
+.bundle-summary-card {
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  background-color: var(--md-surface-container-low);
+}
+
+.bundle-summary-title {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--md-on-surface);
+  margin-bottom: var(--spacing-sm);
+}
+
+.bundle-summary-item {
+  padding: var(--spacing-sm);
+  background-color: var(--md-surface-container);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-outline-variant);
+  margin-bottom: var(--spacing-sm);
+}
+
+.bundle-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-xs);
+}
+
+.bundle-summary-list {
+  margin-left: var(--spacing-md);
+  font-size: var(--font-size-12);
+  color: var(--md-on-surface-variant);
+}
+
+.bundle-tag {
+  display: inline-flex;
+  margin-top: var(--spacing-xs);
+  padding: 2px 6px;
+  font-size: var(--font-size-12);
+  border-radius: var(--radius-full);
+  background-color: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}
+
+/* Bundle summary in order details modal */
+.bundle-summary-card {
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  background-color: var(--md-surface-container-low);
+}
+
+.bundle-summary-title {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--md-on-surface);
+  margin-bottom: var(--spacing-sm);
+}
+
+.bundle-summary-item {
+  padding: var(--spacing-sm);
+  background-color: var(--md-surface-container);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-outline-variant);
+  margin-bottom: var(--spacing-sm);
+}
+
+.bundle-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--spacing-xs);
+}
+
+.bundle-summary-list {
+  margin-left: var(--spacing-md);
+  font-size: var(--font-size-12);
+  color: var(--md-on-surface-variant);
+}
+
+.bundle-tag {
+  display: inline-flex;
+  margin-top: var(--spacing-xs);
+  padding: 2px 6px;
+  font-size: var(--font-size-12);
+  border-radius: var(--radius-full);
+  background-color: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+}

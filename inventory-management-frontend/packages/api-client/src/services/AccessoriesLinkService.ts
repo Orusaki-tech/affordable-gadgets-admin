@@ -17,7 +17,6 @@ export class AccessoriesLinkService {
      * @param accessory
      * @param mainProduct
      * @param page A page number within the paginated result set.
-     * @param pageSize Number of results to return per page.
      * @returns PaginatedProductAccessoryList
      * @throws ApiError
      */
@@ -25,7 +24,6 @@ export class AccessoriesLinkService {
         accessory?: number,
         mainProduct?: number,
         page?: number,
-        pageSize?: number,
     ): CancelablePromise<PaginatedProductAccessoryList> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -34,7 +32,6 @@ export class AccessoriesLinkService {
                 'accessory': accessory,
                 'main_product': mainProduct,
                 'page': page,
-                'page_size': pageSize,
             },
         });
     }

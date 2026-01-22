@@ -20,4 +20,7 @@ export type OrderItem = {
      */
     readonly unit_price_at_purchase?: string;
     readonly sub_total?: string;
+    readonly bundle_id?: number | null;
+    readonly bundle_title?: string | null;
+    readonly bundle_group_id?: string | null;
 };

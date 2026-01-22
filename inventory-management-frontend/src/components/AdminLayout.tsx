@@ -386,6 +386,9 @@ export const AdminLayout: React.FC = () => {
               <Link to="/promotions" className={isActive('/promotions')} onClick={() => setSidebarOpen(false)}>
                 Promotions
               </Link>
+              <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
+                Bundles
+              </Link>
               
               {/* Product Selection (Read-only) */}
               <div className="nav-section-header">Products</div>
@@ -511,6 +514,9 @@ export const AdminLayout: React.FC = () => {
               </Link>
               <Link to="/promotions" className={isActive('/promotions')} onClick={() => setSidebarOpen(false)}>
                 Promotions
+              </Link>
+              <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
+                Bundles
               </Link>
 
               {/* Administration */}
