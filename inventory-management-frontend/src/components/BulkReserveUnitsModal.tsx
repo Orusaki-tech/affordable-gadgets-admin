@@ -17,6 +17,7 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
 }) => {
   const [selectedUnitIds, setSelectedUnitIds] = useState<Set<number>>(new Set());
   const [reserveQuantity, setReserveQuantity] = useState<number>(0);
+  const [selectedUnitQuantities, setSelectedUnitQuantities] = useState<Map<number, number>>(new Map());
   const [searchTerm, setSearchTerm] = useState('');
   const [notes, setNotes] = useState('');
   const queryClient = useQueryClient();
@@ -44,7 +45,32 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
     });
   }, [availableOnly, searchTerm]);
 
+  const isAccessoryProduct = useMemo(() => {
+    return availableUnits.some(unit => unit.product_type === 'AC');
+  }, [availableUnits]);
+
+  const selectedCount = useMemo(() => {
+    if (isAccessoryProduct) {
+      return Array.from(selectedUnitQuantities.values()).reduce((sum, qty) => sum + qty, 0);
+    }
+    return selectedUnitIds.size;
+  }, [isAccessoryProduct, selectedUnitIds.size, selectedUnitQuantities]);
+
   const toggleUnitSelection = (unitId: number) => {
+    if (isAccessoryProduct) {
+      const currentQty = selectedUnitQuantities.get(unitId) || 0;
+      const unit = filteredUnits.find(u => u.id === unitId);
+      const maxQty = unit?.quantity ?? 1;
+      const nextQty = currentQty > 0 ? 0 : 1;
+      const newSelected = new Map(selectedUnitQuantities);
+      if (nextQty === 0) {
+        newSelected.delete(unitId);
+      } else {
+        newSelected.set(unitId, Math.min(nextQty, maxQty));
+      }
+      setSelectedUnitQuantities(newSelected);
+      return;
+    }
     const newSelected = new Set(selectedUnitIds);
     if (newSelected.has(unitId)) {
       newSelected.delete(unitId);
@@ -56,6 +82,19 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
   };
 
   const selectAll = () => {
+    if (isAccessoryProduct) {
+      const newSelected = new Map<number, number>();
+      filteredUnits.forEach(unit => {
+        if (unit.id !== undefined) {
+          const maxQty = unit.quantity ?? 1;
+          if (maxQty > 0) {
+            newSelected.set(unit.id, maxQty);
+          }
+        }
+      });
+      setSelectedUnitQuantities(newSelected);
+      return;
+    }
     const allIds = filteredUnits.map(u => u.id).filter((id): id is number => id !== undefined);
     setSelectedUnitIds(new Set(allIds));
     setReserveQuantity(allIds.length);
@@ -64,9 +103,13 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
   const deselectAll = () => {
     setSelectedUnitIds(new Set());
     setReserveQuantity(0);
+    setSelectedUnitQuantities(new Map());
   };
 
   const applyQuantitySelection = () => {
+    if (isAccessoryProduct) {
+      return;
+    }
     const selectableIds = filteredUnits.map(u => u.id).filter((id): id is number => id !== undefined);
     if (selectableIds.length === 0) {
       alert('No available units to reserve.');
@@ -80,7 +123,7 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
   };
 
   const bulkReserveMutation = useMutation({
-    mutationFn: (unitIds: number[]) => {
+    mutationFn: ({ unitIds, unitQuantities }: { unitIds: number[]; unitQuantities?: Record<number, number> }) => {
       // Use the existing API but with inventory_unit_ids array
       const token = localStorage.getItem('auth_token');
       const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
@@ -93,6 +136,7 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
         },
         body: JSON.stringify({
           inventory_unit_ids: unitIds,
+          inventory_unit_quantities: unitQuantities,
           notes: notes.trim() || undefined,
         }),
       }).then(async (response) => {
@@ -106,7 +150,7 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] });
       queryClient.invalidateQueries({ queryKey: ['reservation-requests'] });
-      alert(`Successfully created reservation request for ${selectedUnitIds.size} unit(s)`);
+      alert(`Successfully created reservation request for ${selectedCount} unit(s)`);
       onSuccess();
       onClose();
     },
@@ -117,13 +161,31 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
   });
 
   const handleReserve = () => {
-    if (selectedUnitIds.size === 0) {
+    if (selectedCount === 0) {
       alert('Please select at least one unit to reserve.');
       return;
     }
-    
-    if (window.confirm(`Create reservation request for ${selectedUnitIds.size} unit(s)?`)) {
-      bulkReserveMutation.mutate(Array.from(selectedUnitIds));
+
+    if (isAccessoryProduct) {
+      const entries = Array.from(selectedUnitQuantities.entries()).filter(([, qty]) => qty > 0);
+      const unitIds = entries.map(([id]) => id);
+      const unitQuantities = entries.reduce((acc, [id, qty]) => {
+        acc[id] = qty;
+        return acc;
+      }, {} as Record<number, number>);
+      if (window.confirm(`Create reservation request for ${selectedCount} unit(s)?`)) {
+        bulkReserveMutation.mutate({ unitIds, unitQuantities });
+      }
+      return;
+    }
+
+    const unitIds = Array.from(selectedUnitIds);
+    const unitQuantities = unitIds.reduce((acc, id) => {
+      acc[id] = 1;
+      return acc;
+    }, {} as Record<number, number>);
+    if (window.confirm(`Create reservation request for ${selectedCount} unit(s)?`)) {
+      bulkReserveMutation.mutate({ unitIds, unitQuantities });
     }
   };
 
@@ -149,37 +211,39 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
               <span>|</span>
               <button type="button" onClick={deselectAll} className="btn-link">Deselect All</button>
               <span className="selected-count" style={{ marginLeft: 'auto', fontWeight: 'var(--font-weight-semibold)' }}>
-                {selectedUnitIds.size} selected
+                {selectedCount} selected
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
-              <label htmlFor="reserve-quantity" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
-                Quantity
-              </label>
-              <input
-                id="reserve-quantity"
-                type="number"
-                min={0}
-                max={filteredUnits.length}
-                value={reserveQuantity}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value, 10);
-                  setReserveQuantity(Number.isNaN(value) ? 0 : value);
-                }}
-                style={{ width: '90px' }}
-              />
-              <button
-                type="button"
-                className="btn-link"
-                onClick={applyQuantitySelection}
-                disabled={filteredUnits.length === 0}
-              >
-                Select Quantity
-              </button>
-              <span style={{ color: '#666', fontSize: '0.85rem' }}>
-                Max {filteredUnits.length}
-              </span>
-            </div>
+            {!isAccessoryProduct && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+                <label htmlFor="reserve-quantity" style={{ fontWeight: 'var(--font-weight-semibold)' }}>
+                  Quantity
+                </label>
+                <input
+                  id="reserve-quantity"
+                  type="number"
+                  min={0}
+                  max={filteredUnits.length}
+                  value={reserveQuantity}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value, 10);
+                    setReserveQuantity(Number.isNaN(value) ? 0 : value);
+                  }}
+                  style={{ width: '90px' }}
+                />
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={applyQuantitySelection}
+                  disabled={filteredUnits.length === 0}
+                >
+                  Select Quantity
+                </button>
+                <span style={{ color: '#666', fontSize: '0.85rem' }}>
+                  Max {filteredUnits.length}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="units-list">
@@ -189,7 +253,9 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
               </div>
             ) : (
               filteredUnits.map((unit) => {
-                const isSelected = unit.id !== undefined && selectedUnitIds.has(unit.id);
+                const isSelected = unit.id !== undefined && (isAccessoryProduct ? (selectedUnitQuantities.get(unit.id) || 0) > 0 : selectedUnitIds.has(unit.id));
+                const selectedQty = unit.id !== undefined ? (selectedUnitQuantities.get(unit.id) || 0) : 0;
+                const maxQty = unit.quantity ?? 1;
                 return (
                   <div
                     key={unit.id}
@@ -211,12 +277,41 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
                         {unit.imei && <span>IMEI: {unit.imei}</span>}
                         {unit.condition && <span>Condition: {unit.condition}</span>}
                         {unit.grade && <span>Grade: {String(unit.grade)}</span>}
+                        {unit.color_name && <span>Color: {unit.color_name}</span>}
+                        {unit.quantity !== undefined && <span>Available: {unit.quantity}</span>}
                         {unit.selling_price && (
                           <span className="unit-price">
                             KES {Number(unit.selling_price).toFixed(0)}
                           </span>
                         )}
                       </div>
+                      {isAccessoryProduct && unit.id !== undefined && (
+                        <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <label htmlFor={`unit-qty-${unit.id}`} style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                            Qty
+                          </label>
+                          <input
+                            id={`unit-qty-${unit.id}`}
+                            type="number"
+                            min={0}
+                            max={maxQty}
+                            value={selectedQty}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value, 10);
+                              const clamped = Math.max(0, Math.min(Number.isNaN(value) ? 0 : value, maxQty));
+                              const next = new Map(selectedUnitQuantities);
+                              if (clamped === 0) {
+                                next.delete(unit.id as number);
+                              } else {
+                                next.set(unit.id as number, clamped);
+                              }
+                              setSelectedUnitQuantities(next);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ width: '90px' }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -243,9 +338,9 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
               type="button"
               onClick={handleReserve}
               className="btn-primary"
-              disabled={selectedUnitIds.size === 0 || bulkReserveMutation.isPending}
+              disabled={selectedCount === 0 || bulkReserveMutation.isPending}
             >
-              {bulkReserveMutation.isPending ? 'Creating...' : `Reserve ${selectedUnitIds.size} Unit(s)`}
+              {bulkReserveMutation.isPending ? 'Creating...' : `Reserve ${selectedCount} Unit(s)`}
             </button>
           </div>
         </div>

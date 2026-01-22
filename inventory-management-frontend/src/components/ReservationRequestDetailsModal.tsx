@@ -7,6 +7,7 @@ import { ReservationRequestsService, InventoryUnitRW, OrdersService, BrandsServi
 type InventoryUnitRWExtended = InventoryUnitRW & {
   product_name?: string;
   sale_status_display?: string;
+  requested_quantity?: number;
 };
 
 interface ReservationRequestDetailsModalProps {
@@ -351,6 +352,7 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
         ...unit,
         product_name: unit.product_template_name,
         sale_status_display: (unit as any).sale_status_display || unit.sale_status,
+        requested_quantity: (unit as any).requested_quantity ?? 1,
       }));
     }
     
@@ -392,6 +394,7 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
             ...availableUnit,
             product_name: availableUnit.product_template_name,
             sale_status_display: availableUnit.sale_status_display || availableUnit.sale_status,
+            requested_quantity: 1,
           });
         }
       }
@@ -599,6 +602,9 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
                         </div>
                         <div className="unit-details">
                           {unit.condition} {unit.grade && `- Grade ${unit.grade}`} - {(unit as InventoryUnitRWExtended).sale_status_display || getSaleStatusDisplay(unit.sale_status || '')}
+                          {((unit as InventoryUnitRWExtended).requested_quantity ?? 1) > 1 && (
+                            <span> - Qty {(unit as InventoryUnitRWExtended).requested_quantity}</span>
+                          )}
                         </div>
                         <div className="unit-price" data-price="true">
                           KES {unit.selling_price ? parseFloat(unit.selling_price.toString()).toLocaleString() : '0.00'}
@@ -697,6 +703,7 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
                 {selectedUnitForOrder.serial_number && (
                   <div><strong>Serial Number:</strong> {selectedUnitForOrder.serial_number}</div>
                 )}
+                <div><strong>Quantity:</strong> {(selectedUnitForOrder as InventoryUnitRWExtended).requested_quantity ?? 1}</div>
                 <div><strong>Price:</strong> <span data-price="true">KES {selectedUnitForOrder.selling_price ? parseFloat(selectedUnitForOrder.selling_price.toString()).toLocaleString() : '0.00'}</span></div>
                 <div><strong>Status:</strong> {(selectedUnitForOrder as InventoryUnitRWExtended).sale_status_display || getSaleStatusDisplay(selectedUnitForOrder.sale_status || '')}</div>
                 {brandForOrder && (
