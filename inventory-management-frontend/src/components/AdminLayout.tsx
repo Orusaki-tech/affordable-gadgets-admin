@@ -82,6 +82,7 @@ export const AdminLayout: React.FC = () => {
   const isContentCreator = hasRole('CC') && !isSuperuser; // Content Creator only, not if superuser
   const isMarketingManager = hasRole('MM') && !isSuperuser; // Marketing Manager only, not if superuser
   const isOrderManager = hasRole('OM') && !isSuperuser; // Order Manager only, not if superuser
+  const isBundleReadOnly = !isSuperuser && !isGlobalAdmin && !isMarketingManager;
   
   // Get admin's brands (memoized to prevent unnecessary re-renders)
   // brands can be string or Brand[], parse if string
@@ -251,7 +252,8 @@ export const AdminLayout: React.FC = () => {
                 Products
               </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
-                Bundles
+                <span>Bundles</span>
+                {isBundleReadOnly && <span className="nav-lock">🔒</span>}
               </Link>
               <Link to="/units" className={isActive('/units')} onClick={() => setSidebarOpen(false)}>
                 Inventory Units
@@ -307,7 +309,8 @@ export const AdminLayout: React.FC = () => {
                 Products
               </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
-                Bundles
+                <span>Bundles</span>
+                {isBundleReadOnly && <span className="nav-lock">🔒</span>}
               </Link>
               <Link to="/units" className={isActive('/units')} onClick={() => setSidebarOpen(false)}>
                 Inventory Units
@@ -371,7 +374,8 @@ export const AdminLayout: React.FC = () => {
                 Products
               </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
-                Bundles
+                <span>Bundles</span>
+                {isBundleReadOnly && <span className="nav-lock">🔒</span>}
               </Link>
               <Link to="/reviews" className={isActive('/reviews')} onClick={() => setSidebarOpen(false)}>
                 Reviews
@@ -402,7 +406,8 @@ export const AdminLayout: React.FC = () => {
                 Promotions
               </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
-                Bundles
+                <span>Bundles</span>
+                {isBundleReadOnly && <span className="nav-lock">🔒</span>}
               </Link>
               
               {/* Product Selection (Read-only) */}
@@ -436,7 +441,8 @@ export const AdminLayout: React.FC = () => {
                 Orders
               </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
-                Bundles
+                <span>Bundles</span>
+                {isBundleReadOnly && <span className="nav-lock">🔒</span>}
               </Link>
               
               {/* Other */}
@@ -534,7 +540,8 @@ export const AdminLayout: React.FC = () => {
                 Promotions
               </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
-                Bundles
+                <span>Bundles</span>
+                {isBundleReadOnly && <span className="nav-lock">🔒</span>}
               </Link>
 
               {/* Administration */}
