@@ -507,7 +507,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                     if (product?.id) {
                       handleToggleItem(product.id, product.product_name || '');
                       setItemSearch('');
-                      setShowItemSuggestions(true);
+                      setShowItemSuggestions(false);
                       setHighlightedItemIndex(-1);
                     }
                   } else if (e.key === 'Escape') {
@@ -547,7 +547,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                         if (product.id) {
                           handleToggleItem(product.id, product.product_name || '');
                           setItemSearch('');
-                          setShowItemSuggestions(true);
+                          setShowItemSuggestions(false);
                           setHighlightedItemIndex(-1);
                         }
                       }}
@@ -573,6 +573,9 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                 Load more products
               </button>
             )}
+            <div className="form-help-text">
+              Selected items (with quantity and pricing) appear below this field.
+            </div>
             {errors.items && <span className="error-text">{errors.items}</span>}
           </div>
 
