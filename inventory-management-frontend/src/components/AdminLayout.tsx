@@ -82,7 +82,6 @@ export const AdminLayout: React.FC = () => {
   const isContentCreator = hasRole('CC') && !isSuperuser; // Content Creator only, not if superuser
   const isMarketingManager = hasRole('MM') && !isSuperuser; // Marketing Manager only, not if superuser
   const isOrderManager = hasRole('OM') && !isSuperuser; // Order Manager only, not if superuser
-  const isBundleReadOnly = !isSuperuser && !isGlobalAdmin && !isMarketingManager;
   
   // Get admin's brands (memoized to prevent unnecessary re-renders)
   // brands can be string or Brand[], parse if string
@@ -99,6 +98,7 @@ export const AdminLayout: React.FC = () => {
     return Array.isArray(adminProfile.brands) ? adminProfile.brands : [];
   }, [adminProfile?.brands]);
   const isGlobalAdmin = adminProfile?.is_global_admin === true;
+  const isBundleReadOnly = !isSuperuser && !isGlobalAdmin && !isMarketingManager;
   const hasMultipleBrands = adminBrands.length > 1 && !isGlobalAdmin;
   
   // Initialize selected brand from localStorage or first brand
