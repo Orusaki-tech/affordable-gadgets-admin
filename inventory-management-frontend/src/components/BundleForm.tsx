@@ -203,6 +203,15 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     ]);
   };
 
+  const handleToggleItem = (productId: number, productName?: string) => {
+    const existingIndex = items.findIndex((item) => item.product === productId);
+    if (existingIndex >= 0) {
+      removeItem(existingIndex);
+      return;
+    }
+    handleAddItem(productId, productName);
+  };
+
   const updateItemField = (index: number, field: keyof BundleItemInput, value: any) => {
     setItems((prev) => {
       const next = [...prev];
@@ -488,7 +497,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                     e.preventDefault();
                     const product = filteredItemProducts[highlightedItemIndex];
                     if (product?.id) {
-                      handleAddItem(product.id, product.product_name || '');
+                      handleToggleItem(product.id, product.product_name || '');
                       setItemSearch('');
                       setShowItemSuggestions(true);
                       setHighlightedItemIndex(-1);
@@ -528,7 +537,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                       className={`product-suggestion-item ${isSelected ? 'selected' : ''} ${highlightedItemIndex === index ? 'highlighted' : ''}`}
                       onClick={() => {
                         if (product.id) {
-                          handleAddItem(product.id, product.product_name || '');
+                          handleToggleItem(product.id, product.product_name || '');
                           setItemSearch('');
                           setShowItemSuggestions(true);
                           setHighlightedItemIndex(-1);
@@ -586,8 +595,11 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                       <td>
                         <input
                           type="number"
+                          min="0"
+                          step="0.01"
                           value={item.override_price || ''}
                           onChange={(e) => updateItemField(index, 'override_price', e.target.value)}
+                          placeholder="Leave blank to use product price"
                         />
                       </td>
                       <td>
