@@ -9205,3 +9205,49 @@ p, body {
   background-color: var(--md-secondary-container);
   color: var(--md-on-secondary-container);
 }
+/* Bundle grouping rows inside order items table */
+.bundle-group-row td {
+  padding: 0;
+  border-bottom: none;
+}
+
+.bundle-group-details {
+  width: 100%;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-md);
+  background-color: var(--md-surface-container-low);
+}
+
+.bundle-group-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  list-style: none;
+  font-weight: var(--font-weight-semibold);
+  color: var(--md-on-surface);
+}
+
+.bundle-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.bundle-group-title {
+  font-size: var(--font-size-14);
+}
+
+.bundle-group-total {
+  font-size: var(--font-size-14);
+  color: var(--md-primary);
+}
+
+.bundle-group-items {
+  padding: var(--spacing-sm) var(--spacing-md) var(--spacing-md);
+  border-top: 1px solid var(--md-outline-variant);
+}
+
+.bundle-inner-table {
+  width: 100%;
+  margin: 0;
+}

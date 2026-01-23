@@ -57,6 +57,17 @@ export const BundlesPage: React.FC = () => {
   const isSuperuser = adminProfile?.user?.is_superuser === true;
   const isGlobalAdmin = (adminProfile as any)?.is_global_admin === true;
   const isMarketingManager = hasRole('MM') && !isSuperuser;
+  const isInventoryManager = hasRole('IM') && !isSuperuser;
+  const isContentCreator = hasRole('CC') && !isSuperuser;
+  const isOrderManager = hasRole('OM') && !isSuperuser;
+  const isSalesperson = hasRole('SP') && !isSuperuser;
+  const canViewBundles = isSuperuser
+    || isGlobalAdmin
+    || isMarketingManager
+    || isInventoryManager
+    || isContentCreator
+    || isOrderManager
+    || isSalesperson;
   const canManageBundles = isSuperuser || isGlobalAdmin || isMarketingManager;
 
   const adminBrands = useMemo(() => {
@@ -67,6 +78,7 @@ export const BundlesPage: React.FC = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['bundles', page],
     queryFn: () => BundlesService.bundlesList(page),
+    enabled: canViewBundles,
   });
 
   const deleteMutation = useMutation({
@@ -95,6 +107,14 @@ export const BundlesPage: React.FC = () => {
     }
     return 'Custom pricing';
   };
+
+  if (!canViewBundles) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">You do not have access to view bundles.</Alert>
+      </Box>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -133,6 +153,12 @@ export const BundlesPage: React.FC = () => {
         )}
       </Box>
 
+      {!canManageBundles && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          You have read-only access to bundles.
+        </Alert>
+      )}
+
       <Paper elevation={1} sx={{ p: 2 }}>
         {data?.results?.length ? (
           <Grid container spacing={2}>
@@ -147,11 +173,16 @@ export const BundlesPage: React.FC = () => {
                       <Typography variant="body2" color="text.secondary">
                         Main product: {bundle.main_product_name || bundle.main_product}
                       </Typography>
-                      <Chip
-                        size="small"
-                        label={bundle.is_currently_active ? 'Active' : bundle.is_active ? 'Scheduled' : 'Inactive'}
-                        color={bundle.is_currently_active ? 'success' : bundle.is_active ? 'warning' : 'default'}
-                      />
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip
+                          size="small"
+                          label={bundle.is_currently_active ? 'Active' : bundle.is_active ? 'Scheduled' : 'Inactive'}
+                          color={bundle.is_currently_active ? 'success' : bundle.is_active ? 'warning' : 'default'}
+                        />
+                        {!canManageBundles && (
+                          <Chip size="small" label="Read-only" variant="outlined" />
+                        )}
+                      </Stack>
                       <Typography variant="body2">Pricing: {formatPricing(bundle)}</Typography>
                       <Typography variant="body2">Items: {bundle.items?.length || 0}</Typography>
                     </Stack>

@@ -233,52 +233,139 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       </tr>
                     </thead>
                     <tbody>
-                      {(data.order_items || []).map((item, index) => (
-                        <tr key={item.id || index}>
-                          <td>
-                            <div className="product-name">{item.product_template_name || 'N/A'}</div>
-                            {item.bundle_group_id && (
-                              <div className="bundle-tag">
-                                Bundle: {item.bundle_title || 'Bundle'}
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            <div className="unit-details-compact">
-                              {item.serial_number && (
-                                <div className="unit-detail-row">
-                                  <span className="unit-detail-label">Serial:</span>
-                                  <span className="unit-detail-value">{item.serial_number}</span>
+                      {(() => {
+                        const bundleGroups = new Map<string, { title: string; total: number; items: any[] }>();
+                        const standaloneItems: any[] = [];
+                        (data.order_items || []).forEach((item: any) => {
+                          if (item.bundle_group_id) {
+                            const key = String(item.bundle_group_id);
+                            if (!bundleGroups.has(key)) {
+                              bundleGroups.set(key, {
+                                title: item.bundle_title || 'Bundle',
+                                total: 0,
+                                items: [],
+                              });
+                            }
+                            const unitPrice = Number(item.unit_price_at_purchase ?? 0);
+                            const quantity = Number(item.quantity ?? 0);
+                            const lineTotal = Number(item.sub_total ?? (unitPrice * quantity));
+                            const group = bundleGroups.get(key)!;
+                            group.items.push(item);
+                            group.total += lineTotal;
+                          } else {
+                            standaloneItems.push(item);
+                          }
+                        });
+                        const rows: React.ReactNode[] = [];
+
+                        bundleGroups.forEach((bundle, key) => {
+                          rows.push(
+                            <tr key={`bundle-header-${key}`} className="bundle-group-row">
+                              <td colSpan={5}>
+                                <details className="bundle-group-details" open>
+                                  <summary className="bundle-group-summary">
+                                    <div className="bundle-group-title">{bundle.title}</div>
+                                    <div className="bundle-group-total">KES {bundle.total.toFixed(2)}</div>
+                                  </summary>
+                                  <div className="bundle-group-items">
+                                    <table className="order-items-table bundle-inner-table">
+                                      <tbody>
+                                        {bundle.items.map((item, index) => (
+                                          <tr key={item.id || index}>
+                                            <td>
+                                              <div className="product-name">{item.product_template_name || 'N/A'}</div>
+                                              <div className="bundle-tag">Bundle item</div>
+                                            </td>
+                                            <td>
+                                              <div className="unit-details-compact">
+                                                {item.serial_number && (
+                                                  <div className="unit-detail-row">
+                                                    <span className="unit-detail-label">Serial:</span>
+                                                    <span className="unit-detail-value">{item.serial_number}</span>
+                                                  </div>
+                                                )}
+                                                {item.imei && (
+                                                  <div className="unit-detail-row">
+                                                    <span className="unit-detail-label">IMEI:</span>
+                                                    <span className="unit-detail-value">{item.imei}</span>
+                                                  </div>
+                                                )}
+                                                {item.unit_id && (
+                                                  <div className="unit-detail-row">
+                                                    <span className="unit-detail-label">Unit ID:</span>
+                                                    <span className="unit-detail-value">{item.unit_id}</span>
+                                                  </div>
+                                                )}
+                                                {!item.serial_number && !item.imei && !item.unit_id && (
+                                                  <span className="no-unit-info">N/A</span>
+                                                )}
+                                              </div>
+                                            </td>
+                                            <td>{item.quantity || 0}</td>
+                                            <td>
+                                              {item.unit_price_at_purchase
+                                                ? `KES ${Number(item.unit_price_at_purchase).toFixed(2)}`
+                                                : 'N/A'}
+                                            </td>
+                                            <td>
+                                              {item.sub_total ? `KES ${Number(item.sub_total).toFixed(2)}` : 'N/A'}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </details>
+                              </td>
+                            </tr>
+                          );
+                        });
+
+                        standaloneItems.forEach((item, index) => {
+                          rows.push(
+                            <tr key={item.id || `standalone-${index}`}>
+                              <td>
+                                <div className="product-name">{item.product_template_name || 'N/A'}</div>
+                              </td>
+                              <td>
+                                <div className="unit-details-compact">
+                                  {item.serial_number && (
+                                    <div className="unit-detail-row">
+                                      <span className="unit-detail-label">Serial:</span>
+                                      <span className="unit-detail-value">{item.serial_number}</span>
+                                    </div>
+                                  )}
+                                  {item.imei && (
+                                    <div className="unit-detail-row">
+                                      <span className="unit-detail-label">IMEI:</span>
+                                      <span className="unit-detail-value">{item.imei}</span>
+                                    </div>
+                                  )}
+                                  {item.unit_id && (
+                                    <div className="unit-detail-row">
+                                      <span className="unit-detail-label">Unit ID:</span>
+                                      <span className="unit-detail-value">{item.unit_id}</span>
+                                    </div>
+                                  )}
+                                  {!item.serial_number && !item.imei && !item.unit_id && (
+                                    <span className="no-unit-info">N/A</span>
+                                  )}
                                 </div>
-                              )}
-                              {item.imei && (
-                                <div className="unit-detail-row">
-                                  <span className="unit-detail-label">IMEI:</span>
-                                  <span className="unit-detail-value">{item.imei}</span>
-                                </div>
-                              )}
-                              {item.unit_id && (
-                                <div className="unit-detail-row">
-                                  <span className="unit-detail-label">Unit ID:</span>
-                                  <span className="unit-detail-value">{item.unit_id}</span>
-                                </div>
-                              )}
-                              {!item.serial_number && !item.imei && !item.unit_id && (
-                                <span className="no-unit-info">N/A</span>
-                              )}
-                            </div>
-                          </td>
-                          <td>{item.quantity || 0}</td>
-                          <td>
-                            {item.unit_price_at_purchase
-                              ? `KES ${Number(item.unit_price_at_purchase).toFixed(2)}`
-                              : 'N/A'}
-                          </td>
-                          <td>
-                            {item.sub_total ? `KES ${Number(item.sub_total).toFixed(2)}` : 'N/A'}
-                          </td>
-                        </tr>
-                      ))}
+                              </td>
+                              <td>{item.quantity || 0}</td>
+                              <td>
+                                {item.unit_price_at_purchase
+                                  ? `KES ${Number(item.unit_price_at_purchase).toFixed(2)}`
+                                  : 'N/A'}
+                              </td>
+                              <td>
+                                {item.sub_total ? `KES ${Number(item.sub_total).toFixed(2)}` : 'N/A'}
+                              </td>
+                            </tr>
+                          );
+                        });
+                        return rows;
+                      })()}
                     </tbody>
                     <tfoot>
                       <tr>
