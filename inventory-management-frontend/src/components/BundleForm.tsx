@@ -484,22 +484,29 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                 placeholder="Search products to add..."
                 value={itemSearch}
                 onChange={(e) => {
-                  setItemSearch(e.target.value);
-                  setShowItemSuggestions(true);
+                  const nextValue = e.target.value;
+                  setItemSearch(nextValue);
+                  setShowItemSuggestions(!!nextValue.trim());
                   setHighlightedItemIndex(-1);
                 }}
-                onFocus={() => setShowItemSuggestions(true)}
+                onFocus={() => setShowItemSuggestions(!!itemSearch.trim())}
                 onBlur={() => {
                   setTimeout(() => setShowItemSuggestions(false), 200);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'ArrowDown') {
                     e.preventDefault();
+                    if (!showItemSuggestions) {
+                      setShowItemSuggestions(true);
+                    }
                     setHighlightedItemIndex(prev =>
                       prev < filteredItemProducts.length - 1 ? prev + 1 : prev
                     );
                   } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
+                    if (!showItemSuggestions) {
+                      setShowItemSuggestions(true);
+                    }
                     setHighlightedItemIndex(prev => (prev > 0 ? prev - 1 : -1));
                   } else if (e.key === 'Enter' && highlightedItemIndex >= 0) {
                     e.preventDefault();
