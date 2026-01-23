@@ -47,7 +47,8 @@ export const AdminLayout: React.FC = () => {
       }
     },
     retry: false,
-    enabled: !!user?.is_staff || !!user?.is_superuser, // Enable for staff OR superuser
+    // Always fetch profile when a user is present so role flags stay accurate.
+    enabled: !!user,
   });
 
   const hasRole = (roleName: string) => {
@@ -166,6 +167,11 @@ export const AdminLayout: React.FC = () => {
         <div className="sidebar-header">
           <h2>Shwari Admin</h2>
           <p className="user-email">{user?.email}</p>
+          <div className="user-roles">
+            <span className="role-badge-small">
+              {isSuperuser ? 'Superuser' : 'Standard User'}
+            </span>
+          </div>
           {adminProfile?.roles && adminProfile.roles.length > 0 && (
             <div className="user-roles">
               {adminProfile.roles.map((role) => (
@@ -244,6 +250,9 @@ export const AdminLayout: React.FC = () => {
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
               </Link>
+              <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
+                Bundles
+              </Link>
               <Link to="/units" className={isActive('/units')} onClick={() => setSidebarOpen(false)}>
                 Inventory Units
               </Link>
@@ -296,6 +305,9 @@ export const AdminLayout: React.FC = () => {
               <div className="nav-section-header">Inventory</div>
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
+              </Link>
+              <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
+                Bundles
               </Link>
               <Link to="/units" className={isActive('/units')} onClick={() => setSidebarOpen(false)}>
                 Inventory Units
@@ -358,6 +370,9 @@ export const AdminLayout: React.FC = () => {
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
               </Link>
+              <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
+                Bundles
+              </Link>
               <Link to="/reviews" className={isActive('/reviews')} onClick={() => setSidebarOpen(false)}>
                 Reviews
               </Link>
@@ -419,6 +434,9 @@ export const AdminLayout: React.FC = () => {
               <div className="nav-section-header">Sales</div>
               <Link to="/orders" className={isActive('/orders')} onClick={() => setSidebarOpen(false)}>
                 Orders
+              </Link>
+              <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
+                Bundles
               </Link>
               
               {/* Other */}
