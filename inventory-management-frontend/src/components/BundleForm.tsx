@@ -10,6 +10,7 @@ interface BundleItemInput {
   product_name?: string;
   quantity: number;
   override_price?: string;
+  override_price_enabled?: boolean;
   display_order: number;
 }
 
@@ -34,6 +35,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     product_name: item.product_name,
     quantity: item.quantity || 1,
     override_price: item.override_price !== null && item.override_price !== undefined ? String(item.override_price) : '',
+    override_price_enabled: item.override_price !== null && item.override_price !== undefined,
     display_order: item.display_order ?? index,
   }));
 
@@ -165,7 +167,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             bundle: bundleId,
             product: item.product,
             quantity: item.quantity,
-            override_price: item.override_price ? String(item.override_price) : null,
+            override_price: getOverridePriceValue(item),
             display_order: item.display_order,
           } as BundleItemRequest)
         );
@@ -177,7 +179,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             bundle: bundleId,
             product: item.product,
             quantity: item.quantity,
-            override_price: item.override_price ? String(item.override_price) : null,
+            override_price: getOverridePriceValue(item),
             display_order: item.display_order,
           } as BundleItemRequest)
         );
@@ -198,6 +200,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
         product_name: productName,
         quantity: 1,
         override_price: '',
+        override_price_enabled: false,
         display_order: prev.length,
       },
     ]);
@@ -218,6 +221,11 @@ export const BundleForm: React.FC<BundleFormProps> = ({
       next[index] = { ...next[index], [field]: value };
       return next;
     });
+  };
+
+  const getOverridePriceValue = (item: BundleItemInput) => {
+    if (!item.override_price_enabled) return null;
+    return item.override_price ? String(item.override_price) : null;
   };
 
   const removeItem = (index: number) => {
@@ -575,6 +583,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                   <tr>
                     <th>Product</th>
                     <th>Qty</th>
+                    <th>Pricing</th>
                     <th>Override Price</th>
                     <th>Order</th>
                     <th>Actions</th>
@@ -593,6 +602,21 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                         />
                       </td>
                       <td>
+                        <select
+                          value={item.override_price_enabled ? 'override' : 'default'}
+                          onChange={(e) => {
+                            const enabled = e.target.value === 'override';
+                            updateItemField(index, 'override_price_enabled', enabled);
+                            if (!enabled) {
+                              updateItemField(index, 'override_price', '');
+                            }
+                          }}
+                        >
+                          <option value="default">Use product price</option>
+                          <option value="override">Override price</option>
+                        </select>
+                      </td>
+                      <td>
                         <input
                           type="number"
                           min="0"
@@ -600,6 +624,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                           value={item.override_price || ''}
                           onChange={(e) => updateItemField(index, 'override_price', e.target.value)}
                           placeholder="Leave blank to use product price"
+                          disabled={!item.override_price_enabled}
                         />
                       </td>
                       <td>
