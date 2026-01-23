@@ -117,9 +117,9 @@ export const BundleForm: React.FC<BundleFormProps> = ({
       title: formData.title,
       description: formData.description,
       pricing_mode: formData.pricing_mode,
-      bundle_price: formData.bundle_price ? Number(formData.bundle_price) : null,
-      discount_percentage: formData.discount_percentage ? Number(formData.discount_percentage) : null,
-      discount_amount: formData.discount_amount ? Number(formData.discount_amount) : null,
+      bundle_price: formData.bundle_price ? String(formData.bundle_price) : null,
+      discount_percentage: formData.discount_percentage ? String(formData.discount_percentage) : null,
+      discount_amount: formData.discount_amount ? String(formData.discount_amount) : null,
       start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
       end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
       is_active: formData.is_active,
@@ -132,8 +132,17 @@ export const BundleForm: React.FC<BundleFormProps> = ({
         : await createBundle.mutateAsync(payload);
       const bundleId = bundleResponse?.id || bundle?.id;
 
-      const existingItemIds = new Set((bundle?.items || []).map((item: any) => item.id));
-      const nextItemIds = new Set(items.filter((item) => item.id).map((item) => item.id as number));
+      const existingItemIds = new Set<number>(
+        (bundle?.items || [])
+          .map((item: any) => Number(item.id))
+          .filter((id: number) => Number.isFinite(id))
+      );
+      const nextItemIds = new Set<number>(
+        items
+          .filter((item) => item.id)
+          .map((item) => Number(item.id))
+          .filter((id: number) => Number.isFinite(id))
+      );
 
       const deletePromises = Array.from(existingItemIds)
         .filter((id) => !nextItemIds.has(id))
@@ -146,7 +155,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             bundle: bundleId,
             product: item.product,
             quantity: item.quantity,
-            override_price: item.override_price ? Number(item.override_price) : null,
+            override_price: item.override_price ? String(item.override_price) : null,
             display_order: item.display_order,
           } as BundleItemRequest)
         );
@@ -158,7 +167,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             bundle: bundleId,
             product: item.product,
             quantity: item.quantity,
-            override_price: item.override_price ? Number(item.override_price) : null,
+            override_price: item.override_price ? String(item.override_price) : null,
             display_order: item.display_order,
           } as BundleItemRequest)
         );
