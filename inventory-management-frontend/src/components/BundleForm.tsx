@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 import type { Brand, BundleRequest, BundleItemRequest, PatchedBundleRequest } from '../api/index';
@@ -29,32 +29,36 @@ export const BundleForm: React.FC<BundleFormProps> = ({
 }) => {
   const { products: allProducts, loadMore, hasMore, isLoading } = usePaginatedProducts();
 
-  const initialItems: BundleItemInput[] = (bundle?.items || []).map((item: any, index: number) => ({
-    id: item.id,
-    product: item.product,
-    product_name: item.product_name,
-    quantity: item.quantity || 1,
-    override_price: item.override_price !== null && item.override_price !== undefined ? String(item.override_price) : '',
-    override_price_enabled: item.override_price !== null && item.override_price !== undefined,
-    display_order: item.display_order ?? index,
-  }));
+  const buildInitialItems = (sourceBundle?: any | null): BundleItemInput[] => (
+    (sourceBundle?.items || []).map((item: any, index: number) => ({
+      id: item.id,
+      product: item.product,
+      product_name: item.product_name,
+      quantity: item.quantity || 1,
+      override_price: item.override_price !== null && item.override_price !== undefined ? String(item.override_price) : '',
+      override_price_enabled: item.override_price !== null && item.override_price !== undefined,
+      display_order: item.display_order ?? index,
+    }))
+  );
 
-  const [formData, setFormData] = useState({
-    brand: bundle?.brand || '',
-    main_product: bundle?.main_product || '',
-    title: bundle?.title || '',
-    description: bundle?.description || '',
-    pricing_mode: bundle?.pricing_mode || 'FX',
-    bundle_price: bundle?.bundle_price ? String(bundle.bundle_price) : '',
-    discount_percentage: bundle?.discount_percentage ? String(bundle.discount_percentage) : '',
-    discount_amount: bundle?.discount_amount ? String(bundle.discount_amount) : '',
-    start_date: bundle?.start_date ? new Date(bundle.start_date).toISOString().slice(0, 16) : '',
-    end_date: bundle?.end_date ? new Date(bundle.end_date).toISOString().slice(0, 16) : '',
-    is_active: bundle?.is_active !== undefined ? bundle.is_active : true,
-    show_in_listings: bundle?.show_in_listings !== undefined ? bundle.show_in_listings : true,
+  const buildInitialFormData = (sourceBundle?: any | null) => ({
+    brand: sourceBundle?.brand || '',
+    main_product: sourceBundle?.main_product || '',
+    title: sourceBundle?.title || '',
+    description: sourceBundle?.description || '',
+    pricing_mode: sourceBundle?.pricing_mode || 'FX',
+    bundle_price: sourceBundle?.bundle_price ? String(sourceBundle.bundle_price) : '',
+    discount_percentage: sourceBundle?.discount_percentage ? String(sourceBundle.discount_percentage) : '',
+    discount_amount: sourceBundle?.discount_amount ? String(sourceBundle.discount_amount) : '',
+    start_date: sourceBundle?.start_date ? new Date(sourceBundle.start_date).toISOString().slice(0, 16) : '',
+    end_date: sourceBundle?.end_date ? new Date(sourceBundle.end_date).toISOString().slice(0, 16) : '',
+    is_active: sourceBundle?.is_active !== undefined ? sourceBundle.is_active : true,
+    show_in_listings: sourceBundle?.show_in_listings !== undefined ? sourceBundle.show_in_listings : true,
   });
 
-  const [items, setItems] = useState<BundleItemInput[]>(initialItems);
+  const [formData, setFormData] = useState(buildInitialFormData(bundle));
+
+  const [items, setItems] = useState<BundleItemInput[]>(buildInitialItems(bundle));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mainProductSearch, setMainProductSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
@@ -68,6 +72,16 @@ export const BundleForm: React.FC<BundleFormProps> = ({
   );
   const mainProductSearchInputRef = useRef<HTMLInputElement | null>(null);
   const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    setFormData(buildInitialFormData(bundle));
+    setItems(buildInitialItems(bundle));
+    setMainProductSearch(bundle?.main_product_name || '');
+    setItemSearch('');
+    setShowItemSuggestions(false);
+    setHighlightedItemIndex(-1);
+    setHighlightedMainIndex(-1);
+  }, [bundle]);
 
   const filteredMainProducts = useMemo(() => {
     if (!mainProductSearch.trim()) return allProducts.slice(0, 20);

@@ -31,6 +31,7 @@ import {
 export const BundlesPage: React.FC = () => {
   const [page] = useState(1);
   const [editingBundle, setEditingBundle] = useState<any | null>(null);
+  const [isFetchingBundle, setIsFetchingBundle] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteBundle, setDeleteBundle] = useState<any | null>(null);
   const queryClient = useQueryClient();
@@ -93,6 +94,22 @@ export const BundlesPage: React.FC = () => {
     setShowCreateModal(false);
     setEditingBundle(null);
     queryClient.invalidateQueries({ queryKey: ['bundles'] });
+  };
+
+  const handleEditBundle = async (bundleId: number) => {
+    setIsFetchingBundle(true);
+    try {
+      const fullBundle = await BundlesService.bundlesRetrieve(bundleId);
+      setEditingBundle(fullBundle);
+      setShowCreateModal(true);
+    } catch (error) {
+      // Fall back to the existing bundle data if fetch fails.
+      const fallbackBundle = data?.results?.find((bundle: any) => bundle.id === bundleId) || null;
+      setEditingBundle(fallbackBundle);
+      setShowCreateModal(true);
+    } finally {
+      setIsFetchingBundle(false);
+    }
   };
 
   const formatPricing = (bundle: any) => {
@@ -193,9 +210,9 @@ export const BundlesPage: React.FC = () => {
                         size="small"
                         startIcon={<EditIcon />}
                         onClick={() => {
-                          setEditingBundle(bundle);
-                          setShowCreateModal(true);
+                          handleEditBundle(bundle.id);
                         }}
+                        disabled={isFetchingBundle}
                       >
                         Edit
                       </Button>
