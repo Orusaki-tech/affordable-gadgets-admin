@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 import type { Brand, BundleRequest, BundleItemRequest, PatchedBundleRequest } from '../api/index';
@@ -56,6 +56,16 @@ export const BundleForm: React.FC<BundleFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [mainProductSearch, setMainProductSearch] = useState('');
   const [itemSearch, setItemSearch] = useState('');
+  const [showMainProductSuggestions, setShowMainProductSuggestions] = useState(false);
+  const [showItemSuggestions, setShowItemSuggestions] = useState(false);
+  const [highlightedMainIndex, setHighlightedMainIndex] = useState(-1);
+  const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
+  const selectedItemIds = useMemo(
+    () => new Set(items.map((item) => item.product)),
+    [items]
+  );
+  const mainProductSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const filteredMainProducts = useMemo(() => {
     if (!mainProductSearch.trim()) return allProducts.slice(0, 20);
@@ -232,33 +242,96 @@ export const BundleForm: React.FC<BundleFormProps> = ({
               {errors.brand && <span className="error-text">{errors.brand}</span>}
             </div>
 
-            <div className="form-group">
+            <div className="form-group product-search-container">
               <label>Main Product <span className="required">*</span></label>
-              <input
-                type="text"
-                placeholder="Search product..."
-                value={mainProductSearch}
-                onChange={(e) => setMainProductSearch(e.target.value)}
-                disabled={isLoading}
-              />
-              <div className="product-suggestions">
-                {filteredMainProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="product-suggestion-item"
-                    onClick={() => {
-                      if (product.id) {
+              <div className="product-search-input-wrapper">
+                <span className="product-search-icon">🔍</span>
+                <input
+                  ref={mainProductSearchInputRef}
+                  type="text"
+                  placeholder="Search product..."
+                  value={mainProductSearch}
+                  onChange={(e) => {
+                    setMainProductSearch(e.target.value);
+                    setShowMainProductSuggestions(true);
+                    setHighlightedMainIndex(-1);
+                  }}
+                  onFocus={() => setShowMainProductSuggestions(true)}
+                  onBlur={() => {
+                    setTimeout(() => setShowMainProductSuggestions(false), 200);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setHighlightedMainIndex(prev =>
+                        prev < filteredMainProducts.length - 1 ? prev + 1 : prev
+                      );
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setHighlightedMainIndex(prev => (prev > 0 ? prev - 1 : -1));
+                    } else if (e.key === 'Enter' && highlightedMainIndex >= 0) {
+                      e.preventDefault();
+                      const product = filteredMainProducts[highlightedMainIndex];
+                      if (product?.id) {
                         setFormData({ ...formData, main_product: product.id });
                         setMainProductSearch(product.product_name || '');
+                        setShowMainProductSuggestions(false);
+                        setHighlightedMainIndex(-1);
                       }
+                    } else if (e.key === 'Escape') {
+                      setShowMainProductSuggestions(false);
+                      setHighlightedMainIndex(-1);
+                    }
+                  }}
+                  disabled={isLoading}
+                  autoComplete="off"
+                />
+                {mainProductSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMainProductSearch('');
+                      setShowMainProductSuggestions(false);
+                      setHighlightedMainIndex(-1);
+                      mainProductSearchInputRef.current?.focus();
                     }}
+                    className="product-search-clear"
+                    title="Clear search"
+                    onMouseDown={(e) => e.preventDefault()}
                   >
-                    <div className="product-suggestion-content">
-                      <div className="product-suggestion-name">{product.product_name}</div>
-                    </div>
-                  </div>
-                ))}
+                    ×
+                  </button>
+                )}
               </div>
+              {showMainProductSuggestions && filteredMainProducts.length > 0 && (
+                <div className="product-suggestions">
+                  {filteredMainProducts.map((product, index) => (
+                    <div
+                      key={product.id}
+                      className={`product-suggestion-item ${highlightedMainIndex === index ? 'highlighted' : ''}`}
+                      onClick={() => {
+                        if (product.id) {
+                          setFormData({ ...formData, main_product: product.id });
+                          setMainProductSearch(product.product_name || '');
+                          setShowMainProductSuggestions(false);
+                          setHighlightedMainIndex(-1);
+                        }
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onMouseEnter={() => setHighlightedMainIndex(index)}
+                    >
+                      <div className="product-suggestion-content">
+                        <div className="product-suggestion-name">{product.product_name}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showMainProductSuggestions && mainProductSearch && filteredMainProducts.length === 0 && (
+                <div className="product-suggestions product-suggestions-empty">
+                  No products found matching "{mainProductSearch}"
+                </div>
+              )}
               {errors.main_product && <span className="error-text">{errors.main_product}</span>}
             </div>
           </div>
@@ -384,32 +457,100 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="form-group product-search-container">
             <label>Bundle Items <span className="required">*</span></label>
-            <input
-              type="text"
-              placeholder="Search products to add..."
-              value={itemSearch}
-              onChange={(e) => setItemSearch(e.target.value)}
-              disabled={isLoading}
-            />
-            <div className="product-suggestions">
-              {filteredItemProducts.map((product) => (
-                <div
-                  key={product.id}
-                  className="product-suggestion-item"
-                  onClick={() => {
-                    if (product.id) {
+            <div className="product-search-input-wrapper">
+              <span className="product-search-icon">🔍</span>
+              <input
+                ref={itemSearchInputRef}
+                type="text"
+                placeholder="Search products to add..."
+                value={itemSearch}
+                onChange={(e) => {
+                  setItemSearch(e.target.value);
+                  setShowItemSuggestions(true);
+                  setHighlightedItemIndex(-1);
+                }}
+                onFocus={() => setShowItemSuggestions(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowItemSuggestions(false), 200);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlightedItemIndex(prev =>
+                      prev < filteredItemProducts.length - 1 ? prev + 1 : prev
+                    );
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedItemIndex(prev => (prev > 0 ? prev - 1 : -1));
+                  } else if (e.key === 'Enter' && highlightedItemIndex >= 0) {
+                    e.preventDefault();
+                    const product = filteredItemProducts[highlightedItemIndex];
+                    if (product?.id) {
                       handleAddItem(product.id, product.product_name || '');
+                      setItemSearch('');
+                      setShowItemSuggestions(true);
+                      setHighlightedItemIndex(-1);
                     }
+                  } else if (e.key === 'Escape') {
+                    setShowItemSuggestions(false);
+                    setHighlightedItemIndex(-1);
+                  }
+                }}
+                disabled={isLoading}
+                autoComplete="off"
+              />
+              {itemSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setItemSearch('');
+                    setShowItemSuggestions(false);
+                    setHighlightedItemIndex(-1);
+                    itemSearchInputRef.current?.focus();
                   }}
+                  className="product-search-clear"
+                  title="Clear search"
+                  onMouseDown={(e) => e.preventDefault()}
                 >
-                  <div className="product-suggestion-content">
-                    <div className="product-suggestion-name">{product.product_name}</div>
-                  </div>
-                </div>
-              ))}
+                  ×
+                </button>
+              )}
             </div>
+            {showItemSuggestions && filteredItemProducts.length > 0 && (
+              <div className="product-suggestions">
+                {filteredItemProducts.map((product, index) => {
+                  const isSelected = selectedItemIds.has(product.id!);
+                  return (
+                    <div
+                      key={product.id}
+                      className={`product-suggestion-item ${isSelected ? 'selected' : ''} ${highlightedItemIndex === index ? 'highlighted' : ''}`}
+                      onClick={() => {
+                        if (product.id) {
+                          handleAddItem(product.id, product.product_name || '');
+                          setItemSearch('');
+                          setShowItemSuggestions(true);
+                          setHighlightedItemIndex(-1);
+                        }
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onMouseEnter={() => setHighlightedItemIndex(index)}
+                    >
+                      <div className="product-suggestion-checkbox" />
+                      <div className="product-suggestion-content">
+                        <div className="product-suggestion-name">{product.product_name}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {showItemSuggestions && itemSearch && filteredItemProducts.length === 0 && (
+              <div className="product-suggestions product-suggestions-empty">
+                No products found matching "{itemSearch}"
+              </div>
+            )}
             {hasMore && (
               <button type="button" className="btn-secondary" onClick={loadMore} disabled={isLoading}>
                 Load more products
