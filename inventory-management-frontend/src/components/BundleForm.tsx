@@ -12,6 +12,7 @@ interface BundleItemInput {
   override_price?: string;
   override_price_enabled?: boolean;
   display_order: number;
+  is_main_product?: boolean;
 }
 
 interface BundleFormProps {
@@ -38,6 +39,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
       override_price: item.override_price !== null && item.override_price !== undefined ? String(item.override_price) : '',
       override_price_enabled: item.override_price !== null && item.override_price !== undefined,
       display_order: item.display_order ?? index,
+      is_main_product: item.product === sourceBundle?.main_product,
     }))
   );
 
@@ -82,6 +84,40 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     setHighlightedItemIndex(-1);
     setHighlightedMainIndex(-1);
   }, [bundle]);
+
+  useEffect(() => {
+    const mainProductId = Number(formData.main_product);
+    if (!Number.isFinite(mainProductId)) {
+      return;
+    }
+    const mainProductName = allProducts.find((product) => product.id === mainProductId)?.product_name;
+    setItems((prev) => {
+      let hasMain = false;
+      const next = prev.map((item) => {
+        if (item.product === mainProductId) {
+          hasMain = true;
+          return {
+            ...item,
+            is_main_product: true,
+            product_name: item.product_name || mainProductName,
+          };
+        }
+        return item.is_main_product ? { ...item, is_main_product: false } : item;
+      });
+      if (!hasMain) {
+        next.unshift({
+          product: mainProductId,
+          product_name: mainProductName,
+          quantity: 1,
+          override_price: '',
+          override_price_enabled: false,
+          display_order: 0,
+          is_main_product: true,
+        });
+      }
+      return next;
+    });
+  }, [formData.main_product, allProducts]);
 
   const filteredMainProducts = useMemo(() => {
     if (!mainProductSearch.trim()) return allProducts.slice(0, 20);
@@ -223,6 +259,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
   const handleToggleItem = (productId: number, productName?: string) => {
     const existingIndex = items.findIndex((item) => item.product === productId);
     if (existingIndex >= 0) {
+      if (items[existingIndex]?.is_main_product) return;
       removeItem(existingIndex);
       return;
     }
@@ -243,7 +280,10 @@ export const BundleForm: React.FC<BundleFormProps> = ({
   };
 
   const removeItem = (index: number) => {
-    setItems((prev) => prev.filter((_, i) => i !== index));
+    setItems((prev) => {
+      if (prev[index]?.is_main_product) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   return (
@@ -616,7 +656,10 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                 <tbody>
                   {items.map((item, index) => (
                     <tr key={item.id || `${item.product}-${index}`}>
-                      <td>{item.product_name || item.product}</td>
+                      <td>
+                        {item.product_name || item.product}
+                        {item.is_main_product && <span className="form-help-text"> Main product</span>}
+                      </td>
                       <td>
                         <input
                           type="number"
@@ -659,7 +702,13 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                         />
                       </td>
                       <td>
-                        <button type="button" className="btn-small btn-delete" onClick={() => removeItem(index)}>
+                        <button
+                          type="button"
+                          className="btn-small btn-delete"
+                          onClick={() => removeItem(index)}
+                          disabled={item.is_main_product}
+                          title={item.is_main_product ? 'Main product cannot be removed' : 'Remove item'}
+                        >
                           Remove
                         </button>
                       </td>
