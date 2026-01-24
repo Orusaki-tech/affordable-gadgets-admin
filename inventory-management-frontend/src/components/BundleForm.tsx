@@ -306,8 +306,8 @@ export const BundleForm: React.FC<BundleFormProps> = ({
   };
 
   return (
-    <div onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()}>
+    <div onClick={onClose} data-bundle-modal="true">
+      <div onClick={(e) => e.stopPropagation()} data-bundle-modal-content="true">
         <div>
           <h2>{bundle ? 'Edit Bundle' : 'Create Bundle'}</h2>
           <button onClick={onClose}>×</button>
