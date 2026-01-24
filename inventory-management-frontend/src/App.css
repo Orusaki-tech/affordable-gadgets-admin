@@ -3060,6 +3060,57 @@ p, body {
 
 .bundle-modal-form .responsive-table {
   background-color: var(--md-surface-container-low);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--md-outline-variant);
+  box-shadow: none;
+}
+
+.bundle-modal-form .responsive-table table {
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.bundle-modal-form .responsive-table thead th {
+  background-color: transparent;
+  color: var(--md-on-surface-variant);
+  font-size: var(--font-size-11);
+  letter-spacing: 0.08em;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--md-outline-variant);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.bundle-modal-form .responsive-table td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--md-outline-variant);
+  vertical-align: middle;
+}
+
+.bundle-modal-form .responsive-table tbody tr:hover {
+  background-color: var(--md-surface-container);
+}
+
+.bundle-modal-form .responsive-table td input,
+.bundle-modal-form .responsive-table td select {
+  width: 100%;
+  min-width: 120px;
+  background-color: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: var(--font-size-14);
+  color: var(--md-on-surface);
+}
+
+.bundle-modal-form .responsive-table td select {
+  min-width: 140px;
+}
+
+.bundle-modal-form .responsive-table td .form-help-text {
+  margin-left: var(--spacing-xs);
 }
 
 @keyframes fadeIn {
