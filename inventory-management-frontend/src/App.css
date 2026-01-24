@@ -2921,12 +2921,18 @@ p, body {
   background-color: var(--md-surface);
   box-shadow: var(--shadow-md);
   border: 1px solid var(--md-outline-variant);
+  min-height: 160px;
 }
 
 .responsive-table table {
   width: 100%;
   min-width: 600px;
   border-collapse: collapse;
+}
+
+.responsive-table td[colspan] {
+  text-align: center;
+  color: var(--md-on-surface-variant);
 }
 
 .responsive-table th {
