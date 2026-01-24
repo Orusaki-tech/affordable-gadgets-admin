@@ -2990,6 +2990,78 @@ p, body {
   isolation: isolate;
 }
 
+/* Bundle modal */
+.bundle-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: var(--spacing-md);
+}
+
+.bundle-modal-content {
+  width: min(980px, 96vw);
+  max-height: 90vh;
+  background-color: var(--md-surface);
+  color: var(--md-on-surface);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  display: flex;
+  flex-direction: column;
+}
+
+.bundle-modal-content-large {
+  width: min(1040px, 96vw);
+}
+
+.bundle-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.bundle-modal-header h2 {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+}
+
+.bundle-modal-close {
+  background: transparent;
+  border: none;
+  font-size: var(--font-size-24);
+  line-height: 1;
+  cursor: pointer;
+  color: var(--md-on-surface);
+  opacity: 0.7;
+  transition: opacity var(--transition-base);
+}
+
+.bundle-modal-close:hover {
+  opacity: 1;
+}
+
+.bundle-modal-form {
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.bundle-modal-form .responsive-table {
+  background-color: var(--md-surface-container-low);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
