@@ -256,6 +256,25 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     ]);
   };
 
+  const selectMainProduct = (product: any) => {
+    if (!product?.id) {
+      return;
+    }
+    setFormData({ ...formData, main_product: product.id });
+    setMainProductSearch(product.product_name || '');
+    setShowMainProductSuggestions(false);
+    setHighlightedMainIndex(-1);
+  };
+
+  const selectBundleItem = (product: any) => {
+    if (product?.id) {
+      handleToggleItem(product.id, product.product_name || '');
+    }
+    setItemSearch('');
+    setShowItemSuggestions(false);
+    setHighlightedItemIndex(-1);
+  };
+
   const handleToggleItem = (productId: number, productName?: string) => {
     const existingIndex = items.findIndex((item) => item.product === productId);
     if (existingIndex >= 0) {
@@ -342,13 +361,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                       setHighlightedMainIndex(prev => (prev > 0 ? prev - 1 : -1));
                     } else if (e.key === 'Enter' && highlightedMainIndex >= 0) {
                       e.preventDefault();
-                      const product = filteredMainProducts[highlightedMainIndex];
-                      if (product?.id) {
-                        setFormData({ ...formData, main_product: product.id });
-                        setMainProductSearch(product.product_name || '');
-                        setShowMainProductSuggestions(false);
-                        setHighlightedMainIndex(-1);
-                      }
+                      selectMainProduct(filteredMainProducts[highlightedMainIndex]);
                     } else if (e.key === 'Escape') {
                       setShowMainProductSuggestions(false);
                       setHighlightedMainIndex(-1);
@@ -380,15 +393,11 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                     <div
                       key={product.id}
                       className={`product-suggestion-item ${highlightedMainIndex === index ? 'highlighted' : ''}`}
-                      onClick={() => {
-                        if (product.id) {
-                          setFormData({ ...formData, main_product: product.id });
-                          setMainProductSearch(product.product_name || '');
-                          setShowMainProductSuggestions(false);
-                          setHighlightedMainIndex(-1);
-                        }
+                      onClick={() => selectMainProduct(product)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectMainProduct(product);
                       }}
-                      onMouseDown={(e) => e.preventDefault()}
                       onMouseEnter={() => setHighlightedMainIndex(index)}
                     >
                       <div className="product-suggestion-content">
@@ -564,13 +573,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                     setHighlightedItemIndex(prev => (prev > 0 ? prev - 1 : -1));
                   } else if (e.key === 'Enter' && highlightedItemIndex >= 0) {
                     e.preventDefault();
-                    const product = filteredItemProducts[highlightedItemIndex];
-                    if (product?.id) {
-                      handleToggleItem(product.id, product.product_name || '');
-                      setItemSearch('');
-                      setShowItemSuggestions(false);
-                      setHighlightedItemIndex(-1);
-                    }
+                    selectBundleItem(filteredItemProducts[highlightedItemIndex]);
                   } else if (e.key === 'Escape') {
                     setShowItemSuggestions(false);
                     setHighlightedItemIndex(-1);
@@ -604,15 +607,11 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                     <div
                       key={product.id}
                       className={`product-suggestion-item ${isSelected ? 'selected' : ''} ${highlightedItemIndex === index ? 'highlighted' : ''}`}
-                      onClick={() => {
-                        if (product.id) {
-                          handleToggleItem(product.id, product.product_name || '');
-                          setItemSearch('');
-                          setShowItemSuggestions(false);
-                          setHighlightedItemIndex(-1);
-                        }
+                      onClick={() => selectBundleItem(product)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        selectBundleItem(product);
                       }}
-                      onMouseDown={(e) => e.preventDefault()}
                       onMouseEnter={() => setHighlightedItemIndex(index)}
                     >
                       <div className="product-suggestion-checkbox" />
