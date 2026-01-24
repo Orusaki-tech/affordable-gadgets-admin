@@ -13,17 +13,20 @@ export class BundleItemsService {
     /**
      * Bundle item management (admin and marketing managers).
      * @param page A page number within the paginated result set.
+     * @param bundle Filter items by bundle id.
      * @returns PaginatedBundleItemList
      * @throws ApiError
      */
     public static bundleItemsList(
         page?: number,
+        bundle?: number,
     ): CancelablePromise<PaginatedBundleItemList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/bundle-items/',
             query: {
                 'page': page,
+                'bundle': bundle,
             },
         });
     }

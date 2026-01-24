@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { ProfilesService, Brand, BundlesService } from '../api/index';
+import { ProfilesService, Brand, BundlesService, BundleItemsService } from '../api/index';
 import { BundleForm } from '../components/BundleForm';
 import {
   Box,
@@ -100,7 +100,13 @@ export const BundlesPage: React.FC = () => {
     setIsFetchingBundle(true);
     try {
       const fullBundle = await BundlesService.bundlesRetrieve(bundleId);
-      setEditingBundle(fullBundle);
+      if (!fullBundle?.items || fullBundle.items.length === 0) {
+        const bundleItems = await BundleItemsService.bundleItemsList(undefined, bundleId);
+        const items = bundleItems?.results || [];
+        setEditingBundle({ ...fullBundle, items });
+      } else {
+        setEditingBundle(fullBundle);
+      }
       setShowCreateModal(true);
     } catch (error) {
       // Fall back to the existing bundle data if fetch fails.
