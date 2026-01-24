@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 import type { Brand, BundleRequest, BundleItemRequest, PatchedBundleRequest } from '../api/index';
+import { PricingModeEnum } from '../api/index';
 import { BundlesService, BundleItemsService } from '../api/index';
 
 interface BundleItemInput {
@@ -48,10 +49,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     main_product: sourceBundle?.main_product || '',
     title: sourceBundle?.title || '',
     description: sourceBundle?.description || '',
-    pricing_mode: sourceBundle?.pricing_mode || 'FX',
     bundle_price: sourceBundle?.bundle_price ? String(sourceBundle.bundle_price) : '',
-    discount_percentage: sourceBundle?.discount_percentage ? String(sourceBundle.discount_percentage) : '',
-    discount_amount: sourceBundle?.discount_amount ? String(sourceBundle.discount_amount) : '',
     start_date: sourceBundle?.start_date ? new Date(sourceBundle.start_date).toISOString().slice(0, 16) : '',
     end_date: sourceBundle?.end_date ? new Date(sourceBundle.end_date).toISOString().slice(0, 16) : '',
     is_active: sourceBundle?.is_active !== undefined ? sourceBundle.is_active : true,
@@ -172,17 +170,10 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     if (!formData.brand) validationErrors.brand = 'Brand is required';
     if (!formData.main_product) validationErrors.main_product = 'Main product is required';
     if (!formData.title.trim()) validationErrors.title = 'Title is required';
-    if (!formData.pricing_mode) validationErrors.pricing_mode = 'Pricing mode is required';
     if (!items.length) validationErrors.items = 'Add at least one bundle item';
 
-    if (formData.pricing_mode === 'FX' && !formData.bundle_price) {
-      validationErrors.bundle_price = 'Bundle price is required';
-    }
-    if (formData.pricing_mode === 'PC' && !formData.discount_percentage) {
-      validationErrors.discount_percentage = 'Discount percentage is required';
-    }
-    if (formData.pricing_mode === 'AM' && !formData.discount_amount) {
-      validationErrors.discount_amount = 'Discount amount is required';
+    if (!formData.bundle_price && computedBundleTotal === null) {
+      validationErrors.bundle_price = 'Set a bundle price or override all item prices to compute it';
     }
 
     if (Object.keys(validationErrors).length) {
@@ -195,10 +186,12 @@ export const BundleForm: React.FC<BundleFormProps> = ({
       main_product: Number(formData.main_product),
       title: formData.title,
       description: formData.description,
-      pricing_mode: formData.pricing_mode,
-      bundle_price: formData.bundle_price ? String(formData.bundle_price) : null,
-      discount_percentage: formData.discount_percentage ? String(formData.discount_percentage) : null,
-      discount_amount: formData.discount_amount ? String(formData.discount_amount) : null,
+      pricing_mode: PricingModeEnum.FX,
+      bundle_price: formData.bundle_price
+        ? String(formData.bundle_price)
+        : computedBundleTotal !== null
+          ? computedBundleTotal.toFixed(2)
+          : null,
       start_date: formData.start_date ? new Date(formData.start_date).toISOString() : null,
       end_date: formData.end_date ? new Date(formData.end_date).toISOString() : null,
       is_active: formData.is_active,
@@ -458,74 +451,31 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Pricing Mode <span className="required">*</span></label>
-              <select
-                value={formData.pricing_mode}
-                onChange={(e) => setFormData({ ...formData, pricing_mode: e.target.value })}
-                disabled={isLoading}
-              >
-                <option value="FX">Fixed bundle price</option>
-                <option value="PC">Percentage off items total</option>
-                <option value="AM">Amount off items total</option>
-              </select>
-              {errors.pricing_mode && <span className="error-text">{errors.pricing_mode}</span>}
-            </div>
-            <div className="form-group">
-              {formData.pricing_mode === 'FX' && (
-                <>
-                  <label>Bundle Price (KES) <span className="required">*</span></label>
-                  <input
-                    type="number"
-                    value={formData.bundle_price}
-                    onChange={(e) => setFormData({ ...formData, bundle_price: e.target.value })}
-                    disabled={isLoading}
-                  />
-                  {computedBundleTotal !== null ? (
-                    <div className="form-help-text">
-                      Computed from override prices: KES {computedBundleTotal.toFixed(2)}.
-                      <button
-                        type="button"
-                        className="btn-link"
-                        onClick={() => setFormData({ ...formData, bundle_price: computedBundleTotal.toFixed(2) })}
-                      >
-                        Use computed price
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="form-help-text">
-                      Add override prices for all items to compute the bundle price automatically.
-                    </div>
-                  )}
-                  {errors.bundle_price && <span className="error-text">{errors.bundle_price}</span>}
-                </>
-              )}
-              {formData.pricing_mode === 'PC' && (
-                <>
-                  <label>Discount Percentage (%) <span className="required">*</span></label>
-                  <input
-                    type="number"
-                    value={formData.discount_percentage}
-                    onChange={(e) => setFormData({ ...formData, discount_percentage: e.target.value })}
-                    disabled={isLoading}
-                  />
-                  {errors.discount_percentage && <span className="error-text">{errors.discount_percentage}</span>}
-                </>
-              )}
-              {formData.pricing_mode === 'AM' && (
-                <>
-                  <label>Discount Amount (KES) <span className="required">*</span></label>
-                  <input
-                    type="number"
-                    value={formData.discount_amount}
-                    onChange={(e) => setFormData({ ...formData, discount_amount: e.target.value })}
-                    disabled={isLoading}
-                  />
-                  {errors.discount_amount && <span className="error-text">{errors.discount_amount}</span>}
-                </>
-              )}
-            </div>
+          <div className="form-group">
+            <label>Bundle Price (KES) <span className="required">*</span></label>
+            <input
+              type="number"
+              value={formData.bundle_price}
+              onChange={(e) => setFormData({ ...formData, bundle_price: e.target.value })}
+              disabled={isLoading}
+            />
+            {computedBundleTotal !== null ? (
+              <div className="form-help-text">
+                Computed from override prices: KES {computedBundleTotal.toFixed(2)}.
+                <button
+                  type="button"
+                  className="btn-link"
+                  onClick={() => setFormData({ ...formData, bundle_price: computedBundleTotal.toFixed(2) })}
+                >
+                  Use computed price
+                </button>
+              </div>
+            ) : (
+              <div className="form-help-text">
+                Add override prices for all items to compute the bundle price automatically.
+              </div>
+            )}
+            {errors.bundle_price && <span className="error-text">{errors.bundle_price}</span>}
           </div>
 
           <div className="form-row">
