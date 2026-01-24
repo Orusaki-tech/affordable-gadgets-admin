@@ -640,21 +640,27 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             {errors.items && <span className="error-text">{errors.items}</span>}
           </div>
 
-          {items.length > 0 && (
-            <div className="responsive-table" style={{ marginBottom: '16px' }}>
-              <table className="data-table" style={{ width: '100%' }}>
-                <thead>
+          <div className="responsive-table" style={{ marginBottom: '16px' }}>
+            <table className="data-table" style={{ width: '100%' }}>
+              <thead>
+                <tr>
+                  <th>Product</th>
+                  <th>Qty</th>
+                  <th>Pricing</th>
+                  <th>Override Price</th>
+                  <th>Order</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.length === 0 ? (
                   <tr>
-                    <th>Product</th>
-                    <th>Qty</th>
-                    <th>Pricing</th>
-                    <th>Override Price</th>
-                    <th>Order</th>
-                    <th>Actions</th>
+                    <td colSpan={6} className="form-help-text" style={{ padding: '16px' }}>
+                      Add bundle items above to edit quantities and per-item pricing.
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {items.map((item, index) => (
+                ) : (
+                  items.map((item, index) => (
                     <tr key={item.id || `${item.product}-${index}`}>
                       <td>
                         {item.product_name || item.product}
@@ -713,11 +719,11 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                         </button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
 
           <div className="form-actions">
             <button type="button" onClick={onClose} className="btn-secondary">
