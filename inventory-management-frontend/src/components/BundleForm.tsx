@@ -640,7 +640,10 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             {errors.items && <span className="error-text">{errors.items}</span>}
           </div>
 
-          <div className="responsive-table" style={{ marginBottom: '16px' }}>
+          <div className="form-help-text" style={{ marginTop: '4px' }}>
+            Selected items: {items.length}
+          </div>
+          <div className="responsive-table bundle-items-table" style={{ marginBottom: '16px' }}>
             <table className="data-table" style={{ width: '100%' }}>
               <thead>
                 <tr>
@@ -655,8 +658,10 @@ export const BundleForm: React.FC<BundleFormProps> = ({
               <tbody>
                 {items.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="form-help-text" style={{ padding: '16px' }}>
-                      Add bundle items above to edit quantities and per-item pricing.
+                    <td colSpan={6} style={{ padding: '16px' }}>
+                      <span className="form-help-text">
+                        Add bundle items above to edit quantities and per-item pricing.
+                      </span>
                     </td>
                   </tr>
                 ) : (

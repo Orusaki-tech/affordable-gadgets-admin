@@ -2924,6 +2924,10 @@ p, body {
   min-height: 160px;
 }
 
+.bundle-items-table {
+  min-height: 200px;
+}
+
 .responsive-table table {
   width: 100%;
   min-width: 600px;
