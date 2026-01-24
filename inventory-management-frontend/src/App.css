@@ -3038,6 +3038,43 @@ p, body {
   flex-direction: column;
 }
 
+/* Bundle modal reset */
+.bundle-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: var(--spacing-md);
+}
+
+.bundle-modal-content {
+  background-color: var(--md-surface);
+  border-radius: var(--radius-xl);
+  width: min(900px, 96vw);
+  max-height: 90vh;
+  overflow: hidden;
+  border: 1px solid var(--md-outline-variant);
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+}
+
+.bundle-modal-content-large {
+  width: min(960px, 96vw);
+}
+
+.bundle-modal-content .promotion-form {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
 .unit-form-modal {
   max-height: 95vh;
   height: auto;
