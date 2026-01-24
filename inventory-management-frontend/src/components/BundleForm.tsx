@@ -72,6 +72,23 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     () => new Set(items.map((item) => item.product)),
     [items]
   );
+  const computedBundleTotal = useMemo(() => {
+    if (items.length === 0) {
+      return null;
+    }
+    let total = 0;
+    for (const item of items) {
+      if (!item.override_price_enabled || !item.override_price) {
+        return null;
+      }
+      const unitPrice = Number(item.override_price);
+      if (!Number.isFinite(unitPrice)) {
+        return null;
+      }
+      total += unitPrice * (item.quantity || 0);
+    }
+    return total;
+  }, [items]);
   const mainProductSearchInputRef = useRef<HTMLInputElement | null>(null);
   const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -465,6 +482,22 @@ export const BundleForm: React.FC<BundleFormProps> = ({
                     onChange={(e) => setFormData({ ...formData, bundle_price: e.target.value })}
                     disabled={isLoading}
                   />
+                  {computedBundleTotal !== null ? (
+                    <div className="form-help-text">
+                      Computed from override prices: KES {computedBundleTotal.toFixed(2)}.
+                      <button
+                        type="button"
+                        className="btn-link"
+                        onClick={() => setFormData({ ...formData, bundle_price: computedBundleTotal.toFixed(2) })}
+                      >
+                        Use computed price
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="form-help-text">
+                      Add override prices for all items to compute the bundle price automatically.
+                    </div>
+                  )}
                   {errors.bundle_price && <span className="error-text">{errors.bundle_price}</span>}
                 </>
               )}
