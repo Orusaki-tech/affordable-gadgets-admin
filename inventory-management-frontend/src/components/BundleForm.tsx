@@ -305,64 +305,15 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     });
   };
 
-  const overlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    inset: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '16px',
-    zIndex: 9999,
-  };
-
-  const contentStyle: React.CSSProperties = {
-    backgroundColor: 'var(--md-surface)',
-    color: 'var(--md-on-surface)',
-    width: 'min(960px, 96vw)',
-    maxHeight: '90vh',
-    borderRadius: '16px',
-    border: '1px solid var(--md-outline-variant)',
-    boxShadow: 'var(--shadow-xl)',
-    display: 'flex',
-    flexDirection: 'column',
-  };
-
-  const headerStyle: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '20px 24px',
-    borderBottom: '1px solid var(--md-outline-variant)',
-  };
-
-  const formStyle: React.CSSProperties = {
-    padding: '24px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-    overflowY: 'auto',
-    flex: '1 1 auto',
-    minHeight: 0,
-  };
-
-  const closeStyle: React.CSSProperties = {
-    background: 'none',
-    border: 'none',
-    fontSize: '20px',
-    cursor: 'pointer',
-    color: 'var(--md-on-surface)',
-  };
-
   return (
-    <div style={overlayStyle} onClick={onClose}>
-      <div style={contentStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={headerStyle}>
+    <div onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()}>
+        <div>
           <h2>{bundle ? 'Edit Bundle' : 'Create Bundle'}</h2>
-          <button style={closeStyle} onClick={onClose}>×</button>
+          <button onClick={onClose}>×</button>
         </div>
 
-        <form onSubmit={handleSubmit} style={formStyle}>
+        <form onSubmit={handleSubmit}>
           {errors.form && <div className="error-message">{errors.form}</div>}
 
           <div className="form-row">
