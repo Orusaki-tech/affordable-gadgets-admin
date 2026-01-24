@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 import type { Brand, BundleRequest, BundleItemRequest, PatchedBundleRequest } from '../api/index';
 import { PricingModeEnum } from '../api/index';
-import { BundlesService, BundleItemsService } from '../api/index';
+import { BundlesService, BundleItemsService, ProductsService } from '../api/index';
 
 interface BundleItemInput {
   id?: number;
@@ -66,6 +66,8 @@ export const BundleForm: React.FC<BundleFormProps> = ({
   const [showItemSuggestions, setShowItemSuggestions] = useState(false);
   const [highlightedMainIndex, setHighlightedMainIndex] = useState(-1);
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
+  const [priceByProductId, setPriceByProductId] = useState<Record<number, number>>({});
+  const [userEditedBundlePrice, setUserEditedBundlePrice] = useState(false);
   const selectedItemIds = useMemo(
     () => new Set(items.map((item) => item.product)),
     [items]
@@ -76,17 +78,16 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     }
     let total = 0;
     for (const item of items) {
-      if (!item.override_price_enabled || !item.override_price) {
-        return null;
-      }
-      const unitPrice = Number(item.override_price);
+      const unitPrice = item.override_price_enabled
+        ? Number(item.override_price)
+        : priceByProductId[item.product];
       if (!Number.isFinite(unitPrice)) {
         return null;
       }
       total += unitPrice * (item.quantity || 0);
     }
     return total;
-  }, [items]);
+  }, [items, priceByProductId]);
   const mainProductSearchInputRef = useRef<HTMLInputElement | null>(null);
   const itemSearchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -98,7 +99,70 @@ export const BundleForm: React.FC<BundleFormProps> = ({
     setShowItemSuggestions(false);
     setHighlightedItemIndex(-1);
     setHighlightedMainIndex(-1);
+    setUserEditedBundlePrice(false);
   }, [bundle]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const missingProductIds = Array.from(
+      new Set(
+        items
+          .filter((item) => !item.override_price_enabled)
+          .map((item) => item.product)
+          .filter((id) => Number.isFinite(id) && priceByProductId[id as number] === undefined)
+      )
+    ) as number[];
+
+    if (missingProductIds.length === 0) {
+      return;
+    }
+
+    Promise.all(
+      missingProductIds.map(async (productId) => {
+        try {
+          const summary = await ProductsService.productsStockSummaryRetrieve(productId);
+          const minPrice = Number((summary as any).min_price);
+          const maxPrice = Number((summary as any).max_price);
+          const price = Number.isFinite(minPrice) && minPrice > 0
+            ? minPrice
+            : Number.isFinite(maxPrice) && maxPrice > 0
+              ? maxPrice
+              : null;
+          return { productId, price };
+        } catch {
+          return { productId, price: null };
+        }
+      })
+    ).then((results) => {
+      if (isCancelled) return;
+      setPriceByProductId((prev) => {
+        const next = { ...prev };
+        results.forEach(({ productId, price }) => {
+          if (price !== null) {
+            next[productId] = price;
+          }
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [items, priceByProductId]);
+
+  useEffect(() => {
+    if (computedBundleTotal === null) {
+      return;
+    }
+    if (userEditedBundlePrice && formData.bundle_price) {
+      return;
+    }
+    const nextValue = computedBundleTotal.toFixed(2);
+    if (formData.bundle_price !== nextValue) {
+      setFormData({ ...formData, bundle_price: nextValue });
+    }
+  }, [computedBundleTotal, formData, userEditedBundlePrice]);
 
   useEffect(() => {
     const mainProductId = Number(formData.main_product);
@@ -456,23 +520,30 @@ export const BundleForm: React.FC<BundleFormProps> = ({
             <input
               type="number"
               value={formData.bundle_price}
-              onChange={(e) => setFormData({ ...formData, bundle_price: e.target.value })}
+              onChange={(e) => {
+                const nextValue = e.target.value;
+                setFormData({ ...formData, bundle_price: nextValue });
+                setUserEditedBundlePrice(Boolean(nextValue));
+              }}
               disabled={isLoading}
             />
             {computedBundleTotal !== null ? (
               <div className="form-help-text">
-                Computed from override prices: KES {computedBundleTotal.toFixed(2)}.
+                Auto price from items: KES {computedBundleTotal.toFixed(2)}.
                 <button
                   type="button"
                   className="btn-link"
-                  onClick={() => setFormData({ ...formData, bundle_price: computedBundleTotal.toFixed(2) })}
+                  onClick={() => {
+                    setFormData({ ...formData, bundle_price: computedBundleTotal.toFixed(2) });
+                    setUserEditedBundlePrice(false);
+                  }}
                 >
-                  Use computed price
+                  Use auto price
                 </button>
               </div>
             ) : (
               <div className="form-help-text">
-                Add override prices for all items to compute the bundle price automatically.
+                Add override prices or wait for item prices to load to auto-compute the bundle price.
               </div>
             )}
             {errors.bundle_price && <span className="error-text">{errors.bundle_price}</span>}
