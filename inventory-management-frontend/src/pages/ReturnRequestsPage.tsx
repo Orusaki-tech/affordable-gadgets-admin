@@ -153,10 +153,17 @@ export const ReturnRequestsPage: React.FC = () => {
 
   const createMutation = useMutation({
     mutationFn: async (data: { unit_ids?: number[]; notes?: string }) => {
-      return ReturnRequestsService.returnRequestsCreate({
-        unit_ids: data.unit_ids || [],
+      // Only include unit_ids if it's provided and not empty
+      // If undefined, omit it so backend can return all reserved units
+      const requestData: any = {
         notes: data.notes || '',
-      });
+      };
+      
+      if (data.unit_ids !== undefined && data.unit_ids.length > 0) {
+        requestData.unit_ids = data.unit_ids;
+      }
+      
+      return ReturnRequestsService.returnRequestsCreate(requestData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['return-requests'] });
@@ -165,7 +172,31 @@ export const ReturnRequestsPage: React.FC = () => {
       setShowCreateModal(false);
     },
     onError: (err: any) => {
-      alert(`Failed to create return request: ${err.message || 'Unknown error'}`);
+      console.error('Return request creation error:', err);
+      
+      // Extract detailed error message from response
+      let errorMessage = err.message || 'Unknown error';
+      
+      if (err.body) {
+        if (typeof err.body === 'object') {
+          // DRF validation errors are usually in err.body
+          const errorDetails = Object.entries(err.body)
+            .map(([field, messages]: [string, any]) => {
+              if (Array.isArray(messages)) {
+                return `${field}: ${messages.join(', ')}`;
+              }
+              return `${field}: ${messages}`;
+            })
+            .join('; ');
+          if (errorDetails) {
+            errorMessage = errorDetails;
+          }
+        } else {
+          errorMessage = String(err.body);
+        }
+      }
+      
+      alert(`Failed to create return request: ${errorMessage}`);
     },
   });
 
@@ -786,6 +817,18 @@ const CreateReturnModal: React.FC<CreateReturnModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate that we have units to return
+    if (returnAll && reservedUnits.length === 0) {
+      alert('No reserved units available to return.');
+      return;
+    }
+    
+    if (!returnAll && selectedUnitIds.length === 0) {
+      alert('Please select at least one unit to return.');
+      return;
+    }
+    
     onCreate({
       unit_ids: returnAll ? undefined : selectedUnitIds.length > 0 ? selectedUnitIds : undefined,
       notes,
