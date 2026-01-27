@@ -244,6 +244,7 @@ export const ProductsPage: React.FC = () => {
   
   // Fetch stock summary for a product (lazy load on hover or when needed)
   const fetchStockSummary = async (productId: number) => {
+    if (!productId || productId <= 0) return;
     if (stockSummaries[productId]) return; // Already fetched
     
     try {

@@ -109,7 +109,7 @@ export const BundleForm: React.FC<BundleFormProps> = ({
         items
           .filter((item) => !item.override_price_enabled)
           .map((item) => item.product)
-          .filter((id) => Number.isFinite(id) && priceByProductId[id as number] === undefined)
+          .filter((id) => Number.isFinite(id) && Number(id) > 0 && priceByProductId[id as number] === undefined)
       )
     ) as number[];
 
