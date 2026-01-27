@@ -849,6 +849,7 @@ interface CreateOrderModalProps {
 const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, isLoading, adminProfile, isSuperuser, isSalesperson }) => {
   const [selectedUnits, setSelectedUnits] = useState<Array<{ inventory_unit_id: number; quantity: number }>>([]);
   const [reservedUnits, setReservedUnits] = useState<any[]>([]);
+  const [approvedReservationUnits, setApprovedReservationUnits] = useState<Array<{ unitId: number; label: string; requestedQty: number }>>([]);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
@@ -869,8 +870,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
         console.log('Fetching reserved units:', url);
         
         const response = await fetch(url, {
-          headers: { 'Authorization': `Token ${token}` },
-        });
+        headers: { 'Authorization': `Token ${token}` },
+      });
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -880,9 +881,17 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
 
         const data = await response.json();
         console.log(`Page ${page}: Found ${data.results?.length || 0} reserved units`);
-        
         if (data.results && data.results.length > 0) {
+          console.log(`Sample unit from page ${page}:`, {
+            id: data.results[0].id,
+            sale_status: data.results[0].sale_status,
+            reserved_by_id: data.results[0].reserved_by_id,
+            reserved_by_username: data.results[0].reserved_by_username,
+            product_name: data.results[0].product_template_name
+          });
           allUnits.push(...data.results);
+        } else {
+          console.log(`Page ${page}: No units in results. Response:`, JSON.stringify(data).substring(0, 200));
         }
 
         // Check if there are more pages
@@ -902,6 +911,44 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
     retry: 2,
   });
 
+  // Fetch approved reservation requests to surface accessory reserved quantities
+  const { data: approvedReservationsData, isLoading: isLoadingReservations, error: reservationsError } = useQuery({
+    queryKey: ['approved-reservation-requests-for-order', adminProfile?.id, isSuperuser, isSalesperson],
+    queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
+      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const allRequests: any[] = [];
+      let page = 1;
+      let hasMore = true;
+      const pageSize = 100;
+
+      while (hasMore) {
+        const url = `${baseUrl}/reservation-requests/?page=${page}&page_size=${pageSize}`;
+        const response = await fetch(url, {
+          headers: { 'Authorization': `Token ${token}` },
+        });
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error fetching reservation requests:', response.status, errorText);
+          throw new Error(`Failed to fetch reservation requests: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.results && data.results.length > 0) {
+          allRequests.push(...data.results);
+        }
+        hasMore = data.next !== null && data.next !== undefined;
+        page++;
+        if (page > 100) {
+          console.warn('Reached reservation requests pagination limit (100 pages)');
+          break;
+        }
+      }
+
+      return { results: allRequests, count: allRequests.length };
+    },
+    retry: 2,
+  });
+
   useEffect(() => {
     if (reservedUnitsData?.results) {
       console.log('Setting reserved units:', reservedUnitsData.results.length);
@@ -912,11 +959,22 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
       // If user is a salesperson (not superuser), only show units reserved by them
       if (isSalesperson && !isSuperuser && adminProfile?.id) {
         const currentAdminId = adminProfile.id;
+        console.log(`Filtering reserved units for salesperson. Current admin ID: ${currentAdminId}, Admin profile:`, adminProfile);
+        console.log(`Sample unit before filtering:`, reservedUnitsData.results[0] ? {
+          id: reservedUnitsData.results[0].id,
+          reserved_by_id: reservedUnitsData.results[0].reserved_by_id,
+          reserved_by: reservedUnitsData.results[0].reserved_by
+        } : 'No units to check');
+        
         filteredUnits = reservedUnitsData.results.filter((unit: any) => {
           const reservedById = unit.reserved_by_id || unit.reserved_by?.id;
-          return reservedById === currentAdminId;
+          const matches = reservedById === currentAdminId;
+          if (!matches && reservedUnitsData.results.length <= 5) {
+            console.log(`Unit ${unit.id} excluded: reserved_by_id=${reservedById}, current_admin_id=${currentAdminId}`);
+          }
+          return matches;
         });
-        console.log(`Filtered to ${filteredUnits.length} units reserved by current salesperson (ID: ${currentAdminId})`);
+        console.log(`Filtered to ${filteredUnits.length} units reserved by current salesperson (ID: ${currentAdminId}) out of ${reservedUnitsData.results.length} total reserved units`);
       } else if (isSuperuser) {
         console.log('Superuser: showing all reserved units');
       } else {
@@ -930,6 +988,47 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
     }
   }, [reservedUnitsData, adminProfile, isSuperuser, isSalesperson]);
 
+  useEffect(() => {
+    if (!approvedReservationsData?.results) {
+      setApprovedReservationUnits([]);
+      return;
+    }
+
+    const approvedRequests = approvedReservationsData.results.filter((req: any) => req.status === 'AP');
+    const scopedRequests = isSalesperson && !isSuperuser && adminProfile?.id
+      ? approvedRequests.filter((req: any) => req.requesting_salesperson === adminProfile.id)
+      : approvedRequests;
+
+    const units: Array<{ unitId: number; label: string; requestedQty: number }> = [];
+
+    for (const req of scopedRequests) {
+      const unitQuantities = req.inventory_unit_quantities || {};
+      if (req.inventory_units_details && req.inventory_units_details.length > 0) {
+        for (const unit of req.inventory_units_details) {
+          const unitId = unit.id;
+          const requestedQty = unit.requested_quantity ?? unitQuantities[unitId] ?? unitQuantities[String(unitId)] ?? 1;
+          const labelParts = [
+            unit.product_name || unit.product_template_name || 'Unit',
+            unit.serial_number ? `SN: ${unit.serial_number}` : `Unit #${unitId}`,
+            requestedQty > 1 ? `Qty ${requestedQty}` : null,
+          ].filter(Boolean);
+          units.push({
+            unitId,
+            label: labelParts.join(' - '),
+            requestedQty,
+          });
+        }
+      } else if (req.inventory_unit) {
+        const unitId = req.inventory_unit;
+        const requestedQty = unitQuantities[unitId] ?? unitQuantities[String(unitId)] ?? 1;
+        const label = `${req.inventory_unit_name || `Unit #${unitId}`}${requestedQty > 1 ? ` - Qty ${requestedQty}` : ''}`;
+        units.push({ unitId, label, requestedQty });
+      }
+    }
+
+    setApprovedReservationUnits(units);
+  }, [approvedReservationsData, adminProfile, isSuperuser, isSalesperson]);
+
   // Log errors
   useEffect(() => {
     if (reservedUnitsError) {
@@ -937,12 +1036,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
     }
   }, [reservedUnitsError]);
 
-  const handleAddUnit = (unitId: number) => {
-    const unit = reservedUnits.find((u) => u.id === unitId);
-    if (!unit) return;
-    
-    const quantity = unit.product_type === 'AC' ? 1 : 1; // Accessories could have > 1, but default to 1
-    setSelectedUnits([...selectedUnits, { inventory_unit_id: unitId, quantity }]);
+  const handleAddUnit = (unitId: number, quantity: number) => {
+    if (selectedUnits.some((u) => u.inventory_unit_id === unitId)) {
+      return;
+    }
+    setSelectedUnits([...selectedUnits, { inventory_unit_id: unitId, quantity: Math.max(1, quantity) }]);
   };
 
   const handleRemoveUnit = (index: number) => {
@@ -951,7 +1049,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
 
   const handleQuantityChange = (index: number, quantity: number) => {
     const updated = [...selectedUnits];
-    updated[index].quantity = Math.max(1, quantity);
+    const unitId = updated[index].inventory_unit_id;
+    const reservedQty = approvedReservationUnits.find((u) => u.unitId === unitId)?.requestedQty;
+    const normalized = Math.max(1, quantity);
+    updated[index].quantity = reservedQty ? Math.min(reservedQty, normalized) : normalized;
     setSelectedUnits(updated);
   };
 
@@ -976,6 +1077,32 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
       customer_email: customerEmail.trim() || undefined,
     });
   };
+
+  const reservedUnitIdSet = useMemo(() => new Set(reservedUnits.map((unit) => unit.id)), [reservedUnits]);
+
+  const reservationOptions = useMemo(
+    () => approvedReservationUnits.filter((unit) => !reservedUnitIdSet.has(unit.unitId)),
+    [approvedReservationUnits, reservedUnitIdSet]
+  );
+
+  const combinedError = reservedUnitsError || reservationsError;
+  const isLoadingAllReserved = isLoadingReservedUnits || isLoadingReservations;
+
+  const unitLabelMap = useMemo(() => {
+    const map = new Map<number, string>();
+    reservedUnits.forEach((unit) => {
+      map.set(
+        unit.id,
+        `${unit.product_template_name} - ${unit.serial_number || `Unit #${unit.id}`}`
+      );
+    });
+    approvedReservationUnits.forEach((unit) => {
+      if (!map.has(unit.unitId)) {
+        map.set(unit.unitId, unit.label);
+      }
+    });
+    return map;
+  }, [reservedUnits, approvedReservationUnits]);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -1017,53 +1144,66 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
           <div className="form-group">
             <label>Select RESERVED Units <span className="required">*</span></label>
             <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
-              Only RESERVED units can be ordered. Units must be reserved first.
+              Only reserved units or approved reservation quantities can be ordered.
               {isSalesperson && !isSuperuser && (
                 <span style={{ display: 'block', marginTop: '0.25rem', fontStyle: 'italic' }}>
                   Showing only units reserved by you.
                 </span>
               )}
             </p>
-            {isLoadingReservedUnits && (
+            {isLoadingAllReserved && (
               <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem', fontStyle: 'italic' }}>
                 Loading reserved units...
               </p>
             )}
-            {reservedUnitsError && (
+            {combinedError && (
               <p style={{ fontSize: '0.875rem', color: '#dc3545', marginBottom: '0.5rem' }}>
-                Error loading reserved units: {reservedUnitsError instanceof Error ? reservedUnitsError.message : 'Unknown error'}
+                Error loading reserved units: {combinedError instanceof Error ? combinedError.message : 'Unknown error'}
               </p>
             )}
-            {!isLoadingReservedUnits && !reservedUnitsError && reservedUnits.length === 0 && (
+            {!isLoadingAllReserved && !combinedError && reservedUnits.length === 0 && reservationOptions.length === 0 && (
               <p style={{ fontSize: '0.875rem', color: '#856404', marginBottom: '0.5rem' }}>
                 {isSalesperson && !isSuperuser
-                  ? 'No reserved units found that are reserved by you. Please reserve units first or wait for approval.'
-                  : 'No reserved units found. Please reserve units first.'}
+                  ? 'No reserved units or approved reservations found for you. Please reserve units first or wait for approval.'
+                  : 'No reserved units or approved reservations found. Please reserve units first.'}
               </p>
             )}
             <select
               onChange={(e) => {
-                if (e.target.value) {
-                  handleAddUnit(Number(e.target.value));
-                  e.target.value = '';
+                if (!e.target.value) return;
+                const [kind, unitIdStr, qtyStr] = e.target.value.split(':');
+                const unitId = Number(unitIdStr);
+                if (kind === 'ru') {
+                  handleAddUnit(unitId, 1);
+                } else if (kind === 'rr') {
+                  const qty = Number(qtyStr) || 1;
+                  handleAddUnit(unitId, qty);
                 }
+                e.target.value = '';
               }}
-              disabled={isLoading || isLoadingReservedUnits}
+              disabled={isLoading || isLoadingAllReserved}
               style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem' }}
             >
               <option value="">-- Select a reserved unit --</option>
               {reservedUnits
                 .filter((unit) => !selectedUnits.some((su) => su.inventory_unit_id === unit.id))
                 .map((unit) => (
-                  <option key={unit.id} value={unit.id}>
+                  <option key={`ru-${unit.id}`} value={`ru:${unit.id}`}>
                     {unit.product_template_name} - {unit.serial_number || `Unit #${unit.id}`} 
                     {unit.reserved_by_username && ` (Reserved by: ${unit.reserved_by_username})`}
                   </option>
                 ))}
+              {reservationOptions
+                .filter((unit) => !selectedUnits.some((su) => su.inventory_unit_id === unit.unitId))
+                .map((unit) => (
+                  <option key={`rr-${unit.unitId}`} value={`rr:${unit.unitId}:${unit.requestedQty}`}>
+                    {unit.label}
+                  </option>
+                ))}
             </select>
-            {!isLoadingReservedUnits && reservedUnits.length > 0 && (
+            {!isLoadingAllReserved && (reservedUnits.length + reservationOptions.length) > 0 && (
               <p style={{ fontSize: '0.75rem', color: '#666', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
-                Found {reservedUnits.length} reserved unit{reservedUnits.length !== 1 ? 's' : ''}
+                Found {reservedUnits.length + reservationOptions.length} reserved unit{reservedUnits.length + reservationOptions.length !== 1 ? 's' : ''}
               </p>
             )}
           </div>
@@ -1073,11 +1213,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
               <label>Selected Units:</label>
               <div style={{ border: '1px solid #ced4da', borderRadius: '4px', padding: '0.5rem' }}>
                 {selectedUnits.map((item, index) => {
-                  const unit = reservedUnits.find((u) => u.id === item.inventory_unit_id);
+                  const unitLabel = unitLabelMap.get(item.inventory_unit_id);
+                  const reservedQty = approvedReservationUnits.find((u) => u.unitId === item.inventory_unit_id)?.requestedQty;
                   return (
                     <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: index < selectedUnits.length - 1 ? '1px solid #eee' : 'none' }}>
                       <span>
-                        {unit?.product_template_name || `Unit #${item.inventory_unit_id}`}
+                        {unitLabel || `Unit #${item.inventory_unit_id}`}
                       </span>
                       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                         <label>
@@ -1085,6 +1226,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
                           <input
                             type="number"
                             min="1"
+                            max={reservedQty || undefined}
                             value={item.quantity}
                             onChange={(e) => handleQuantityChange(index, Number(e.target.value))}
                             style={{ width: '60px', marginLeft: '0.25rem', padding: '0.25rem' }}

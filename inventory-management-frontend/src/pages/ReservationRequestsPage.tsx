@@ -518,7 +518,56 @@ export const ReservationRequestsPage: React.FC = () => {
       if (context?.previousReturnData) {
         queryClient.setQueryData(['return-requests-for-reservations'], context.previousReturnData);
       }
-      showToast(`Failed to create return request: ${err.message || 'Unknown error'}`, 'error');
+      
+      // Extract detailed error message from response
+      let errorMessage = err.message || 'Unknown error';
+      
+      // Try to extract detailed validation errors from DRF response
+      if (err.body) {
+        if (typeof err.body === 'object') {
+          // DRF validation errors are usually in err.body
+          const errorDetails = Object.entries(err.body)
+            .map(([field, messages]: [string, any]) => {
+              if (Array.isArray(messages)) {
+                return `${field}: ${messages.join(', ')}`;
+              }
+              return `${field}: ${messages}`;
+            })
+            .join('; ');
+          if (errorDetails) {
+            errorMessage = errorDetails;
+          } else if (err.body.error) {
+            errorMessage = err.body.error;
+          } else if (err.body.details) {
+            errorMessage = typeof err.body.details === 'string' 
+              ? err.body.details 
+              : JSON.stringify(err.body.details);
+          }
+        } else {
+          errorMessage = String(err.body);
+        }
+      } else if (err.response?.data) {
+        // Try err.response.data as fallback
+        const data = err.response.data;
+        if (typeof data === 'object') {
+          const errorDetails = Object.entries(data)
+            .map(([field, messages]: [string, any]) => {
+              if (Array.isArray(messages)) {
+                return `${field}: ${messages.join(', ')}`;
+              }
+              return `${field}: ${messages}`;
+            })
+            .join('; ');
+          if (errorDetails) {
+            errorMessage = errorDetails;
+          }
+        } else {
+          errorMessage = String(data);
+        }
+      }
+      
+      console.error('Return request creation error:', err);
+      showToast(`Failed to create return request: ${errorMessage}`, 'error');
     },
   });
 
@@ -547,7 +596,8 @@ export const ReservationRequestsPage: React.FC = () => {
     }
     
     const unitCount = unitIds.length;
-    const unitNames = request.inventory_units_details?.map((u: InventoryUnitRW) => u.product_template_name || 'Unknown').join(', ') 
+    // Backend returns 'product_name' in inventory_units_details, not 'product_template_name'
+    const unitNames = request.inventory_units_details?.map((u: InventoryUnitRW) => (u as any).product_name || u.product_template_name || 'Unknown').join(', ') 
       || request.inventory_unit_name 
       || 'Unit(s)';
     
@@ -1139,7 +1189,7 @@ const ReservationRequestCard: React.FC<ReservationRequestCardProps> = ({
           <span className="info-label">Unit</span>
           <span className="info-value" style={{ whiteSpace: 'normal', wordBreak: 'break-word' }}>
             {request.inventory_units_details && request.inventory_units_details.length > 0
-              ? request.inventory_units_details.map((u: InventoryUnitRW) => u.product_template_name || 'Unknown').join(', ')
+              ? request.inventory_units_details.map((u: InventoryUnitRW) => (u as any).product_name || u.product_template_name || 'Unknown').join(', ')
               : request.inventory_unit_name || `Unit #${request.inventory_unit}`}
             {request.inventory_units_details && request.inventory_units_details.length > 1 && (
               <span className="unit-count-badge"> ({request.inventory_units_details.length})</span>
