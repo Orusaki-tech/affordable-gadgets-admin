@@ -411,7 +411,15 @@ export const OrdersPage: React.FC = () => {
   const hasRole = (roleName: string) => {
     if (isSuperuser) return true;
     if (!adminProfile?.roles) return false;
-    return adminProfile.roles.some((role) => role.name === roleName || role.role_code === roleName);
+    return adminProfile.roles.some((role) => {
+      const roleCode = role.name || role.role_code;
+      const roleNameCheck = role.display_name || role.role_name;
+      return (
+        roleCode === roleName ||
+        roleNameCheck?.toLowerCase() === roleName.toLowerCase() ||
+        roleNameCheck?.toLowerCase().includes(roleName.toLowerCase())
+      );
+    });
   };
 
   const isContentCreator = hasRole('CC') && !isSuperuser;
