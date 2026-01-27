@@ -1,20 +1,24 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { OrdersService, type OrderResponse, OpenAPI } from '../api/index';
+import { OrdersService, OrderStatusEnum, type OrderResponse, OpenAPI } from '../api/index';
 
 interface OrderDetailsModalProps {
   orderId: string;
   isSalesperson?: boolean;
+  isOrderManager?: boolean;
   onConfirmCash?: (orderId: string) => void;
   onInitiatePayment?: (orderId: string) => void;
+  onToggleDelivered?: (orderId: string, nextStatus: OrderStatusEnum) => void;
   onClose: () => void;
 }
 
 export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   orderId,
   isSalesperson = false,
+  isOrderManager = false,
   onConfirmCash,
   onInitiatePayment,
+  onToggleDelivered,
   onClose,
 }) => {
   const { data, isLoading, error } = useQuery<OrderResponse>({
@@ -63,11 +67,19 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   // Check if order is paid (receipts are only available for paid orders)
   const isPaid = data?.status?.toLowerCase().includes('paid') || 
                  data?.status_display?.toLowerCase().includes('paid');
+  const isDelivered = data?.status?.toLowerCase().includes('delivered') || 
+                      data?.status_display?.toLowerCase().includes('delivered');
   const isPending = data?.status?.toLowerCase().includes('pending') || 
                     data?.status_display?.toLowerCase().includes('pending');
   const customerEmail = (data as any)?.customer_email || '';
   const isWalkIn = data?.order_source === 'WALK_IN';
+  const isOnline = data?.order_source === 'ONLINE';
   const canShowPaymentActions = isSalesperson && isPending && isWalkIn;
+  const canToggleDelivered =
+    isOrderManager &&
+    isOnline &&
+    (isPaid || isDelivered) &&
+    !!onToggleDelivered;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -410,6 +422,24 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
                       Confirm Cash Payment
                     </button>
                   )}
+                </div>
+              )}
+
+              {canToggleDelivered && (
+                <div className="order-actions-section" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color, #e0e0e0)' }}>
+                  <button
+                    onClick={() => {
+                      const nextStatus = isDelivered ? OrderStatusEnum.PAID : OrderStatusEnum.DELIVERED;
+                      const actionLabel = isDelivered ? 'mark this order as not delivered (revert to Paid)' : 'mark this order as delivered';
+                      if (window.confirm(`Confirm ${actionLabel}?`)) {
+                        onToggleDelivered?.(orderId, nextStatus);
+                      }
+                    }}
+                    className="btn-action btn-primary"
+                    style={{ width: '100%' }}
+                  >
+                    {isDelivered ? 'Mark as Undelivered' : 'Mark as Delivered'}
+                  </button>
                 </div>
               )}
 

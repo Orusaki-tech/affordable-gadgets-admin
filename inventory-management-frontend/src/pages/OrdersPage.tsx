@@ -290,14 +290,24 @@ export const OrdersPage: React.FC = () => {
     },
   });
 
-  // Mark as delivered mutation (for Order Managers)
-  const markDeliveredMutation = useMutation({
-    mutationFn: (orderId: string) => {
-      console.log('Marking order as delivered:', orderId);
-      return OrdersService.ordersPartialUpdate(orderId, { status: OrderStatusEnum.DELIVERED });
+  const getStatusDisplay = (status?: string) => {
+    if (!status) return '';
+    const normalized = status.toLowerCase();
+    if (normalized.includes('delivered')) return 'Delivered';
+    if (normalized.includes('paid')) return 'Paid';
+    if (normalized.includes('pending')) return 'Pending';
+    if (normalized.includes('canceled') || normalized.includes('cancelled')) return 'Canceled';
+    return status;
+  };
+
+  // Toggle delivered status mutation (for Order Managers)
+  const toggleDeliveredMutation = useMutation({
+    mutationFn: ({ orderId, nextStatus }: { orderId: string; nextStatus: OrderStatusEnum }) => {
+      console.log('Updating order status:', orderId, nextStatus);
+      return OrdersService.ordersPartialUpdate(orderId, { status: nextStatus });
     },
-    onMutate: async (orderId) => {
-      console.log('onMutate called for order:', orderId);
+    onMutate: async ({ orderId, nextStatus }) => {
+      console.log('onMutate called for order:', orderId, nextStatus);
       // Cancel any outgoing refetches to avoid overwriting optimistic update
       await queryClient.cancelQueries({ queryKey: ['orders'] });
       
@@ -315,11 +325,12 @@ export const OrdersPage: React.FC = () => {
             ...old,
             results: old.results.map((order: any) => {
               if (order.order_id === orderId) {
-                console.log('Optimistically updating order:', orderId, 'from', order.status, 'to Delivered');
+                const nextStatusDisplay = getStatusDisplay(nextStatus);
+                console.log('Optimistically updating order:', orderId, 'from', order.status, 'to', nextStatusDisplay);
                 return {
                   ...order,
-                  status: 'Delivered',
-                  status_display: 'Delivered',
+                  status: nextStatusDisplay,
+                  status_display: nextStatusDisplay,
                 };
               }
               return order;
@@ -332,8 +343,9 @@ export const OrdersPage: React.FC = () => {
       
       return { previousData };
     },
-    onSuccess: (data, orderId) => {
-      console.log('Mark delivered success:', { orderId, serverData: data });
+    onSuccess: (data, variables) => {
+      const { orderId, nextStatus } = variables;
+      console.log('Update order status success:', { orderId, serverData: data });
       const extendedData = data as OrderResponse;
       
       // Update cache with server response (source of truth) using setQueriesData
@@ -348,11 +360,12 @@ export const OrdersPage: React.FC = () => {
             results: old.results.map((order: any) => {
               if (order.order_id === orderId) {
                 // Merge server response with existing data
+                const nextStatusDisplay = getStatusDisplay(nextStatus);
                 const merged: OrderResponse = {
                   ...order,
                   ...extendedData, // Server response has the latest data
-                  status: extendedData.status || 'Delivered',
-                  status_display: extendedData.status_display || extendedData.status || 'Delivered',
+                  status: extendedData.status || nextStatusDisplay,
+                  status_display: extendedData.status_display || extendedData.status || nextStatusDisplay,
                 };
                 console.log('Merged order data:', merged);
                 return merged;
@@ -367,8 +380,8 @@ export const OrdersPage: React.FC = () => {
       // Invalidate to trigger a refetch and ensure consistency
       queryClient.invalidateQueries({ queryKey: ['orders'] });
     },
-    onError: (err: any, orderId, context) => {
-      console.error('Mark delivered error:', err);
+    onError: (err: any, variables, context) => {
+      console.error('Update order status error:', err);
       // Rollback optimistic update on error
       if (context?.previousData) {
         context.previousData.forEach(([queryKey, data]: [any, any]) => {
@@ -428,9 +441,11 @@ export const OrdersPage: React.FC = () => {
       <div className="page-header">
         <h1>Orders</h1>
         <div className="page-header-actions">
-        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-          + Create Order
-        </button>
+        {!isOrderManager && (
+          <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+            + Create Order
+          </button>
+        )}
         </div>
       </div>
 
@@ -604,7 +619,7 @@ export const OrdersPage: React.FC = () => {
               } : undefined}
               onMarkDelivered={isOrderManager && order.status === 'Paid' && order.order_source === 'ONLINE' ? (orderId) => {
                 if (window.confirm('Mark this order as delivered?')) {
-                  markDeliveredMutation.mutate(orderId);
+                  toggleDeliveredMutation.mutate({ orderId, nextStatus: OrderStatusEnum.DELIVERED });
                 }
               } : undefined}
               isSalesperson={isSalesperson}
@@ -657,8 +672,10 @@ export const OrdersPage: React.FC = () => {
         <OrderDetailsModal
           orderId={selectedOrderId}
           isSalesperson={isSalesperson}
+          isOrderManager={isOrderManager}
           onConfirmCash={(orderId) => confirmPaymentMutation.mutate({ orderId, paymentMethod: 'CASH' })}
           onInitiatePayment={(orderId) => initiatePaymentMutation.mutate(orderId)}
+          onToggleDelivered={(orderId, nextStatus) => toggleDeliveredMutation.mutate({ orderId, nextStatus })}
           onClose={() => {
             setSelectedOrderId(null);
             const nextParams = new URLSearchParams(searchParams);
@@ -683,7 +700,7 @@ export const OrdersPage: React.FC = () => {
       )}
 
       {/* Create Order Modal */}
-      {showCreateModal && (
+      {showCreateModal && !isOrderManager && (
         <CreateOrderModal
           onClose={() => setShowCreateModal(false)}
           onCreate={(orderData) => createOrderMutation.mutate(orderData)}

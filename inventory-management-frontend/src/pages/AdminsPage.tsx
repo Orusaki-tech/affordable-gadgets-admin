@@ -42,6 +42,16 @@ interface AdminCreatePayload {
   admin_code: string;
 }
 
+const ROLE_DESCRIPTION_OVERRIDES: Record<string, string> = {
+  OM: 'Ensures paid online orders are delivered to customers. Reviews order details, contacts customers to confirm delivery, and marks orders as delivered.',
+};
+
+const getRoleCode = (role: AdminRole) =>
+  role.name || role.role_code || role.role_name || role.display_name || '';
+
+const getRoleDescription = (role: AdminRole) =>
+  role.description || ROLE_DESCRIPTION_OVERRIDES[getRoleCode(role)] || '';
+
 export const AdminsPage: React.FC = () => {
   const { user } = useAuth();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -833,6 +843,11 @@ const RoleAssignmentModal: React.FC<RoleAssignmentModalProps> = ({
                       <span className="role-card-name">
                         {role.display_name || role.role_name || role.name}
                       </span>
+                      {getRoleDescription(role) && (
+                        <span className="role-card-description">
+                          {getRoleDescription(role)}
+                        </span>
+                      )}
                     </label>
                   </div>
                 );
@@ -1027,7 +1042,7 @@ const AdminDetailsModal: React.FC<AdminDetailsModalProps> = ({
                       key={role.id}
                       className="role-badge"
                       style={{ backgroundColor: getRoleBadgeColor(role.name || role.role_code || role.role_name) }}
-                      title={role.description || role.display_name || role.role_name || role.name}
+                      title={getRoleDescription(role) || role.display_name || role.role_name || role.name}
                     >
                       {role.display_name || role.role_name || role.name || role.role_code}
                     </span>
