@@ -425,6 +425,7 @@ export const OrdersPage: React.FC = () => {
   const isContentCreator = hasRole('CC') && !isSuperuser;
   const isSalesperson = hasRole('SP') && !isSuperuser;
   const isOrderManager = hasRole('OM') && !isSuperuser;
+  const canCreateOrders = isSalesperson || isSuperuser;
 
   // Redirect Content Creators (they don't have access to orders)
   if (!isLoadingProfile && isContentCreator) {
@@ -449,7 +450,7 @@ export const OrdersPage: React.FC = () => {
       <div className="page-header">
         <h1>Orders</h1>
         <div className="page-header-actions">
-        {!isOrderManager && (
+        {canCreateOrders && (
           <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
             + Create Order
           </button>
@@ -708,7 +709,7 @@ export const OrdersPage: React.FC = () => {
       )}
 
       {/* Create Order Modal */}
-      {showCreateModal && !isOrderManager && (
+      {showCreateModal && canCreateOrders && (
         <CreateOrderModal
           onClose={() => setShowCreateModal(false)}
           onCreate={(orderData) => createOrderMutation.mutate(orderData)}
@@ -985,7 +986,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
       console.log('Setting reserved units:', reservedUnitsData.results.length);
       
       // Filter reserved units based on user role
-      let filteredUnits = reservedUnitsData.results;
+      let filteredUnits = reservedUnitsData.results.filter(
+        (unit: any) => unit.sale_status !== 'SD'
+      );
       
       // If user is a salesperson (not superuser), only show units reserved by them
       if (isSalesperson && !isSuperuser && adminProfile?.id) {
@@ -997,7 +1000,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
           reserved_by: reservedUnitsData.results[0].reserved_by
         } : 'No units to check');
         
-        filteredUnits = reservedUnitsData.results.filter((unit: any) => {
+        filteredUnits = filteredUnits.filter((unit: any) => {
           const reservedById = unit.reserved_by_id || unit.reserved_by?.id;
           const matches = reservedById === currentAdminId;
           if (!matches && reservedUnitsData.results.length <= 5) {
@@ -1036,6 +1039,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
       const unitQuantities = req.inventory_unit_quantities || {};
       if (req.inventory_units_details && req.inventory_units_details.length > 0) {
         for (const unit of req.inventory_units_details) {
+          if (unit.sale_status === 'SD') {
+            continue;
+          }
           const unitId = unit.id;
           const requestedQty = unit.requested_quantity ?? unitQuantities[unitId] ?? unitQuantities[String(unitId)] ?? 1;
           const labelParts = [
