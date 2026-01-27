@@ -682,6 +682,9 @@ export const OrdersPage: React.FC = () => {
           onClose={() => setShowCreateModal(false)}
           onCreate={(orderData) => createOrderMutation.mutate(orderData)}
           isLoading={createOrderMutation.isPending}
+          adminProfile={adminProfile}
+          isSuperuser={isSuperuser}
+          isSalesperson={isSalesperson}
         />
       )}
     </div>
@@ -838,37 +841,101 @@ interface CreateOrderModalProps {
     customer_email?: string;
   }) => void;
   isLoading: boolean;
+  adminProfile?: any;
+  isSuperuser?: boolean;
+  isSalesperson?: boolean;
 }
 
-const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, isLoading }) => {
+const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, isLoading, adminProfile, isSuperuser, isSalesperson }) => {
   const [selectedUnits, setSelectedUnits] = useState<Array<{ inventory_unit_id: number; quantity: number }>>([]);
   const [reservedUnits, setReservedUnits] = useState<any[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
 
-  // Fetch reserved units
-  const { data: reservedUnitsData } = useQuery({
+  // Fetch reserved units with pagination support
+  const { data: reservedUnitsData, isLoading: isLoadingReservedUnits, error: reservedUnitsError } = useQuery({
     queryKey: ['reserved-units-for-order'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
       const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
-      const response = await fetch(`${baseUrl}/units/?sale_status=RS&page_size=100`, {
-        headers: { 'Authorization': `Token ${token}` },
-      });
-      if (response.ok) {
+      const allUnits: any[] = [];
+      let page = 1;
+      let hasMore = true;
+      const pageSize = 100;
+
+      while (hasMore) {
+        const url = `${baseUrl}/units/?sale_status=RS&page=${page}&page_size=${pageSize}`;
+        console.log('Fetching reserved units:', url);
+        
+        const response = await fetch(url, {
+          headers: { 'Authorization': `Token ${token}` },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Error fetching reserved units:', response.status, errorText);
+          throw new Error(`Failed to fetch reserved units: ${response.status} ${response.statusText}`);
+        }
+
         const data = await response.json();
-        return data;
+        console.log(`Page ${page}: Found ${data.results?.length || 0} reserved units`);
+        
+        if (data.results && data.results.length > 0) {
+          allUnits.push(...data.results);
+        }
+
+        // Check if there are more pages
+        hasMore = data.next !== null && data.next !== undefined;
+        page++;
+
+        // Safety limit to prevent infinite loops
+        if (page > 100) {
+          console.warn('Reached pagination limit (100 pages)');
+          break;
+        }
       }
-      return { results: [] };
+
+      console.log(`Total reserved units fetched: ${allUnits.length}`);
+      return { results: allUnits, count: allUnits.length };
     },
+    retry: 2,
   });
 
   useEffect(() => {
     if (reservedUnitsData?.results) {
-      setReservedUnits(reservedUnitsData.results);
+      console.log('Setting reserved units:', reservedUnitsData.results.length);
+      
+      // Filter reserved units based on user role
+      let filteredUnits = reservedUnitsData.results;
+      
+      // If user is a salesperson (not superuser), only show units reserved by them
+      if (isSalesperson && !isSuperuser && adminProfile?.id) {
+        const currentAdminId = adminProfile.id;
+        filteredUnits = reservedUnitsData.results.filter((unit: any) => {
+          const reservedById = unit.reserved_by_id || unit.reserved_by?.id;
+          return reservedById === currentAdminId;
+        });
+        console.log(`Filtered to ${filteredUnits.length} units reserved by current salesperson (ID: ${currentAdminId})`);
+      } else if (isSuperuser) {
+        console.log('Superuser: showing all reserved units');
+      } else {
+        console.log('No admin profile or role info, showing all units');
+      }
+      
+      setReservedUnits(filteredUnits);
+    } else if (reservedUnitsData && !reservedUnitsData.results) {
+      console.warn('No results in reservedUnitsData:', reservedUnitsData);
+      setReservedUnits([]);
     }
-  }, [reservedUnitsData]);
+  }, [reservedUnitsData, adminProfile, isSuperuser, isSalesperson]);
+
+  // Log errors
+  useEffect(() => {
+    if (reservedUnitsError) {
+      console.error('Error loading reserved units:', reservedUnitsError);
+    }
+  }, [reservedUnitsError]);
 
   const handleAddUnit = (unitId: number) => {
     const unit = reservedUnits.find((u) => u.id === unitId);
@@ -951,7 +1018,29 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
             <label>Select RESERVED Units <span className="required">*</span></label>
             <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
               Only RESERVED units can be ordered. Units must be reserved first.
+              {isSalesperson && !isSuperuser && (
+                <span style={{ display: 'block', marginTop: '0.25rem', fontStyle: 'italic' }}>
+                  Showing only units reserved by you.
+                </span>
+              )}
             </p>
+            {isLoadingReservedUnits && (
+              <p style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem', fontStyle: 'italic' }}>
+                Loading reserved units...
+              </p>
+            )}
+            {reservedUnitsError && (
+              <p style={{ fontSize: '0.875rem', color: '#dc3545', marginBottom: '0.5rem' }}>
+                Error loading reserved units: {reservedUnitsError instanceof Error ? reservedUnitsError.message : 'Unknown error'}
+              </p>
+            )}
+            {!isLoadingReservedUnits && !reservedUnitsError && reservedUnits.length === 0 && (
+              <p style={{ fontSize: '0.875rem', color: '#856404', marginBottom: '0.5rem' }}>
+                {isSalesperson && !isSuperuser
+                  ? 'No reserved units found that are reserved by you. Please reserve units first or wait for approval.'
+                  : 'No reserved units found. Please reserve units first.'}
+              </p>
+            )}
             <select
               onChange={(e) => {
                 if (e.target.value) {
@@ -959,7 +1048,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
                   e.target.value = '';
                 }
               }}
-              disabled={isLoading}
+              disabled={isLoading || isLoadingReservedUnits}
               style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem' }}
             >
               <option value="">-- Select a reserved unit --</option>
@@ -972,6 +1061,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
                   </option>
                 ))}
             </select>
+            {!isLoadingReservedUnits && reservedUnits.length > 0 && (
+              <p style={{ fontSize: '0.75rem', color: '#666', marginTop: '-0.5rem', marginBottom: '0.5rem' }}>
+                Found {reservedUnits.length} reserved unit{reservedUnits.length !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
 
           {selectedUnits.length > 0 && (
