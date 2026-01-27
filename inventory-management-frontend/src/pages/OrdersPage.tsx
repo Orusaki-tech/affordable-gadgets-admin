@@ -140,6 +140,8 @@ export const OrdersPage: React.FC = () => {
         if (normalizedStatus.includes('paid') || normalizedStatus.includes('completed') || normalizedStatus.includes('delivered')) {
           queryClient.invalidateQueries({ queryKey: ['orders'] });
           queryClient.invalidateQueries({ queryKey: ['order-details', orderIdToCheck] });
+          queryClient.invalidateQueries({ queryKey: ['reserved-units-for-order'] });
+          queryClient.invalidateQueries({ queryKey: ['approved-reservation-requests-for-order'] });
           alert('Payment successful. Receipt will be sent automatically and is ready to download.');
           finishPolling();
           return;
@@ -230,6 +232,8 @@ export const OrdersPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['reserved-units-for-order'] });
+      queryClient.invalidateQueries({ queryKey: ['approved-reservation-requests-for-order'] });
       alert('Order created successfully!');
       setShowCreateModal(false);
     },
@@ -250,6 +254,8 @@ export const OrdersPage: React.FC = () => {
     },
     onSuccess: (data: { message: string }) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['reserved-units-for-order'] });
+      queryClient.invalidateQueries({ queryKey: ['approved-reservation-requests-for-order'] });
       alert(data.message || 'Payment confirmed successfully!');
     },
     onError: (err: any) => {
