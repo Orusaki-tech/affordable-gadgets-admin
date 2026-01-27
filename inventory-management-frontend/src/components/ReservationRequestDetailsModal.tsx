@@ -598,6 +598,7 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
                       <div className="unit-info">
                         <div>
                           <strong>{unit.product_name || unit.product_template_name || 'Unknown'}</strong>
+                          <span> - Unit #{unit.id}</span>
                           {unit.serial_number && <span> - SN: {unit.serial_number}</span>}
                         </div>
                         <div className="unit-details">

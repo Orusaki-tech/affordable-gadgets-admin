@@ -242,11 +242,13 @@ export declare class ApiService {
      */
     static apiV1PublicProductsUnitsList(id: number, ordering?: string, page?: number, search?: string): CancelablePromise<PaginatedPublicInventoryUnitPublicList>;
     /**
-     * @param page A page number within the paginated result set.
+     * @param displayLocation
+     * @param page
+     * @param pageSize
      * @returns PaginatedPublicPromotionList
      * @throws ApiError
      */
-    static apiV1PublicPromotionsList(page?: number): CancelablePromise<PaginatedPublicPromotionList>;
+    static apiV1PublicPromotionsList(displayLocation?: string, page?: number, pageSize?: number): CancelablePromise<PaginatedPublicPromotionList>;
     /**
      * @param id A unique integer value identifying this promotion.
      * @returns PublicPromotion

@@ -14,9 +14,7 @@ export declare class ReturnRequestsService {
      */
     static returnRequestsList(page?: number): CancelablePromise<PaginatedReturnRequestList>;
     /**
-     * ViewSet for managing return requests (bulk returns of reserved units).
-     * - Salespersons can create return requests for their reserved units
-     * - Inventory Managers can approve/reject return requests
+     * Override create to provide better error handling.
      * @param requestBody
      * @returns ReturnRequest
      * @throws ApiError

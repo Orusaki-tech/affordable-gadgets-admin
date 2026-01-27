@@ -546,18 +546,24 @@ export class ApiService {
         });
     }
     /**
-     * @param page A page number within the paginated result set.
+     * @param displayLocation
+     * @param page
+     * @param pageSize
      * @returns PaginatedPublicPromotionList
      * @throws ApiError
      */
     public static apiV1PublicPromotionsList(
+        displayLocation?: string,
         page?: number,
+        pageSize?: number,
     ): CancelablePromise<PaginatedPublicPromotionList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/public/promotions/',
             query: {
+                'display_location': displayLocation,
                 'page': page,
+                'page_size': pageSize,
             },
         });
     }

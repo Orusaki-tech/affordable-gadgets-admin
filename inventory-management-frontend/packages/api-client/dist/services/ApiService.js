@@ -444,16 +444,20 @@ export class ApiService {
         });
     }
     /**
-     * @param page A page number within the paginated result set.
+     * @param displayLocation
+     * @param page
+     * @param pageSize
      * @returns PaginatedPublicPromotionList
      * @throws ApiError
      */
-    static apiV1PublicPromotionsList(page) {
+    static apiV1PublicPromotionsList(displayLocation, page, pageSize) {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/v1/public/promotions/',
             query: {
+                'display_location': displayLocation,
                 'page': page,
+                'page_size': pageSize,
             },
         });
     }
