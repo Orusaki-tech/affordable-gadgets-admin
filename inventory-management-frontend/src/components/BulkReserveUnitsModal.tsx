@@ -142,7 +142,24 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
       }).then(async (response) => {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || errorData.detail || `HTTP ${response.status}`);
+          const details = errorData.details;
+          let detailMessage = '';
+          if (details && typeof details === 'object') {
+            detailMessage = Object.entries(details)
+              .map(([field, messages]) => {
+                if (Array.isArray(messages)) {
+                  return `${field}: ${messages.join(', ')}`;
+                }
+                return `${field}: ${String(messages)}`;
+              })
+              .join('; ');
+          }
+          throw new Error(
+            errorData.error ||
+              errorData.detail ||
+              detailMessage ||
+              `HTTP ${response.status}`,
+          );
         }
         return response.json();
       });
