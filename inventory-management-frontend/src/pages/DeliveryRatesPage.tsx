@@ -1,6 +1,38 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OpenAPI } from '../api/index';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  InputAdornment,
+  FormControlLabel,
+  Checkbox,
+  Stack,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+} from '@mui/icons-material';
 
 type DeliveryRate = {
   id?: number;
@@ -10,6 +42,13 @@ type DeliveryRate = {
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
+};
+
+type DeliveryRatesResponse = {
+  results?: DeliveryRate[];
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
 };
 
 const getAuthHeaders = () => {
@@ -27,7 +66,11 @@ const fetchDeliveryRates = async (): Promise<DeliveryRate[]> => {
   if (!response.ok) {
     throw new Error('Failed to load delivery rates');
   }
-  return response.json();
+  const data: DeliveryRate[] | DeliveryRatesResponse = await response.json();
+  if (Array.isArray(data)) {
+    return data;
+  }
+  return data.results || [];
 };
 
 export const DeliveryRatesPage: React.FC = () => {
@@ -35,6 +78,7 @@ export const DeliveryRatesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<DeliveryRate | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DeliveryRate | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['delivery-rates'],
@@ -106,6 +150,7 @@ export const DeliveryRatesPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-rates'] });
+      setDeleteTarget(null);
     },
   });
 
@@ -119,78 +164,90 @@ export const DeliveryRatesPage: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = (rate: DeliveryRate) => {
-    if (!rate.id) return;
-    if (window.confirm(`Delete delivery rate for ${rate.county}${rate.ward ? ` - ${rate.ward}` : ''}?`)) {
-      deleteMutation.mutate(rate.id);
-    }
-  };
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" mt={4}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  if (isLoading) return <div className="loading">Loading delivery rates...</div>;
-  if (error) return <div className="error">Error loading delivery rates: {(error as Error).message}</div>;
+  if (error) {
+    return (
+      <Alert severity="error">
+        Error loading delivery rates: {(error as Error).message}
+      </Alert>
+    );
+  }
 
   return (
-    <div className="colors-page">
-      <div className="page-header">
-        <h1>Delivery Rates</h1>
-        <div className="page-header-actions">
-          <button className="btn-primary" onClick={handleCreate}>
-            + Add Rate
-          </button>
-        </div>
-      </div>
+    <Box>
+      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
+        <Typography variant="h4">Delivery Rates</Typography>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreate}>
+          Add Rate
+        </Button>
+      </Box>
 
-      <div className="search-filters-section">
-        <div className="search-row">
-          <input
-            type="text"
-            placeholder="Search by county or ward..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-          />
-        </div>
-      </div>
+      <Card>
+        <CardContent>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} mb={3}>
+            <TextField
+              fullWidth
+              placeholder="Search by county or ward..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Stack>
 
-      {filteredRates.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">📭</div>
-          <h3>No delivery rates</h3>
-          <p>Create delivery rates to calculate fees at checkout.</p>
-        </div>
-      ) : (
-        <div className="colors-table-container">
-          <table className="colors-table">
-            <thead>
-              <tr>
-                <th>County</th>
-                <th>Ward</th>
-                <th>Price (KES)</th>
-                <th>Active</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRates.map((rate) => (
-                <tr key={rate.id}>
-                  <td>{rate.county || '-'}</td>
-                  <td>{rate.ward || '-'}</td>
-                  <td>{Number(rate.price || 0).toFixed(2)}</td>
-                  <td>{rate.is_active ? 'Yes' : 'No'}</td>
-                  <td className="color-actions-cell">
-                    <button className="btn-action btn-edit" onClick={() => handleEdit(rate)}>
-                      Edit
-                    </button>
-                    <button className="btn-action btn-delete" onClick={() => handleDelete(rate)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+          <TableContainer component={Paper} variant="outlined">
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>County</TableCell>
+                  <TableCell>Ward</TableCell>
+                  <TableCell>Price (KES)</TableCell>
+                  <TableCell>Active</TableCell>
+                  <TableCell align="right">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredRates.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} align="center">
+                      No delivery rates found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredRates.map((rate) => (
+                    <TableRow key={rate.id}>
+                      <TableCell>{rate.county || '-'}</TableCell>
+                      <TableCell>{rate.ward || '-'}</TableCell>
+                      <TableCell>{Number(rate.price || 0).toFixed(2)}</TableCell>
+                      <TableCell>{rate.is_active ? 'Yes' : 'No'}</TableCell>
+                      <TableCell align="right">
+                        <IconButton onClick={() => handleEdit(rate)}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => setDeleteTarget(rate)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
 
       {showModal && (
         <DeliveryRateModal
@@ -209,7 +266,23 @@ export const DeliveryRatesPage: React.FC = () => {
           isLoading={createMutation.isPending || updateMutation.isPending}
         />
       )}
-    </div>
+
+      {deleteTarget && (
+        <Dialog open onClose={() => setDeleteTarget(null)}>
+          <DialogTitle>Delete delivery rate?</DialogTitle>
+          <DialogContent>
+            This will remove the rate for {deleteTarget.county}
+            {deleteTarget.ward ? ` - ${deleteTarget.ward}` : ''}.
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button color="error" onClick={() => deleteTarget.id && deleteMutation.mutate(deleteTarget.id)}>
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+    </Box>
   );
 };
 
@@ -243,62 +316,48 @@ const DeliveryRateModal: React.FC<DeliveryRateModalProps> = ({ rate, onClose, on
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>{rate ? 'Edit Delivery Rate' : 'Create Delivery Rate'}</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
-        <form onSubmit={handleSubmit} className="form-section">
-          <div className="form-group">
-            <label>County *</label>
-            <input
-              type="text"
-              value={formData.county || ''}
-              onChange={(e) => setFormData({ ...formData, county: e.target.value })}
-              required
-              disabled={isLoading}
-            />
-          </div>
-          <div className="form-group">
-            <label>Ward (optional)</label>
-            <input
-              type="text"
-              value={formData.ward || ''}
-              onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
-              disabled={isLoading}
-            />
-          </div>
-          <div className="form-group">
-            <label>Price (KES)</label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.price ?? 0}
-              onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-              disabled={isLoading}
-            />
-          </div>
-          <div className="form-group">
-            <label>
-              <input
-                type="checkbox"
+    <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{rate ? 'Edit Delivery Rate' : 'Create Delivery Rate'}</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} mt={1}>
+          <TextField
+            label="County"
+            value={formData.county || ''}
+            onChange={(e) => setFormData({ ...formData, county: e.target.value })}
+            required
+            disabled={isLoading}
+          />
+          <TextField
+            label="Ward (optional)"
+            value={formData.ward || ''}
+            onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
+            disabled={isLoading}
+          />
+          <TextField
+            label="Price (KES)"
+            type="number"
+            inputProps={{ step: 0.01 }}
+            value={formData.price ?? 0}
+            onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+            disabled={isLoading}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
                 checked={formData.is_active ?? true}
                 onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
               />
-              <span style={{ marginLeft: '0.5rem' }}>Active</span>
-            </label>
-          </div>
-          <div className="form-actions">
-            <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
-              Cancel
-            </button>
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? 'Saving...' : rate ? 'Update' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+            }
+            label="Active"
+          />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? 'Saving...' : rate ? 'Update' : 'Create'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 };
