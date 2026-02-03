@@ -34,6 +34,7 @@ import { ContentCreatorDashboard } from './pages/ContentCreatorDashboard';
 import { PromotionsPage } from './pages/PromotionsPage';
 import { BrandsPage } from './pages/BrandsPage';
 import { BundlesPage } from './pages/BundlesPage';
+import { DeliveryRatesPage } from './pages/DeliveryRatesPage';
 
 // Material UI Theme Wrapper Component
 const AppWithMUITheme: React.FC = () => {
@@ -127,6 +128,7 @@ const AppWithMUITheme: React.FC = () => {
           <Route path="promotions" element={<PromotionsPage />} />
           <Route path="bundles" element={<BundlesPage />} />
           <Route path="brands" element={<BrandsPage />} />
+          <Route path="delivery-rates" element={<DeliveryRatesPage />} />
         </Route>
       </Routes>
     </MUIThemeProvider>

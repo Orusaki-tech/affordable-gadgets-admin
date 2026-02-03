@@ -440,6 +440,9 @@ export const AdminLayout: React.FC = () => {
               <Link to="/orders" className={isActive('/orders')} onClick={() => setSidebarOpen(false)}>
                 Orders
               </Link>
+              <Link to="/delivery-rates" className={isActive('/delivery-rates')} onClick={() => setSidebarOpen(false)}>
+                Delivery Rates
+              </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
                 <span>Bundles</span>
                 {isBundleReadOnly && <span className="nav-lock">🔒</span>}
@@ -495,6 +498,9 @@ export const AdminLayout: React.FC = () => {
               </Link>
               <Link to="/orders" className={isActive('/orders')} onClick={() => setSidebarOpen(false)}>
                 Orders
+              </Link>
+              <Link to="/delivery-rates" className={isActive('/delivery-rates')} onClick={() => setSidebarOpen(false)}>
+                Delivery Rates
               </Link>
               <div className="nav-section-header">Management</div>
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
