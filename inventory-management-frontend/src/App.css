@@ -4554,6 +4554,10 @@ p, body {
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
 }
 
+.filters-overlay-desktop {
+  display: none;
+}
+
 .filters-modal-header,
 .filters-modal-footer {
   display: flex;
@@ -4606,6 +4610,18 @@ p, body {
 }
 
 @media (min-width: 1025px) {
+  .filters-bar {
+    overflow: visible;
+  }
+
+  .filters-overlay-desktop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    z-index: 10;
+  }
+
   .filters-panel-desktop {
     display: block;
     position: absolute;
@@ -4614,6 +4630,7 @@ p, body {
     z-index: 20;
     width: min(520px, 90vw);
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+    margin-top: 0;
   }
 }
 

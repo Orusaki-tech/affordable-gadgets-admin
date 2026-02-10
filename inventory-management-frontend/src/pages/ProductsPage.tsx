@@ -897,6 +897,10 @@ export const ProductsPage: React.FC = () => {
 
         {showFilters && (
           <>
+            <div
+              className="filters-overlay-desktop"
+              onClick={() => setShowFilters(false)}
+            />
             {/* Desktop: Inline filters */}
             <div className="filters-panel filters-panel-desktop">
               <div className="filter-group">
