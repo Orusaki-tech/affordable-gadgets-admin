@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -28,6 +28,27 @@ export const ProductsPage: React.FC = () => {
     seo_status: '', // For Content Creators: 'all', 'complete', 'incomplete', 'missing-seo'
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [filtersPanelPosition, setFiltersPanelPosition] = useState<{ top: number; right: number } | null>(null);
+  const filtersButtonRef = useRef<HTMLButtonElement | null>(null);
+  const updateFiltersPanelPosition = useCallback(() => {
+    if (!filtersButtonRef.current) return;
+    const rect = filtersButtonRef.current.getBoundingClientRect();
+    const top = rect.bottom + 8;
+    const right = Math.max(16, window.innerWidth - rect.right);
+    setFiltersPanelPosition({ top, right });
+  }, []);
+
+  useEffect(() => {
+    if (!showFilters) return;
+    updateFiltersPanelPosition();
+    const handleResize = () => updateFiltersPanelPosition();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleResize, true);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleResize, true);
+    };
+  }, [showFilters, updateFiltersPanelPosition]);
   const [editingProduct, setEditingProduct] = useState<ProductTemplate | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [stockSummaryProductId, setStockSummaryProductId] = useState<number | null>(null);
@@ -862,6 +883,7 @@ export const ProductsPage: React.FC = () => {
             onClick={() => setShowFilters(!showFilters)}
             aria-expanded={showFilters}
             style={{ marginLeft: '0.5rem' }}
+            ref={filtersButtonRef}
           >
             <span>🔍 Filters</span>
             {activeFilterCount > 0 && (
@@ -902,7 +924,14 @@ export const ProductsPage: React.FC = () => {
               onClick={() => setShowFilters(false)}
             />
             {/* Desktop: Inline filters */}
-            <div className="filters-panel filters-panel-desktop">
+            <div
+              className="filters-panel filters-panel-desktop"
+              style={
+                filtersPanelPosition
+                  ? { top: filtersPanelPosition.top, right: filtersPanelPosition.right }
+                  : undefined
+              }
+            >
               <div className="filter-group">
                 <label htmlFor="filter-product-type">Product Type</label>
                 <select
