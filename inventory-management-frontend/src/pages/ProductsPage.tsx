@@ -298,7 +298,7 @@ export const ProductsPage: React.FC = () => {
       // #endregion
       
       // Extract error message from DRF ValidationError response
-      let errorMessage = 'Unknown error';
+      let errorMessage = 'Unable to delete product because it still has inventory units.';
       
       // Check response.data first (most common for API errors)
       if (err?.response?.data) {
