@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -28,27 +28,15 @@ export const ProductsPage: React.FC = () => {
     seo_status: '', // For Content Creators: 'all', 'complete', 'incomplete', 'missing-seo'
   });
   const [showFilters, setShowFilters] = useState(false);
-  const [filtersPanelPosition, setFiltersPanelPosition] = useState<{ top: number; right: number } | null>(null);
-  const filtersButtonRef = useRef<HTMLButtonElement | null>(null);
-  const updateFiltersPanelPosition = useCallback(() => {
-    if (!filtersButtonRef.current) return;
-    const rect = filtersButtonRef.current.getBoundingClientRect();
-    const top = rect.bottom + 8;
-    const right = Math.max(16, window.innerWidth - rect.right);
-    setFiltersPanelPosition({ top, right });
-  }, []);
-
   useEffect(() => {
-    if (!showFilters) return;
-    updateFiltersPanelPosition();
-    const handleResize = () => updateFiltersPanelPosition();
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleResize, true);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleResize, true);
-    };
-  }, [showFilters, updateFiltersPanelPosition]);
+    if (showFilters) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+    return undefined;
+  }, [showFilters]);
   const [editingProduct, setEditingProduct] = useState<ProductTemplate | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [stockSummaryProductId, setStockSummaryProductId] = useState<number | null>(null);
@@ -883,7 +871,6 @@ export const ProductsPage: React.FC = () => {
             onClick={() => setShowFilters(!showFilters)}
             aria-expanded={showFilters}
             style={{ marginLeft: '0.5rem' }}
-            ref={filtersButtonRef}
           >
             <span>🔍 Filters</span>
             {activeFilterCount > 0 && (
@@ -919,80 +906,7 @@ export const ProductsPage: React.FC = () => {
 
         {showFilters && (
           <>
-            <div
-              className="filters-overlay-desktop"
-              onClick={() => setShowFilters(false)}
-            />
-            {/* Desktop: Inline filters */}
-            <div
-              className="filters-panel filters-panel-desktop"
-              style={
-                filtersPanelPosition
-                  ? { top: filtersPanelPosition.top, right: filtersPanelPosition.right }
-                  : undefined
-              }
-            >
-              <div className="filter-group">
-                <label htmlFor="filter-product-type">Product Type</label>
-                <select
-                  id="filter-product-type"
-                  value={filters.product_type}
-                  onChange={(e) => setFilters({ ...filters, product_type: e.target.value })}
-                  className="filter-select"
-                >
-                  {productTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="filter-group">
-                <label htmlFor="filter-brand">Brand</label>
-                <select
-                  id="filter-brand"
-                  value={filters.brand}
-                  onChange={(e) => setFilters({ ...filters, brand: e.target.value })}
-                  className="filter-select"
-                >
-                  <option value="">All Brands</option>
-                  {uniqueBrands.map(brand => (
-                    <option key={brand} value={brand}>{brand}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="filter-group">
-                <label htmlFor="filter-stock-status">Stock Status</label>
-                <select
-                  id="filter-stock-status"
-                  value={filters.stock_status}
-                  onChange={(e) => setFilters({ ...filters, stock_status: e.target.value })}
-                  className="filter-select"
-                >
-                  {stockStatusOptions.map(status => (
-                    <option key={status.value} value={status.value}>{status.label}</option>
-                  ))}
-                </select>
-              </div>
-              {isContentCreator && (
-                <div className="filter-group">
-                  <label htmlFor="filter-seo-status">SEO Status</label>
-                  <select
-                    id="filter-seo-status"
-                    value={filters.seo_status}
-                    onChange={(e) => setFilters({ ...filters, seo_status: e.target.value })}
-                    className="filter-select"
-                  >
-                    <option value="">All</option>
-                    <option value="missing-seo">Missing SEO</option>
-                    <option value="incomplete">Incomplete (Low Score)</option>
-                    <option value="complete">Complete</option>
-                  </select>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile: Modal overlay */}
+            {/* Filters modal */}
             <div className="filters-modal-overlay" onClick={() => setShowFilters(false)}>
               <div className="filters-modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="filters-modal-header">

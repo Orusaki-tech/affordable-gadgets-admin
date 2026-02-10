@@ -4540,7 +4540,14 @@ p, body {
 }
 
 .filters-modal-overlay {
-  display: none;
+  display: flex;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  align-items: stretch;
+  justify-content: flex-end;
+  z-index: 1000;
+  padding: 0;
 }
 
 .filters-modal-content {
@@ -4575,17 +4582,6 @@ p, body {
 }
 
 @media (max-width: 1024px) {
-  .filters-modal-overlay {
-    display: flex;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    align-items: stretch;
-    justify-content: flex-end;
-    z-index: 1000;
-    padding: 0;
-  }
-
   .filters-modal-content {
     width: min(420px, 90vw);
     height: 100%;
@@ -4610,27 +4606,17 @@ p, body {
 }
 
 @media (min-width: 1025px) {
-  .filters-bar {
-    overflow: visible;
-  }
-
-  .filters-overlay-desktop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: transparent;
-    z-index: 10;
-  }
-
-  .filters-panel-desktop {
-    display: block;
-    position: absolute;
-    right: 0;
-    top: calc(100% + var(--spacing-sm));
-    z-index: 20;
+  .filters-modal-content {
     width: min(520px, 90vw);
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
-    margin-top: 0;
+    height: auto;
+    max-height: 90vh;
+    border-radius: var(--radius-xl);
+  }
+
+  .filters-modal-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
   }
 }
 
