@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -15,6 +15,7 @@ import { ProductStockSummaryModal } from '../components/ProductStockSummaryModal
 import { ProductPromotionModal } from '../components/ProductPromotionModal';
 import { useAuth } from '../contexts/AuthContext';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
+import { useDebounce } from '../hooks/useDebounce';
 
 export const ProductsPage: React.FC = () => {
   const { user } = useAuth();
@@ -87,37 +88,17 @@ export const ProductsPage: React.FC = () => {
   const canCreateProducts = isSuperuser || isInventoryManager;
   const canDeleteProducts = isSuperuser || isInventoryManager;
 
-  // Use paginated products hook
-  const { products: allProducts, isLoading, error, hasMore: hasMorePages, totalCount, loadMore, reset: resetPagination } = usePaginatedProducts();
+  const debouncedSearch = useDebounce(search, 300);
+  const normalizedSearch = debouncedSearch.trim();
 
-  // Track if this is the first mount and previous filter values
-  const isFirstMount = useRef(true);
-  const prevFiltersRef = useRef({ search, filters });
-  
-  // Reset pagination when filters/search change (but not on initial mount)
-  useEffect(() => {
-    if (isFirstMount.current) {
-      // On first mount, just track the current filters and don't reset
-      isFirstMount.current = false;
-      prevFiltersRef.current = { search, filters };
-      return;
-    }
-    
-    // On subsequent renders, check if filters actually changed
-    const prevFilters = prevFiltersRef.current;
-    const filtersChanged = 
-      prevFilters.search !== search ||
-      prevFilters.filters.product_type !== filters.product_type ||
-      prevFilters.filters.brand !== filters.brand ||
-      prevFilters.filters.stock_status !== filters.stock_status ||
-      prevFilters.filters.seo_status !== filters.seo_status;
-    
-    if (filtersChanged) {
-      resetPagination();
-    }
-    
-    prevFiltersRef.current = { search, filters };
-  }, [search, filters.product_type, filters.brand, filters.stock_status, filters.seo_status, resetPagination, filters]);
+  // Use paginated products hook
+  const { products: allProducts, isLoading, error, hasMore: hasMorePages, totalCount, loadMore } = usePaginatedProducts({
+    search: normalizedSearch,
+    productType: filters.product_type,
+    brand: filters.brand,
+    stockStatus: filters.stock_status,
+    seoStatus: filters.seo_status,
+  });
 
   // Create data object compatible with existing code
   const data = useMemo(() => ({
@@ -264,10 +245,10 @@ export const ProductsPage: React.FC = () => {
   };
 
   // Helper function to get stock status
-  const getStockStatus = (product: ProductTemplate, stockSummary?: { available_stock: number; min_price?: number; max_price?: number }) => {
-    if (!stockSummary) return null;
+  const getStockStatus = (product: ProductTemplate, availableStock?: number | null) => {
+    if (availableStock === undefined || availableStock === null) return null;
     
-    const available = stockSummary.available_stock || 0;
+    const available = availableStock || 0;
     const minThreshold = (product as any).min_stock_threshold;
     const isDiscontinued = (product as any).is_discontinued;
     
@@ -779,69 +760,14 @@ export const ProductsPage: React.FC = () => {
     { value: 'discontinued', label: 'Discontinued' },
   ];
 
-  // Filter products by search term and filters
+  // Server handles search/type/brand/stock/SEO filtering
   const filteredProducts = useMemo(() => {
     if (!data?.results) return [];
     
     return data.results.filter((product) => {
-      // SEO filter (for Content Creators)
-      if (isContentCreator && filters.seo_status) {
-        const seoScore = (product as any).seo_score || 0;
-        const hasMetaTitle = !!(product as any).meta_title;
-        const hasMetaDescription = !!(product as any).meta_description;
-        const hasSlug = !!(product as any).slug;
-        
-        if (filters.seo_status === 'missing-seo') {
-          if (hasMetaTitle && hasMetaDescription && hasSlug && seoScore >= 50) return false;
-        } else if (filters.seo_status === 'incomplete') {
-          if (seoScore >= 50) return false;
-        } else if (filters.seo_status === 'complete') {
-          if (seoScore < 50) return false;
-        }
-      }
-      
-      // Search filter
-      if (search) {
-    const searchLower = search.toLowerCase();
-        const matchesSearch = (
-      product.product_name?.toLowerCase().includes(searchLower) ||
-      product.brand?.toLowerCase().includes(searchLower) ||
-          product.model_series?.toLowerCase().includes(searchLower) ||
-          product.product_description?.toLowerCase().includes(searchLower)
-        );
-        if (!matchesSearch) return false;
-      }
-
-      // Product type filter
-      if (filters.product_type && product.product_type !== filters.product_type) {
-        return false;
-      }
-
-      // Brand filter
-      if (filters.brand && product.brand !== filters.brand) {
-        return false;
-      }
-
-      // Stock status filter (requires stock summary)
-      if (filters.stock_status) {
-        const stockSummary = product.id ? stockSummaries[product.id] : undefined;
-        
-        // If stock data isn't loaded yet, exclude it (will be included once data loads)
-        if (!stockSummary) {
-          return false;
-        }
-        
-        const stockStatus = getStockStatus(product, stockSummary);
-        
-        // If stock status doesn't match, exclude the product
-        if (!stockStatus || stockStatus.status !== filters.stock_status) {
-          return false;
-        }
-      }
-
       return true;
     });
-  }, [data, search, filters, stockSummaries, isContentCreator]);
+  }, [data]);
 
   // Count active filters
   const activeFilterCount = useMemo(() => {
@@ -849,8 +775,9 @@ export const ProductsPage: React.FC = () => {
     if (filters.product_type) count++;
     if (filters.brand) count++;
     if (filters.stock_status) count++;
+    if (isContentCreator && filters.seo_status) count++;
     return count;
-  }, [filters]);
+  }, [filters, isContentCreator]);
 
   const clearFilters = () => {
     setFilters({
@@ -861,20 +788,6 @@ export const ProductsPage: React.FC = () => {
     });
     setSearch('');
   };
-
-  // Pre-fetch stock summaries for all products when stock status filter is active
-  useEffect(() => {
-    if (filters.stock_status && data?.results) {
-      // Fetch stock for all products to enable accurate filtering
-      data.results.forEach(product => {
-        if (product.id && !stockSummaries[product.id]) {
-          fetchStockSummary(product.id);
-        }
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.stock_status, data]);
-
 
   // Show error only if we have no products loaded
   if (error && allProducts.length === 0) {
@@ -1102,6 +1015,22 @@ export const ProductsPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
+                  {isContentCreator && (
+                    <div className="filter-group">
+                      <label htmlFor="filter-seo-status-mobile">SEO Status</label>
+                      <select
+                        id="filter-seo-status-mobile"
+                        value={filters.seo_status}
+                        onChange={(e) => setFilters({ ...filters, seo_status: e.target.value })}
+                        className="filter-select"
+                      >
+                        <option value="">All</option>
+                        <option value="missing-seo">Missing SEO</option>
+                        <option value="incomplete">Incomplete (Low Score)</option>
+                        <option value="complete">Complete</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div className="filters-modal-footer">
                   <button 
@@ -1155,7 +1084,9 @@ export const ProductsPage: React.FC = () => {
               : null;
 
             const stockSummary = product.id ? stockSummaries[product.id] : undefined;
-            const stockStatus = getStockStatus(product, stockSummary);
+            const availableStock = stockSummary?.available_stock ?? (product as any).available_stock;
+            const hasStockInfo = availableStock !== undefined && availableStock !== null;
+            const stockStatus = getStockStatus(product, availableStock);
             const imageState = product.id ? (imageLoadingStates[product.id] || { loading: !!fullImageUrl, error: false }) : { loading: false, error: true };
             const imageLoading = imageState.loading;
             const imageError = imageState.error;
@@ -1280,14 +1211,14 @@ export const ProductsPage: React.FC = () => {
                 <div className="product-card-content">
                   <div className="product-card-header">
                   <h3 className="product-card-name">{product.product_name || 'Unnamed Product'}</h3>
-                    <div className={`product-stock-info ${!stockSummary ? 'product-stock-info-empty' : ''}`}>
-                      {stockSummary && (
+                    <div className={`product-stock-info ${!hasStockInfo && !stockSummary ? 'product-stock-info-empty' : ''}`}>
+                      {hasStockInfo && (
                         <>
-                          <span className="stock-count">{stockSummary.available_stock || 0} available</span>
-                          {stockSummary.min_price != null && stockSummary.max_price != null && stockSummary.min_price > 0 && stockSummary.max_price > 0 && stockSummary.min_price === stockSummary.max_price && (
+                          <span className="stock-count">{availableStock || 0} available</span>
+                          {stockSummary?.min_price != null && stockSummary?.max_price != null && stockSummary.min_price > 0 && stockSummary.max_price > 0 && stockSummary.min_price === stockSummary.max_price && (
                             <span className="stock-price">KES {stockSummary.min_price.toLocaleString()}</span>
                           )}
-                          {stockSummary.min_price != null && stockSummary.max_price != null && stockSummary.min_price > 0 && stockSummary.max_price > 0 && stockSummary.min_price !== stockSummary.max_price && (
+                          {stockSummary?.min_price != null && stockSummary?.max_price != null && stockSummary.min_price > 0 && stockSummary.max_price > 0 && stockSummary.min_price !== stockSummary.max_price && (
                             <span className="stock-price">KES {stockSummary.min_price.toLocaleString()} - {stockSummary.max_price.toLocaleString()}</span>
                           )}
                         </>

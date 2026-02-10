@@ -85,7 +85,7 @@ export const ReviewsPage: React.FC = () => {
   // Fetch all products for the product dropdown
   const { data: productsData } = useQuery({
     queryKey: ['products-all'],
-    queryFn: () => ProductsService.productsList(1),
+    queryFn: () => ProductsService.productsList({ page: 1 }),
   });
 
   const createMutation = useMutation({

@@ -22,13 +22,25 @@ export class ProductsService {
      * @throws ApiError
      */
     public static productsList(
-        page?: number,
+        params?: {
+            page?: number;
+            search?: string;
+            product_type?: string;
+            brand?: string;
+            stock_status?: string;
+            seo_status?: string;
+        },
     ): CancelablePromise<PaginatedProductList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/products/',
             query: {
-                'page': page,
+                'page': params?.page,
+                'search': params?.search,
+                'product_type': params?.product_type,
+                'brand': params?.brand,
+                'stock_status': params?.stock_status,
+                'seo_status': params?.seo_status,
             },
         });
     }

@@ -63,7 +63,7 @@ export const ProductAccessoriesPage: React.FC = () => {
   // Fetch all products for the form dropdowns
   const { data: productsData } = useQuery({
     queryKey: ['products-all'],
-    queryFn: () => ProductsService.productsList(1),
+    queryFn: () => ProductsService.productsList({ page: 1 }),
   });
 
   // Client-side filtering

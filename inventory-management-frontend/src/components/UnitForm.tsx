@@ -91,7 +91,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   // Fetch products for dropdown
   const { data: productsData } = useQuery({
     queryKey: ['products-all'],
-    queryFn: () => ProductsService.productsList(1),
+    queryFn: () => ProductsService.productsList({ page: 1 }),
   });
 
   // Enhanced filter with fuzzy matching and scoring

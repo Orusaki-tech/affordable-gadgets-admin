@@ -6,6 +6,11 @@ interface UsePaginatedProductsOptions {
   enabled?: boolean;
   initialPage?: number;
   onPageChange?: (page: number) => void;
+  search?: string;
+  productType?: string;
+  brand?: string;
+  stockStatus?: string;
+  seoStatus?: string;
 }
 
 interface UsePaginatedProductsReturn {
@@ -30,7 +35,16 @@ interface UsePaginatedProductsReturn {
 export const usePaginatedProducts = (
   options: UsePaginatedProductsOptions = {}
 ): UsePaginatedProductsReturn => {
-  const { enabled = true, initialPage = 1, onPageChange } = options;
+  const {
+    enabled = true,
+    initialPage = 1,
+    onPageChange,
+    search = '',
+    productType = '',
+    brand = '',
+    stockStatus = '',
+    seoStatus = '',
+  } = options;
   
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [allProducts, setAllProducts] = useState<ProductTemplate[]>([]);
@@ -38,8 +52,10 @@ export const usePaginatedProducts = (
   const [totalCount, setTotalCount] = useState(0);
 
   // Fetch products with pagination - only load current page
+  const normalizedSearch = search.trim();
+
   const { data: pageData, isLoading, error, refetch } = useQuery<PaginatedProductList>({
-    queryKey: ['products', currentPage],
+    queryKey: ['products', currentPage, normalizedSearch, productType, brand, stockStatus, seoStatus],
     queryFn: async () => {
       // #region agent log
       const fetchStartTime = Date.now();
@@ -47,7 +63,14 @@ export const usePaginatedProducts = (
       // #endregion
       
       const pageCallStart = Date.now();
-      const response = await ProductsService.productsList(currentPage);
+      const response = await ProductsService.productsList({
+        page: currentPage,
+        search: normalizedSearch || undefined,
+        product_type: productType || undefined,
+        brand: brand || undefined,
+        stock_status: stockStatus || undefined,
+        seo_status: seoStatus || undefined,
+      });
       const pageCallEnd = Date.now();
       const pageDuration = pageCallEnd - pageCallStart;
       
@@ -79,6 +102,14 @@ export const usePaginatedProducts = (
     }
   }, [pageData, currentPage, onPageChange]);
 
+  // Reset pagination when query parameters change
+  useEffect(() => {
+    setCurrentPage(initialPage);
+    setAllProducts([]);
+    setHasMorePages(true);
+    setTotalCount(0);
+  }, [initialPage, normalizedSearch, productType, brand, stockStatus, seoStatus]);
+
   // Load more products
   const loadMore = useCallback(() => {
     if (!isLoading && hasMorePages) {
@@ -94,6 +125,7 @@ export const usePaginatedProducts = (
     }
     setAllProducts([]);
     setHasMorePages(true);
+    setTotalCount(0);
   }, [initialPage, currentPage]);
 
   return {
