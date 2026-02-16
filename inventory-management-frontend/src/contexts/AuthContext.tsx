@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { ProfilesService, LogoutService, User } from '../api/index';
-import { setAuthToken, clearAuthToken, getAuthLoginUrl } from '../api/config';
+import { ProfilesService, User } from '../api/index';
+import { setAuthToken, clearAuthToken, getAuthLoginUrl, getAuthLogoutUrl } from '../api/config';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -246,23 +246,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      // Call logout endpoint to invalidate token server-side
-      await LogoutService.logoutCreate();
+      const token = localStorage.getItem('auth_token');
+      const logoutUrl = getAuthLogoutUrl();
+      if (token) {
+        const res = await fetch(logoutUrl, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Token ${token}`,
+          },
+        });
+        if (!res.ok) {
+          console.warn('Logout API returned', res.status, await res.text());
+        }
+      }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout API error:', error);
     } finally {
-      // Clear React Query cache to prevent stale data from previous user
       queryClient.clear();
-      clearAuthToken();
-      localStorage.removeItem(AUTH_USER_KEY);
-      localStorage.removeItem(AUTH_IS_ADMIN_KEY);
       clearAuthToken();
       localStorage.removeItem(AUTH_USER_KEY);
       localStorage.removeItem(AUTH_IS_ADMIN_KEY);
       setIsAuthenticated(false);
       setIsAdmin(false);
       setUser(null);
-      setHasValidated(false); // Reset validation state so new login validates properly
+      setHasValidated(false);
     }
   };
 

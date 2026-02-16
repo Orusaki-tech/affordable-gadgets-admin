@@ -97,13 +97,26 @@ export const clearAuthToken = () => {
   localStorage.removeItem('auth_token');
 };
 
-// Helper to build absolute auth URL from the current API base
-export const getAuthLoginUrl = () => {
-  const base = OpenAPI.BASE || '';
+// Get the API server root (e.g. http://localhost:8000) from the current base
+export const getApiRoot = (): string => {
+  const base = OpenAPI.BASE || getApiBaseUrl();
   const normalized = base.replace(/\/$/, '');
   const inventorySuffix = '/api/inventory';
-  const root = normalized.endsWith(inventorySuffix)
-    ? normalized.slice(0, -inventorySuffix.length)
-    : normalized;
-  return `${root || ''}/api/auth/token/login/`;
+  if (normalized.endsWith(inventorySuffix)) {
+    return normalized.slice(0, -inventorySuffix.length) || normalized;
+  }
+  return normalized;
+};
+
+// Helper to build absolute auth URL from the current API base (for login API call)
+export const getAuthLoginUrl = (): string => {
+  const root = getApiRoot();
+  return `${root}/api/auth/token/login/`;
+};
+
+// Helper to build absolute logout URL (same server as API)
+export const getAuthLogoutUrl = (): string => {
+  const base = OpenAPI.BASE || getApiBaseUrl();
+  const normalized = base.replace(/\/$/, '');
+  return `${normalized}/logout/`;
 };
