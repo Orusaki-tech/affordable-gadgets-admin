@@ -155,13 +155,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       formData.set('password', password);
 
       const authUrl = getAuthLoginUrl();
+      // Backend (e.g. Railway) can be slow on cold start; allow up to 90s so login can complete.
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
       const authResponse = await fetch(authUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: formData.toString(),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       const contentType = authResponse.headers.get('content-type') || '';
       const authBody = contentType.includes('application/json')
@@ -228,7 +233,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Extract detailed error message from API response body
       let errorMessage = error?.message || 'Login failed. Please check your credentials.';
-      if (error?.body) {
+      if (error?.name === 'AbortError') {
+        errorMessage = 'Login timed out. The server may be starting up; please try again in a moment.';
+      } else if (error?.body) {
         // Handle Django REST Framework error format
         if (error.body.non_field_errors && Array.isArray(error.body.non_field_errors) && error.body.non_field_errors.length > 0) {
           errorMessage = error.body.non_field_errors[0];
