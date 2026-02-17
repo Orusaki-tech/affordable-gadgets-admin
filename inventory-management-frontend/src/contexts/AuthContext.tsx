@@ -31,9 +31,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setHasValidated(true);
       
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Token validation timeout')), 5000)
+      // Add timeout to prevent hanging (15s to allow Render cold starts)
+      const timeoutMs = 15000;
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Token validation timeout')), timeoutMs)
       );
       
       // Try to fetch admin profile - if succeeds, user is admin
@@ -60,12 +61,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid admin profile');
       }
     } catch (error: any) {
-      // Check if it's an authentication error (401/403) vs network error
+      // 401/403 = invalid token; timeout = server too slow; redirect/network = e.g. ERR_TOO_MANY_REDIRECTS — clear so user can re-login
       const isAuthError = error?.status === 401 || error?.status === 403;
-      
-      if (isAuthError) {
-        // Only clear token on actual auth errors, not network issues
-        console.error('Token validation failed - authentication error:', error);
+      const msg = String(error?.message ?? '');
+      const isTimeout = msg.includes('Token validation timeout') || msg.includes('timeout');
+      const isNetworkOrRedirect =
+        msg.includes('Failed to fetch') ||
+        msg.includes('NetworkError') ||
+        msg.includes('Load failed') ||
+        msg.includes('redirect');
+
+      if (isAuthError || isTimeout || isNetworkOrRedirect) {
+        console.warn('Token validation failed:', isTimeout ? 'timeout' : isNetworkOrRedirect ? 'network/redirect' : 'auth error', error);
         clearAuthToken();
         localStorage.removeItem(AUTH_USER_KEY);
         localStorage.removeItem(AUTH_IS_ADMIN_KEY);
@@ -73,10 +80,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsAdmin(false);
         setUser(null);
       } else {
-        // For network errors, keep the token but log it
-        console.warn('Token validation failed - network error:', error);
-        // Don't clear token on network errors - user might have valid token
-        // Set loading to false so user can continue
+        // Other unexpected errors: keep token, allow user to retry
+        console.warn('Token validation failed - other error:', error);
       }
     } finally {
       setLoading(false);
@@ -244,34 +249,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
-    try {
-      const token = localStorage.getItem('auth_token');
+  const logout = () => {
+    const token = localStorage.getItem('auth_token');
+    // Clear local state immediately so logout feels instant (don't wait for server)
+    queryClient.clear();
+    clearAuthToken();
+    localStorage.removeItem(AUTH_USER_KEY);
+    localStorage.removeItem(AUTH_IS_ADMIN_KEY);
+    setIsAuthenticated(false);
+    setIsAdmin(false);
+    setUser(null);
+    setHasValidated(false);
+
+    // Notify server in background with short timeout; ignore errors (user is already logged out locally)
+    if (token) {
       const logoutUrl = getAuthLogoutUrl();
-      if (token) {
-        const res = await fetch(logoutUrl, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            Authorization: `Token ${token}`,
-          },
-        });
-        if (!res.ok) {
-          console.warn('Logout API returned', res.status, await res.text());
-        }
-      }
-    } catch (error) {
-      console.error('Logout API error:', error);
-    } finally {
-      queryClient.clear();
-      clearAuthToken();
-      localStorage.removeItem(AUTH_USER_KEY);
-      localStorage.removeItem(AUTH_IS_ADMIN_KEY);
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-      setUser(null);
-      setHasValidated(false);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      fetch(logoutUrl, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Authorization: `Token ${token}`,
+        },
+        signal: controller.signal,
+      })
+        .then((res) => {
+          if (!res.ok) {
+            console.warn('Logout API returned', res.status);
+          }
+        })
+        .catch(() => {
+          // Ignore: network/timeout — user is already logged out locally
+        })
+        .finally(() => clearTimeout(timeoutId));
     }
   };
 
