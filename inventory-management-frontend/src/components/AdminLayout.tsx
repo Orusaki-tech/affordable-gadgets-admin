@@ -303,6 +303,9 @@ export const AdminLayout: React.FC = () => {
               <Link to="/accessories" className={isActive('/accessories')} onClick={() => setSidebarOpen(false)}>
                 Product Accessories
               </Link>
+              <Link to="/tags" className={isActive('/tags')} onClick={() => setSidebarOpen(false)}>
+                Tags
+              </Link>
 
               {/* Reports & Analytics */}
               <div className="nav-section-header">Reports & Analytics</div>
@@ -352,6 +355,9 @@ export const AdminLayout: React.FC = () => {
               </Link>
               <Link to="/reviews" className={isActive('/reviews')} onClick={() => setSidebarOpen(false)}>
                 Reviews
+              </Link>
+              <Link to="/tags" className={isActive('/tags')} onClick={() => setSidebarOpen(false)}>
+                Tags
               </Link>
               
               {/* Other */}
@@ -490,6 +496,9 @@ export const AdminLayout: React.FC = () => {
               </Link>
               <Link to="/accessories" className={isActive('/accessories')} onClick={() => setSidebarOpen(false)}>
                 Product Accessories
+              </Link>
+              <Link to="/tags" className={isActive('/tags')} onClick={() => setSidebarOpen(false)}>
+                Tags
               </Link>
 
               {/* Reports & Analytics */}

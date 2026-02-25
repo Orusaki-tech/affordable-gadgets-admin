@@ -38,6 +38,7 @@ const PromotionsPage = lazy(() => import('./pages/PromotionsPage').then((m) => (
 const BrandsPage = lazy(() => import('./pages/BrandsPage').then((m) => ({ default: m.BrandsPage })));
 const BundlesPage = lazy(() => import('./pages/BundlesPage').then((m) => ({ default: m.BundlesPage })));
 const DeliveryRatesPage = lazy(() => import('./pages/DeliveryRatesPage').then((m) => ({ default: m.DeliveryRatesPage })));
+const TagsPage = lazy(() => import('./pages/TagsPage').then((m) => ({ default: m.TagsPage })));
 
 // Material UI Theme Wrapper Component
 const AppWithMUITheme: React.FC = () => {
@@ -133,6 +134,7 @@ const AppWithMUITheme: React.FC = () => {
             <Route path="bundles" element={<BundlesPage />} />
             <Route path="brands" element={<BrandsPage />} />
             <Route path="delivery-rates" element={<DeliveryRatesPage />} />
+            <Route path="tags" element={<TagsPage />} />
           </Route>
         </Routes>
       </Suspense>

@@ -8,9 +8,10 @@ export const queryKeys = {
   brands: () => ['brands'] as const,
   colorsAll: () => ['colors-all'] as const,
   sourcesAll: () => ['sources-all'] as const,
-  productsAll: (search?: string) => {
+  productsAll: (search?: string): readonly ['products-all'] | readonly ['products-all', string] => {
     const s = search?.trim();
-    return (s ? ['products-all', s] : ['products-all']) as const;
+    if (s) return ['products-all', s] as readonly ['products-all', string];
+    return ['products-all'] as const;
   },
   orders: (page: number, pageSize: number) => ['orders', page, pageSize] as const,
   promotionsAll: () => ['promotions-all'] as const,

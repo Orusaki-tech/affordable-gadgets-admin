@@ -3,7 +3,6 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  ProductsService,
   OrdersService,
   ReservationRequestsService,
   ReturnRequestsService,
@@ -16,8 +15,6 @@ import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useProductsList } from '../hooks/useProductsList';
 import { queryKeys } from '../hooks/queryKeys';
 import { ModalLoader } from '../components/PageLoader';
-
-const UnitDetailsModal = lazy(() => import('../components/UnitDetailsModal').then((m) => ({ default: m.UnitDetailsModal })));
 import {
   Box,
   Card,
@@ -47,9 +44,11 @@ import {
   Assignment as AssignmentIcon,
 } from '@mui/icons-material';
 
+const UnitDetailsModal = lazy(() => import('../components/UnitDetailsModal').then((m) => ({ default: m.UnitDetailsModal })));
+
 export const DashboardPage: React.FC = () => {
   const [selectedUnitId, setSelectedUnitId] = useState<number | null>(null);
-  const { user } = useAuth();
+  useAuth(); // useAdminProfile uses auth internally
   const navigate = useNavigate();
 
   const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();

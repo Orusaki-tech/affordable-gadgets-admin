@@ -13,8 +13,8 @@ import {
   SourceEnum,
 } from '../api/index';
 import { useDebounce } from '../hooks/useDebounce';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- used via useProductsList() result
 import { useProductsList } from '../hooks/useProductsList';
-import { queryKeys } from '../hooks/queryKeys';
 
 interface UnitFormProps {
   unit: InventoryUnitRW | null;

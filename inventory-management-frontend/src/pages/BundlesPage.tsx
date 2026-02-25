@@ -4,8 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { Brand, BundlesService, BundleItemsService } from '../api/index';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { ModalLoader } from '../components/PageLoader';
-
-const BundleForm = lazy(() => import('../components/BundleForm').then((m) => ({ default: m.BundleForm })));
 import {
   Box,
   Typography,
@@ -31,6 +29,8 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 
+const BundleForm = lazy(() => import('../components/BundleForm').then((m) => ({ default: m.BundleForm })));
+
 export const BundlesPage: React.FC = () => {
   const [page] = useState(1);
   const [editingBundle, setEditingBundle] = useState<any | null>(null);
@@ -38,7 +38,7 @@ export const BundlesPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deleteBundle, setDeleteBundle] = useState<any | null>(null);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  useAuth(); // useAdminProfile uses auth internally
 
   const { data: adminProfile } = useAdminProfile();
 

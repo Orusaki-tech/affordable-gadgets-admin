@@ -4,6 +4,7 @@ import {
   AccessoriesLinkService,
   ProductAccessoryLink,
 } from '../api/index';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- productsData from useProductsList() is used below
 import { useProductsList } from '../hooks/useProductsList';
 import {
   Box,

@@ -11,17 +11,17 @@ import {
 } from '../api/index';
 import { ModalLoader } from '../components/PageLoader';
 import { useAuth } from '../contexts/AuthContext';
-
-const ProductForm = lazy(() => import('../components/ProductForm').then((m) => ({ default: m.ProductForm })));
-const ProductStockSummaryModal = lazy(() => import('../components/ProductStockSummaryModal').then((m) => ({ default: m.ProductStockSummaryModal })));
-const ProductPromotionModal = lazy(() => import('../components/ProductPromotionModal').then((m) => ({ default: m.ProductPromotionModal })));
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 import { useDebounce } from '../hooks/useDebounce';
 import { queryKeys } from '../hooks/queryKeys';
 
+const ProductForm = lazy(() => import('../components/ProductForm').then((m) => ({ default: m.ProductForm })));
+const ProductStockSummaryModal = lazy(() => import('../components/ProductStockSummaryModal').then((m) => ({ default: m.ProductStockSummaryModal })));
+const ProductPromotionModal = lazy(() => import('../components/ProductPromotionModal').then((m) => ({ default: m.ProductPromotionModal })));
+
 export const ProductsPage: React.FC = () => {
-  const { user } = useAuth();
+  useAuth(); // used by useAdminProfile; no need to destructure user here
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({

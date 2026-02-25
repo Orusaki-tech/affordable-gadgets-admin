@@ -8,8 +8,6 @@ import {
 } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
 import { ModalLoader } from '../components/PageLoader';
-
-const PromotionForm = lazy(() => import('../components/PromotionForm').then((m) => ({ default: m.PromotionForm })));
 import {
   Box,
   Typography,
@@ -49,6 +47,8 @@ import {
   Campaign as CampaignIcon,
   LocalOffer as LocalOfferIcon,
 } from '@mui/icons-material';
+
+const PromotionForm = lazy(() => import('../components/PromotionForm').then((m) => ({ default: m.PromotionForm })));
 
 export const PromotionsPage: React.FC = () => {
   const [page, setPage] = useState(1);
