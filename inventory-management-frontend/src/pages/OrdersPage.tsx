@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ProfilesService, OrdersService, OrderStatusEnum, type OrderResponse } from '../api/index';
-import { OrderDetailsModal } from '../components/OrderDetailsModal';
+import { useAdminProfile } from '../hooks/useAdminProfile';
+import { OrdersService, OrderStatusEnum, type OrderResponse } from '../api/index';
+import { ModalLoader } from '../components/PageLoader';
+
+const OrderDetailsModal = lazy(() => import('../components/OrderDetailsModal').then((m) => ({ default: m.OrderDetailsModal })));
 
 export const OrdersPage: React.FC = () => {
   const { user } = useAuth();
@@ -18,13 +21,7 @@ export const OrdersPage: React.FC = () => {
   const queryClient = useQueryClient();
   const pendingPaymentKey = 'pending_payment_order_id';
   
-  // Fetch admin profile to check roles
-  const { data: adminProfile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    retry: false,
-    enabled: !!user?.is_staff,
-  });
+  const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
 
   const { data, isLoading, error } = useQuery<{ results: OrderResponse[]; count: number; next?: string; previous?: string }>({
     queryKey: ['orders', page, pageSize],
@@ -678,7 +675,8 @@ export const OrdersPage: React.FC = () => {
       ) : null}
 
       {selectedOrderId && (
-        <OrderDetailsModal
+        <Suspense fallback={<ModalLoader />}>
+          <OrderDetailsModal
           orderId={selectedOrderId}
           isSalesperson={isSalesperson}
           isOrderManager={isOrderManager}
@@ -706,6 +704,7 @@ export const OrdersPage: React.FC = () => {
             }
           }}
         />
+        </Suspense>
       )}
 
       {/* Create Order Modal */}

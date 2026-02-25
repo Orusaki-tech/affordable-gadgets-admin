@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ProfilesService, BrandsService, type Brand } from '../api/index';
+import { useAdminProfile } from '../hooks/useAdminProfile';
+import { useBrandsList } from '../hooks/useBrandsList';
+import { BrandsService, type Brand } from '../api/index';
 
 interface AdminRole {
   id?: number;
@@ -63,13 +65,7 @@ export const AdminsPage: React.FC = () => {
   const [selectedAdmin, setSelectedAdmin] = useState<AdminProfile | null>(null);
   const queryClient = useQueryClient();
 
-  // Fetch current admin profile
-  const { data: currentAdminProfile, isLoading: isLoadingCurrent } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    retry: false, // Don't retry on 404
-    enabled: !!user?.is_staff,
-  });
+  const { data: currentAdminProfile, isLoading: isLoadingCurrent } = useAdminProfile();
 
   // Fetch ALL admins - fetch all pages to get complete list
   const { data: allAdminsData, isLoading: isLoadingAdmins } = useQuery({
@@ -299,15 +295,7 @@ export const AdminsPage: React.FC = () => {
     },
   });
 
-  // Fetch brands
-  const { data: brandsData } = useQuery({
-    queryKey: ['brands'],
-    queryFn: async () => {
-      const response = await BrandsService.brandsList(1);
-      return response.results || [];
-    },
-    enabled: showBrandModal, // Only fetch when modal is open
-  });
+  const { data: brandsData } = useBrandsList({ enabled: showBrandModal });
 
   // Brand assignment mutation
   const assignBrandsMutation = useMutation({

@@ -1,9 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LeadsService, ProfilesService, type LeadAdmin } from '../api/index';
-import { LeadDetailsModal } from '../components/LeadDetailsModal';
+import { ModalLoader } from '../components/PageLoader';
+
+const LeadDetailsModal = lazy(() => import('../components/LeadDetailsModal').then((m) => ({ default: m.LeadDetailsModal })));
 
 export const LeadsPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -638,24 +640,25 @@ export const LeadsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Lead Details Modal */}
       {showDetailsModal && selectedLead && (
-        <LeadDetailsModal
-          lead={selectedLead}
-          onClose={() => {
-            setShowDetailsModal(false);
-            setSelectedLead(null);
-          }}
-          onMarkContacted={(notes) => markContactedMutation.mutate({ lead: selectedLead, notes })}
-          onConvertToOrder={() => convertMutation.mutate(selectedLead)}
-          onReject={() => {
-            if (window.confirm('Close this lead? This action cannot be undone.')) {
-              rejectMutation.mutate(selectedLead);
-            }
-          }}
-          isSalesperson={isSalesperson}
-          isMyLead={selectedLead.assigned_salesperson === currentAdminId}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <LeadDetailsModal
+            lead={selectedLead}
+            onClose={() => {
+              setShowDetailsModal(false);
+              setSelectedLead(null);
+            }}
+            onMarkContacted={(notes) => markContactedMutation.mutate({ lead: selectedLead, notes })}
+            onConvertToOrder={() => convertMutation.mutate(selectedLead)}
+            onReject={() => {
+              if (window.confirm('Close this lead? This action cannot be undone.')) {
+                rejectMutation.mutate(selectedLead);
+              }
+            }}
+            isSalesperson={isSalesperson}
+            isMyLead={selectedLead.assigned_salesperson === currentAdminId}
+          />
+        </Suspense>
       )}
     </div>
   );

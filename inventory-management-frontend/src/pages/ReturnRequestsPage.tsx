@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
-import { ReturnRequestsService, ProfilesService, ReturnRequestStatusEnum } from '../api/index';
+import { ReturnRequestsService, ReturnRequestStatusEnum } from '../api/index';
+import { useAdminProfile } from '../hooks/useAdminProfile';
 
 export const ReturnRequestsPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -15,13 +16,7 @@ export const ReturnRequestsPage: React.FC = () => {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Fetch admin profile to check roles
-  const { data: adminProfile } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    retry: false,
-    enabled: !!user?.is_staff,
-  });
+  const { data: adminProfile } = useAdminProfile();
 
   const isSuperuser = adminProfile?.user?.is_superuser === true;
   const adminId = adminProfile?.id;

@@ -4,11 +4,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ReviewsService,
   ProductsService,
-  ProfilesService,
   Review,
   ProductTemplate,
 } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
+import { useAdminProfile } from '../hooks/useAdminProfile';
+import { useProductsList } from '../hooks/useProductsList';
 import {
   Box,
   Typography,
@@ -63,12 +64,7 @@ export const ReviewsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // Check if user is Content Creator
-  const { data: adminProfile } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    enabled: !!user?.is_staff,
-  });
+  const { data: adminProfile } = useAdminProfile();
 
   const hasRole = (roleName: string) => {
     if (!adminProfile?.roles) return false;
@@ -82,11 +78,7 @@ export const ReviewsPage: React.FC = () => {
     queryFn: () => ReviewsService.reviewsList(undefined, page),
   });
 
-  // Fetch all products for the product dropdown
-  const { data: productsData } = useQuery({
-    queryKey: ['products-all'],
-    queryFn: () => ProductsService.productsList({ page: 1 }),
-  });
+  const { data: productsData } = useProductsList();
 
   const createMutation = useMutation({
     mutationFn: async (reviewData: FormData | Review) => {

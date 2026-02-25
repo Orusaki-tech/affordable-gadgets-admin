@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,9 +7,11 @@ import {
   ProfilesService,
   InventoryUnitRW,
 } from '../api/index';
-import { UnitForm } from '../components/UnitForm';
-import { UnitDetailsModal } from '../components/UnitDetailsModal';
-import { BulkReserveUnitsModal } from '../components/BulkReserveUnitsModal';
+import { ModalLoader } from '../components/PageLoader';
+
+const UnitForm = lazy(() => import('../components/UnitForm').then((m) => ({ default: m.UnitForm })));
+const UnitDetailsModal = lazy(() => import('../components/UnitDetailsModal').then((m) => ({ default: m.UnitDetailsModal })));
+const BulkReserveUnitsModal = lazy(() => import('../components/BulkReserveUnitsModal').then((m) => ({ default: m.BulkReserveUnitsModal })));
 
 export const ProductUnitsPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>();
@@ -346,32 +348,38 @@ export const ProductUnitsPage: React.FC = () => {
       )}
 
       {showCreateModal && (
-        <UnitForm
-          unit={editingUnit}
-          onClose={handleFormClose}
-          onSuccess={handleFormSuccess}
-          defaultProductId={productId ? Number(productId) : undefined}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <UnitForm
+            unit={editingUnit}
+            onClose={handleFormClose}
+            onSuccess={handleFormSuccess}
+            defaultProductId={productId ? Number(productId) : undefined}
+          />
+        </Suspense>
       )}
 
       {selectedUnitId && (
-        <UnitDetailsModal
-          unitId={selectedUnitId}
-          onClose={() => setSelectedUnitId(null)}
-          isEditable={isInventoryManager || isSuperuser}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <UnitDetailsModal
+            unitId={selectedUnitId}
+            onClose={() => setSelectedUnitId(null)}
+            isEditable={isInventoryManager || isSuperuser}
+          />
+        </Suspense>
       )}
 
       {showBulkReserveModal && (
-        <BulkReserveUnitsModal
-          productId={Number(productId)}
-          availableUnits={units}
-          onClose={() => setShowBulkReserveModal(false)}
-          onSuccess={() => {
-            queryClient.invalidateQueries({ queryKey: ['units'] });
-            queryClient.invalidateQueries({ queryKey: ['reservation-requests'] });
-          }}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <BulkReserveUnitsModal
+            productId={Number(productId)}
+            availableUnits={units}
+            onClose={() => setShowBulkReserveModal(false)}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['units'] });
+              queryClient.invalidateQueries({ queryKey: ['reservation-requests'] });
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

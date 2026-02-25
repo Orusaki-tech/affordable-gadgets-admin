@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { useQueryClient } from '@tanstack/react-query';
 import { ProfilesService, User } from '../api/index';
 import { setAuthToken, clearAuthToken, getAuthLoginUrl, getAuthLogoutUrl } from '../api/config';
+import { queryKeys } from '../hooks/queryKeys';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -45,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (adminProfile.user && adminProfile.user.id && adminProfile.user.email) {
         console.log('Token validation successful:', { user_id: adminProfile.user.id, email: adminProfile.user.email });
+        queryClient.setQueryData(queryKeys.adminProfile(adminProfile.user.id), adminProfile);
         setIsAdmin(true);
         setIsAuthenticated(true);
         const nextUser = { 
@@ -86,7 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [queryClient]);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -201,6 +203,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Fetch admin profile to get user details
       const adminProfile = await ProfilesService.profilesAdminRetrieve();
+      if (adminProfile.user?.id) {
+        queryClient.setQueryData(queryKeys.adminProfile(adminProfile.user.id), adminProfile);
+      }
       setHasValidated(true);
       setIsAuthenticated(true);
       setIsAdmin(true);

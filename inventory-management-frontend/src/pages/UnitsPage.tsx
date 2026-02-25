@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,8 +7,10 @@ import {
   InventoryUnitRW,
   ProfilesService,
 } from '../api/index';
-import { UnitForm } from '../components/UnitForm';
-import { UnitDetailsModal } from '../components/UnitDetailsModal';
+import { ModalLoader } from '../components/PageLoader';
+
+const UnitForm = lazy(() => import('../components/UnitForm').then((m) => ({ default: m.UnitForm })));
+const UnitDetailsModal = lazy(() => import('../components/UnitDetailsModal').then((m) => ({ default: m.UnitDetailsModal })));
 
 export const UnitsPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -789,19 +791,23 @@ export const UnitsPage: React.FC = () => {
       </div>
 
       {showCreateModal && (
-        <UnitForm
-          unit={editingUnit}
-          onClose={handleFormClose}
-          onSuccess={handleFormSuccess}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <UnitForm
+            unit={editingUnit}
+            onClose={handleFormClose}
+            onSuccess={handleFormSuccess}
+          />
+        </Suspense>
       )}
 
       {selectedUnitId && (
-        <UnitDetailsModal
-          unitId={selectedUnitId}
-          onClose={() => setSelectedUnitId(null)}
-          isEditable={isInventoryManager || isSuperuser}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <UnitDetailsModal
+            unitId={selectedUnitId}
+            onClose={() => setSelectedUnitId(null)}
+            isEditable={isInventoryManager || isSuperuser}
+          />
+        </Suspense>
       )}
 
       {/* Bulk Price Update Modal */}

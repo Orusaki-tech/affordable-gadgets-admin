@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -6,16 +6,19 @@ import {
   Promotion,
   Brand,
   ProductsService,
-  ProfilesService,
   ReservationRequestsService,
   PromotionsService,
 } from '../api/index';
-import { ProductForm } from '../components/ProductForm';
-import { ProductStockSummaryModal } from '../components/ProductStockSummaryModal';
-import { ProductPromotionModal } from '../components/ProductPromotionModal';
+import { ModalLoader } from '../components/PageLoader';
 import { useAuth } from '../contexts/AuthContext';
+
+const ProductForm = lazy(() => import('../components/ProductForm').then((m) => ({ default: m.ProductForm })));
+const ProductStockSummaryModal = lazy(() => import('../components/ProductStockSummaryModal').then((m) => ({ default: m.ProductStockSummaryModal })));
+const ProductPromotionModal = lazy(() => import('../components/ProductPromotionModal').then((m) => ({ default: m.ProductPromotionModal })));
+import { useAdminProfile } from '../hooks/useAdminProfile';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 import { useDebounce } from '../hooks/useDebounce';
+import { queryKeys } from '../hooks/queryKeys';
 
 export const ProductsPage: React.FC = () => {
   const { user } = useAuth();
@@ -58,13 +61,7 @@ export const ProductsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Fetch admin profile to check roles
-  const { data: adminProfile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    retry: false,
-    enabled: true, // Always enabled
-  });
+  const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
 
   const hasRole = useCallback((roleName: string) => {
     if (!adminProfile?.roles || adminProfile.roles.length === 0) return false;
@@ -122,9 +119,8 @@ export const ProductsPage: React.FC = () => {
   // Track image loading states per product
   const [imageLoadingStates, setImageLoadingStates] = useState<Record<number, { loading: boolean; error: boolean }>>({});
   
-  // Fetch all promotions for Marketing Managers
   const { data: promotionsData } = useQuery({
-    queryKey: ['promotions-all'],
+    queryKey: queryKeys.promotionsAll(),
     queryFn: async () => {
       let allPromotions: Promotion[] = [];
       let currentPage = 1;
@@ -214,8 +210,8 @@ export const ProductsPage: React.FC = () => {
   };
 
   const handlePromotionSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['promotions-all'] });
-    queryClient.invalidateQueries({ queryKey: ['promotions-all-for-attach'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.promotionsAll() });
+    queryClient.invalidateQueries({ queryKey: queryKeys.promotionsAllForAttach() });
     setSelectedProductsForPromotion(new Set());
     setProductForPromotion(null);
   };
@@ -279,7 +275,7 @@ export const ProductsPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => ProductsService.productsDestroy(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products-all'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
       alert('Product deleted successfully');
     },
     onError: (err: any) => {
@@ -727,8 +723,8 @@ export const ProductsPage: React.FC = () => {
   const handleFormSuccess = () => {
     handleFormClose();
     // Invalidate and refetch to show the newly created product immediately
-    queryClient.invalidateQueries({ queryKey: ['products-all'] });
-    queryClient.refetchQueries({ queryKey: ['products-all'] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
+    queryClient.refetchQueries({ queryKey: queryKeys.productsAll() });
   };
 
   // Handle URL params for edit action
@@ -1233,23 +1229,27 @@ export const ProductsPage: React.FC = () => {
       </div>
 
       {showCreateModal && !(isContentCreator && !editingProduct) && (
-        <ProductForm
-          product={editingProduct}
-          onClose={handleFormClose}
-          onSuccess={handleFormSuccess}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <ProductForm
+            product={editingProduct}
+            onClose={handleFormClose}
+            onSuccess={handleFormSuccess}
+          />
+        </Suspense>
       )}
 
       {stockSummaryProductId && (
-        <ProductStockSummaryModal
-          productId={stockSummaryProductId}
-          onClose={() => setStockSummaryProductId(null)}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <ProductStockSummaryModal
+            productId={stockSummaryProductId}
+            onClose={() => setStockSummaryProductId(null)}
+          />
+        </Suspense>
       )}
 
-      {/* Promotion Modal for Marketing Managers */}
       {showPromotionModal && isMarketingManager && (
-        <ProductPromotionModal
+        <Suspense fallback={<ModalLoader />}>
+          <ProductPromotionModal
           productIds={
             productForPromotion 
               ? [productForPromotion]
@@ -1265,6 +1265,7 @@ export const ProductsPage: React.FC = () => {
           mode={editingPromotion ? 'edit' : promotionMode}
           existingPromotion={editingPromotion}
         />
+        </Suspense>
       )}
 
       {/* Reservation Modal */}

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { ProfilesService, StockAlertsService, StockAlertsResponse, type Brand, type AdminProfileResponse as BaseAdminProfileResponse } from '../api/index';
+import { useAdminProfile } from '../hooks/useAdminProfile';
+import { StockAlertsService, StockAlertsResponse, type Brand, type AdminProfileResponse as BaseAdminProfileResponse } from '../api/index';
 import { NotificationBell } from './NotificationBell';
 import { ThemeToggleButton } from './ThemeSwitcher';
 import './AdminLayout.css';
@@ -21,35 +22,7 @@ export const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
 
-  // Fetch admin profile to get roles
-  const { data: adminProfile, error: adminProfileError } = useQuery<AdminProfileResponse>({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: async () => {
-      try {
-        const profile = await ProfilesService.profilesAdminRetrieve();
-        console.log('✅ Admin profile fetched successfully:', { 
-          hasUser: !!profile.user, 
-          is_superuser: profile.user?.is_superuser,
-          is_staff: profile.user?.is_staff,
-          hasRoles: !!profile.roles,
-          rolesCount: profile.roles?.length || 0
-        });
-        return profile as AdminProfileResponse;
-      } catch (error: any) {
-        console.error('❌ Failed to fetch admin profile:', {
-          status: error?.status,
-          message: error?.message,
-          user_id: user?.id,
-          user_is_staff: user?.is_staff,
-          user_is_superuser: user?.is_superuser
-        });
-        throw error;
-      }
-    },
-    retry: false,
-    // Always fetch profile when a user is present so role flags stay accurate.
-    enabled: !!user,
-  });
+  const { data: adminProfile, error: adminProfileError } = useAdminProfile() as { data: AdminProfileResponse | undefined; error: unknown };
 
   const hasRole = (roleName: string) => {
     if (!adminProfile?.roles) return false;
@@ -145,8 +118,8 @@ export const AdminLayout: React.FC = () => {
   const criticalAlertsCount = stockAlertsData?.alerts?.filter((a) => a.severity === 'CRITICAL' || a.severity === 'HIGH').length || 0;
   // const isContentCreator = hasRole('CC') && !isSuperuser; // Content Creator only, not if superuser - commented out as unused
 
-  const handleLogout = async () => {
-    await logout();
+  const handleLogout = () => {
+    logout();
     navigate('/login');
   };
 

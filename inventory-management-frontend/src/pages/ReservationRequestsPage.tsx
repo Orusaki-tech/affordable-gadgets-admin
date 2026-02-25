@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
-import { ReservationRequestsService, ReturnRequestsService, ProfilesService, ReservationRequestStatusEnum, type InventoryUnitRW } from '../api/index';
-import { ReservationRequestDetailsModal } from '../components/ReservationRequestDetailsModal';
+import { ReservationRequestsService, ReturnRequestsService, ReservationRequestStatusEnum, type InventoryUnitRW } from '../api/index';
+import { useAdminProfile } from '../hooks/useAdminProfile';
+import { ModalLoader } from '../components/PageLoader';
+
+const ReservationRequestDetailsModal = lazy(() => import('../components/ReservationRequestDetailsModal').then((m) => ({ default: m.ReservationRequestDetailsModal })));
 
 export const ReservationRequestsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -48,13 +51,7 @@ export const ReservationRequestsPage: React.FC = () => {
     setPage(1);
   }, [statusFilter]);
 
-  // Fetch admin profile to check roles
-  const { data: adminProfile } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    retry: false,
-    enabled: !!user?.is_staff,
-  });
+  const { data: adminProfile } = useAdminProfile();
 
   const isSuperuser = adminProfile?.user?.is_superuser === true;
   const hasRole = (roleName: string) => {
@@ -1074,21 +1071,22 @@ export const ReservationRequestsPage: React.FC = () => {
         </div>
       ) : null}
 
-      {/* Reservation Request Details Modal */}
       {selectedRequestId && (
-        <ReservationRequestDetailsModal
-          requestId={selectedRequestId}
-          onClose={() => {
-            setSelectedRequestId(null);
-            queryClient.invalidateQueries({ queryKey: ['reservation-requests'] });
-          }}
-          isSalesperson={isSalesperson}
-          isMyRequest={
-            filteredRequests.find(r => r.id === selectedRequestId)?.requesting_salesperson === adminProfile?.id ||
-            requestsData?.results?.find((r: any) => r.id === selectedRequestId)?.requesting_salesperson === adminProfile?.id
-          }
-          isInventoryManager={isInventoryManager}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <ReservationRequestDetailsModal
+            requestId={selectedRequestId}
+            onClose={() => {
+              setSelectedRequestId(null);
+              queryClient.invalidateQueries({ queryKey: ['reservation-requests'] });
+            }}
+            isSalesperson={isSalesperson}
+            isMyRequest={
+              filteredRequests.find(r => r.id === selectedRequestId)?.requesting_salesperson === adminProfile?.id ||
+              requestsData?.results?.find((r: any) => r.id === selectedRequestId)?.requesting_salesperson === adminProfile?.id
+            }
+            isInventoryManager={isInventoryManager}
+          />
+        </Suspense>
       )}
     </div>
   );

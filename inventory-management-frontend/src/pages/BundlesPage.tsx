@@ -1,8 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { ProfilesService, Brand, BundlesService, BundleItemsService } from '../api/index';
-import { BundleForm } from '../components/BundleForm';
+import { Brand, BundlesService, BundleItemsService } from '../api/index';
+import { useAdminProfile } from '../hooks/useAdminProfile';
+import { ModalLoader } from '../components/PageLoader';
+
+const BundleForm = lazy(() => import('../components/BundleForm').then((m) => ({ default: m.BundleForm })));
 import {
   Box,
   Typography,
@@ -37,12 +40,7 @@ export const BundlesPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const { data: adminProfile } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    retry: false,
-    enabled: true,
-  });
+  const { data: adminProfile } = useAdminProfile();
 
   const hasRole = (roleName: string) => {
     if (!adminProfile?.roles || adminProfile.roles.length === 0) return false;
@@ -244,15 +242,17 @@ export const BundlesPage: React.FC = () => {
       </Paper>
 
       {showCreateModal && (
-        <BundleForm
-          bundle={editingBundle}
-          onClose={() => {
-            setShowCreateModal(false);
-            setEditingBundle(null);
-          }}
-          onSuccess={handleFormSuccess}
-          adminBrands={adminBrands}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <BundleForm
+            bundle={editingBundle}
+            onClose={() => {
+              setShowCreateModal(false);
+              setEditingBundle(null);
+            }}
+            onSuccess={handleFormSuccess}
+            adminBrands={adminBrands}
+          />
+        </Suspense>
       )}
 
       <Dialog open={!!deleteBundle} onClose={() => setDeleteBundle(null)}>

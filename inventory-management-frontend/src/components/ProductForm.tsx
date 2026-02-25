@@ -7,10 +7,11 @@ import {
   ProductsService,
   ImagesService,
   TagsService,
-  BrandsService,
-  ProfilesService,
 } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
+import { useAdminProfile } from '../hooks/useAdminProfile';
+import { useBrandsList } from '../hooks/useBrandsList';
+import { queryKeys } from '../hooks/queryKeys';
 
 interface ProductFormProps {
   product: ProductTemplate | null;
@@ -57,13 +58,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
-  // Fetch admin profile to check roles
-  const { data: adminProfile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    retry: false,
-    enabled: true, // Always enabled
-  });
+  const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
 
   const hasRole = (roleName: string) => {
     if (!adminProfile?.roles) return false;
@@ -121,15 +116,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     queryFn: () => TagsService.tagsList(),
   });
 
-  // Fetch all active company brands (for brand assignment)
-  const { data: brandsData } = useQuery({
-    queryKey: ['brands-all'],
-    queryFn: async () => {
-      const response = await BrandsService.brandsList(1);
-      return response.results || [];
-    },
-    enabled: !isContentCreator, // Only fetch for non-Content Creators
-  });
+  const { data: brandsData } = useBrandsList({ enabled: !isContentCreator });
 
   useEffect(() => {
     if (product) {
@@ -287,9 +274,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     onSuccess: async (createdProduct) => {
       // Invalidate both query keys to ensure UnitForm sees the new product
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-all'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
       // Refetch to show the newly created product immediately
-      queryClient.refetchQueries({ queryKey: ['products-all'] });
+      queryClient.refetchQueries({ queryKey: queryKeys.productsAll() });
       
       // Upload images if any were selected during creation
       if (createdProduct?.id && selectedImages.length > 0) {
@@ -518,7 +505,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       if (product.id) {
         ProductsService.productsUpdateContentPartialUpdate(product.id, contentData)
           .then(() => {
-            queryClient.invalidateQueries({ queryKey: ['products-all'] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
             queryClient.invalidateQueries({ queryKey: ['products'] });
             onSuccess();
           })

@@ -2,9 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AccessoriesLinkService,
-  ProductsService,
   ProductAccessoryLink,
 } from '../api/index';
+import { useProductsList } from '../hooks/useProductsList';
 import {
   Box,
   Card,
@@ -60,11 +60,7 @@ export const ProductAccessoriesPage: React.FC = () => {
     queryFn: () => AccessoriesLinkService.accessoriesLinkList(undefined, undefined, page, pageSize),
   });
 
-  // Fetch all products for the form dropdowns
-  const { data: productsData } = useQuery({
-    queryKey: ['products-all'],
-    queryFn: () => ProductsService.productsList({ page: 1 }),
-  });
+  const { data: productsData } = useProductsList();
 
   // Client-side filtering
   const filteredLinks = useMemo(() => {

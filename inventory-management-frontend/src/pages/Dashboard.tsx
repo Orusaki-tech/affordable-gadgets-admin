@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
@@ -9,11 +9,15 @@ import {
   ReturnRequestsService,
   UnitTransfersService,
   NotificationsService,
-  ProfilesService,
   LeadsService,
   UnitsService,
 } from '../api/index';
-import { UnitDetailsModal } from '../components/UnitDetailsModal';
+import { useAdminProfile } from '../hooks/useAdminProfile';
+import { useProductsList } from '../hooks/useProductsList';
+import { queryKeys } from '../hooks/queryKeys';
+import { ModalLoader } from '../components/PageLoader';
+
+const UnitDetailsModal = lazy(() => import('../components/UnitDetailsModal').then((m) => ({ default: m.UnitDetailsModal })));
 import {
   Box,
   Card,
@@ -48,13 +52,7 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch admin profile to check roles
-  const { data: adminProfile, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: () => ProfilesService.profilesAdminRetrieve(),
-    retry: false,
-    enabled: !!user?.is_staff,
-  });
+  const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
 
   // Check superuser status from adminProfile.user if available
   const isSuperuser = adminProfile?.user?.is_superuser === true;
@@ -119,14 +117,12 @@ export const DashboardPage: React.FC = () => {
     enabled: isSuperuser,
   });
 
-  const { data: products, isLoading: productsLoading } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => ProductsService.productsList(),
-  });
-
+  const { data: products, isLoading: productsLoading } = useProductsList();
+  const DASHBOARD_ORDERS_PAGE = 1;
+  const DASHBOARD_ORDERS_PAGE_SIZE = 25;
   const { data: orders, isLoading: ordersLoading } = useQuery({
-    queryKey: ['orders'],
-    queryFn: () => OrdersService.ordersList(),
+    queryKey: queryKeys.orders(DASHBOARD_ORDERS_PAGE, DASHBOARD_ORDERS_PAGE_SIZE),
+    queryFn: () => OrdersService.ordersList(DASHBOARD_ORDERS_PAGE),
   });
 
   // Fetch all units - fetch multiple pages if needed to get all units
@@ -758,12 +754,13 @@ export const DashboardPage: React.FC = () => {
         </Box>
       </Paper>
 
-      {/* Unit Details Modal */}
       {selectedUnitId && (
-        <UnitDetailsModal
-          unitId={selectedUnitId}
-          onClose={() => setSelectedUnitId(null)}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <UnitDetailsModal
+            unitId={selectedUnitId}
+            onClose={() => setSelectedUnitId(null)}
+          />
+        </Suspense>
       )}
     </Box>
   );

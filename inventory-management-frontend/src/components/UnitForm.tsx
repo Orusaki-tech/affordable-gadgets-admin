@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   UnitsService,
   UnitImagesService,
-  ProductsService,
   ColorsService,
   SourcesService,
   InventoryUnitRW,
@@ -14,6 +13,8 @@ import {
   SourceEnum,
 } from '../api/index';
 import { useDebounce } from '../hooks/useDebounce';
+import { useProductsList } from '../hooks/useProductsList';
+import { queryKeys } from '../hooks/queryKeys';
 
 interface UnitFormProps {
   unit: InventoryUnitRW | null;
@@ -73,17 +74,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   const queryClient = useQueryClient();
   const debouncedProductSearch = useDebounce(productSearchTerm, 300);
 
-  // Fetch products for dropdown (server-side search when user types so all matches are found)
-  const { data: productsData } = useQuery({
-    queryKey: ['products-all', debouncedProductSearch.trim()],
-    queryFn: () =>
-      ProductsService.productsList({
-        page: 1,
-        ...(debouncedProductSearch.trim()
-          ? { search: debouncedProductSearch.trim() }
-          : {}),
-      }),
-  });
+  const { data: productsData } = useProductsList(
+    debouncedProductSearch.trim() || undefined
+  );
 
   // Enhanced filter with fuzzy matching and scoring
   const filteredProducts = useMemo(() => {

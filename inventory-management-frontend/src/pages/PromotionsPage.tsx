@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Promotion,
@@ -7,7 +7,9 @@ import {
   ProfilesService,
 } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
-import { PromotionForm } from '../components/PromotionForm';
+import { ModalLoader } from '../components/PageLoader';
+
+const PromotionForm = lazy(() => import('../components/PromotionForm').then((m) => ({ default: m.PromotionForm })));
 import {
   Box,
   Typography,
@@ -728,14 +730,15 @@ export const PromotionsPage: React.FC = () => {
         </Box>
       )}
 
-      {/* Create/Edit Modal */}
       {showCreateModal && (
-        <PromotionForm
-          promotion={editingPromotion}
-          onClose={handleFormClose}
-          onSuccess={handleFormSuccess}
-          adminBrands={adminBrands}
-        />
+        <Suspense fallback={<ModalLoader />}>
+          <PromotionForm
+            promotion={editingPromotion}
+            onClose={handleFormClose}
+            onSuccess={handleFormSuccess}
+            adminBrands={adminBrands}
+          />
+        </Suspense>
       )}
 
       {/* Promotion Types Management Modal */}
