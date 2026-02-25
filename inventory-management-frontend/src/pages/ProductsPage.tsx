@@ -28,7 +28,6 @@ export const ProductsPage: React.FC = () => {
     product_type: '',
     brand: '',
     stock_status: '',
-    seo_status: '', // For Content Creators: 'all', 'complete', 'incomplete', 'missing-seo'
   });
   const [showFilters, setShowFilters] = useState(false);
   useEffect(() => {
@@ -103,7 +102,6 @@ export const ProductsPage: React.FC = () => {
     productType: filters.product_type,
     brand: filters.brand,
     stockStatus: filters.stock_status,
-    seoStatus: filters.seo_status,
   });
 
   // Create data object compatible with existing code
@@ -780,16 +778,14 @@ export const ProductsPage: React.FC = () => {
     if (filters.product_type) count++;
     if (filters.brand) count++;
     if (filters.stock_status) count++;
-    if (isContentCreator && filters.seo_status) count++;
     return count;
-  }, [filters, isContentCreator]);
+  }, [filters]);
 
   const clearFilters = () => {
     setFilters({
       product_type: '',
       brand: '',
       stock_status: '',
-      seo_status: '',
     });
     setSearch('');
   };
@@ -958,22 +954,6 @@ export const ProductsPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
-                  {isContentCreator && (
-                    <div className="filter-group">
-                      <label htmlFor="filter-seo-status-mobile">SEO Status</label>
-                      <select
-                        id="filter-seo-status-mobile"
-                        value={filters.seo_status}
-                        onChange={(e) => setFilters({ ...filters, seo_status: e.target.value })}
-                        className="filter-select"
-                      >
-                        <option value="">All</option>
-                        <option value="missing-seo">Missing SEO</option>
-                        <option value="incomplete">Incomplete (Low Score)</option>
-                        <option value="complete">Complete</option>
-                      </select>
-                    </div>
-                  )}
                 </div>
                 <div className="filters-modal-footer">
                   <button 

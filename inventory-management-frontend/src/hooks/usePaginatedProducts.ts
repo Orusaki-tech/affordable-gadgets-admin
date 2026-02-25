@@ -10,7 +10,6 @@ interface UsePaginatedProductsOptions {
   productType?: string;
   brand?: string;
   stockStatus?: string;
-  seoStatus?: string;
 }
 
 interface UsePaginatedProductsReturn {
@@ -43,7 +42,6 @@ export const usePaginatedProducts = (
     productType = '',
     brand = '',
     stockStatus = '',
-    seoStatus = '',
   } = options;
   
   const [currentPage, setCurrentPage] = useState(initialPage);
@@ -55,7 +53,7 @@ export const usePaginatedProducts = (
   const normalizedSearch = search.trim();
 
   const { data: pageData, isLoading, error, refetch } = useQuery<PaginatedProductList>({
-    queryKey: ['products', currentPage, normalizedSearch, productType, brand, stockStatus, seoStatus],
+    queryKey: ['products', currentPage, normalizedSearch, productType, brand, stockStatus],
     queryFn: async () => {
       // #region agent log
       const fetchStartTime = Date.now();
@@ -69,7 +67,6 @@ export const usePaginatedProducts = (
         product_type: productType || undefined,
         brand: brand || undefined,
         stock_status: stockStatus || undefined,
-        seo_status: seoStatus || undefined,
       });
       const pageCallEnd = Date.now();
       const pageDuration = pageCallEnd - pageCallStart;
@@ -108,7 +105,7 @@ export const usePaginatedProducts = (
     setAllProducts([]);
     setHasMorePages(true);
     setTotalCount(0);
-  }, [initialPage, normalizedSearch, productType, brand, stockStatus, seoStatus]);
+  }, [initialPage, normalizedSearch, productType, brand, stockStatus]);
 
   // Load more products
   const loadMore = useCallback(() => {
