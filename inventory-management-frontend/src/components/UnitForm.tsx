@@ -73,23 +73,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   const queryClient = useQueryClient();
   const debouncedProductSearch = useDebounce(productSearchTerm, 300);
 
-  // Fetch existing unit images when editing - fetch all and filter client-side
-  const { data: allImagesData, refetch: refetchImages } = useQuery({
-    queryKey: ['unit-images-all'],
-    queryFn: () => UnitImagesService.unitImagesList(1),
-    enabled: !!unit?.id,
-  });
-
-  // Filter images for this unit
-  const existingImages = useMemo(() => {
-    if (!allImagesData?.results || !unit?.id) return null;
-    // Filter by inventory_unit ID
-    return {
-      results: allImagesData.results.filter((img: any) => img.inventory_unit === unit.id),
-      count: allImagesData.results.filter((img: any) => img.inventory_unit === unit.id).length,
-    };
-  }, [allImagesData, unit?.id]);
-
   // Fetch products for dropdown (server-side search when user types so all matches are found)
   const { data: productsData } = useQuery({
     queryKey: ['products-all', debouncedProductSearch.trim()],
@@ -262,6 +245,13 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     },
     enabled: !!unit?.id,
   });
+
+  // Use unit detail (already fetched for form) for images — avoids loading all unit images in the system
+  const existingImages = useMemo(() => {
+    const images = unitDetails?.images;
+    if (!images || !Array.isArray(images)) return null;
+    return { results: images, count: images.length };
+  }, [unitDetails?.images]);
 
   useEffect(() => {
     if (unitDetails) {
@@ -473,7 +463,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       });
     },
     onSuccess: () => {
-      refetchImages();
+      queryClient.invalidateQueries({ queryKey: ['unit-details', unit?.id] });
       setSelectedImages([]);
     },
     onError: (err: any) => {
@@ -489,7 +479,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       });
     },
     onSuccess: () => {
-      refetchImages();
+      queryClient.invalidateQueries({ queryKey: ['unit-details', unit?.id] });
     },
   });
 
@@ -499,7 +489,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       return UnitImagesService.unitImagesDestroy(imageId);
     },
     onSuccess: () => {
-      refetchImages();
+      queryClient.invalidateQueries({ queryKey: ['unit-details', unit?.id] });
     },
   });
 
@@ -1784,7 +1774,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
             </div>
             <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.5rem', display: 'block' }}>
               {unit?.id 
-                ? 'Upload images for this unit. The first image will be set as primary.' 
+                ? <>Choose files above, then click <strong>Upload Images</strong> to attach them. The <strong>Update</strong> button only saves unit details (price, source, etc.), not the selected files. The first image will be set as primary.</> 
                 : 'Select images to upload. They will be attached when you create the unit. The first image will be set as primary.'}
               </small>
             </div>
