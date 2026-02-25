@@ -13,6 +13,7 @@ import {
   ConditionEnum,
   SourceEnum,
 } from '../api/index';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface UnitFormProps {
   unit: InventoryUnitRW | null;
@@ -70,6 +71,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   const [recentProducts, setRecentProducts] = useState<ProductTemplate[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+  const debouncedProductSearch = useDebounce(productSearchTerm, 300);
 
   // Fetch existing unit images when editing - fetch all and filter client-side
   const { data: allImagesData, refetch: refetchImages } = useQuery({
@@ -88,10 +90,16 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     };
   }, [allImagesData, unit?.id]);
 
-  // Fetch products for dropdown
+  // Fetch products for dropdown (server-side search when user types so all matches are found)
   const { data: productsData } = useQuery({
-    queryKey: ['products-all'],
-    queryFn: () => ProductsService.productsList({ page: 1 }),
+    queryKey: ['products-all', debouncedProductSearch.trim()],
+    queryFn: () =>
+      ProductsService.productsList({
+        page: 1,
+        ...(debouncedProductSearch.trim()
+          ? { search: debouncedProductSearch.trim() }
+          : {}),
+      }),
   });
 
   // Enhanced filter with fuzzy matching and scoring
