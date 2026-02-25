@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ReviewsService,
-  ProductsService,
   Review,
   ProductTemplate,
 } from '../api/index';
@@ -62,7 +61,7 @@ export const ReviewsPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  useAuth(); // useAdminProfile uses auth internally
 
   const { data: adminProfile } = useAdminProfile();
 

@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useBrandsList } from '../hooks/useBrandsList';
-import { BrandsService, type Brand } from '../api/index';
+import { type Brand } from '../api/index';
 
 interface AdminRole {
   id?: number;
@@ -55,7 +55,7 @@ const getRoleDescription = (role: AdminRole) =>
   role.description || ROLE_DESCRIPTION_OVERRIDES[getRoleCode(role)] || '';
 
 export const AdminsPage: React.FC = () => {
-  const { user } = useAuth();
+  useAuth(); // useAdminProfile uses auth internally
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminProfile | null>(null);
   const [showRoleModal, setShowRoleModal] = useState(false);

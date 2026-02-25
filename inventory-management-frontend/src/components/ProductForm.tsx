@@ -24,7 +24,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { user } = useAuth();
+  useAuth(); // useAdminProfile uses auth internally
   const [formData, setFormData] = useState({
     product_name: '',
     brand: '',
