@@ -4,7 +4,13 @@ import { ProfilesService, User } from '../api/index';
 import { setAuthToken, clearAuthToken, getAuthLoginUrl, getAuthLogoutUrl } from '../api/config';
 import { queryKeys } from '../hooks/queryKeys';
 
-type ProfileForSync = { user?: { id?: number; username?: string; email?: string; is_staff?: boolean; is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> };
+type ProfileForSync = {
+  id?: number;
+  user?: { id?: number; username?: string; email?: string; is_staff?: boolean; is_superuser?: boolean };
+  username?: string;
+  email?: string;
+  roles?: Array<{ name?: string; role_code?: string }>;
+};
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -95,13 +101,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [queryClient]);
 
   const setUserFromProfile = useCallback((profile: ProfileForSync | null) => {
-    if (!profile?.user?.id) return;
+    if (!profile) return;
+    const u = profile.user as { id?: number; username?: string; email?: string; is_staff?: boolean; is_superuser?: boolean; isSuperuser?: boolean } | undefined;
+    const id = u?.id ?? (profile as any).user_id;
+    const username = u?.username ?? profile.username ?? u?.email ?? profile.email ?? '';
+    const email = u?.email ?? profile.email;
+    const is_superuser = u?.is_superuser ?? (u as any)?.isSuperuser ?? (profile as any).is_superuser ?? false;
+    const is_staff = u?.is_staff ?? (profile as any).is_staff ?? true;
+    if (id == null && !username && !email) return;
     const nextUser = {
-      id: profile.user.id,
-      username: profile.user.username ?? profile.user.email ?? '',
-      email: profile.user.email,
-      is_staff: profile.user.is_staff ?? false,
-      is_superuser: profile.user.is_superuser ?? false,
+      id: id ?? (profile.id as number | undefined),
+      username: username ?? '',
+      email: email,
+      is_staff,
+      is_superuser,
     };
     setUser(nextUser);
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));

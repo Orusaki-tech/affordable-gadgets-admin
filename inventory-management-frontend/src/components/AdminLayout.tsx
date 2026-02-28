@@ -32,10 +32,13 @@ export const AdminLayout: React.FC = () => {
 
   // Sync auth user from profile when profile loads (fixes incomplete user from cache or failed validation)
   useEffect(() => {
-    if (!adminProfile?.user?.id) return;
-    if (user?.id === adminProfile.user.id) return; // already in sync
+    if (!adminProfile) return;
+    const profileUserId = adminProfile.user?.id ?? (adminProfile as any).user_id;
+    if (user?.id !== undefined && profileUserId !== undefined && user.id === profileUserId) return; // already in sync
+    if (!profileUserId && !adminProfile.username && !adminProfile.email && !(adminProfile as any).id) return;
     setUserFromProfile(adminProfile);
-    queryClient.setQueryData(queryKeys.adminProfile(adminProfile.user.id), adminProfile);
+    const keyId = profileUserId ?? (adminProfile as any).id;
+    if (keyId != null) queryClient.setQueryData(queryKeys.adminProfile(keyId), adminProfile);
   }, [adminProfile, user?.id, setUserFromProfile, queryClient]);
 
   const hasRole = (roleName: string) => {
@@ -44,26 +47,17 @@ export const AdminLayout: React.FC = () => {
   };
 
   // Check superuser status - use user from AuthContext as fallback if adminProfile is not available
-  // This handles cases where the admin profile API fails but the user is still a superuser
-  const isSuperuser = adminProfile?.user?.is_superuser === true || user?.is_superuser === true;
-  
-  // Debug logging for superuser status
+  const isSuperuser =
+    adminProfile?.user?.is_superuser === true ||
+    (adminProfile?.user as any)?.isSuperuser === true ||
+    user?.is_superuser === true;
+
+  // Debug: log only when profile exists but user/role still missing (helps diagnose API shape)
   useEffect(() => {
-    if (user) {
-      console.log('🔍 AdminLayout - User status:', {
-        user_id: user.id,
-        user_is_staff: user.is_staff,
-        user_is_superuser: user.is_superuser,
-        adminProfile_exists: !!adminProfile,
-        adminProfile_user_is_superuser: adminProfile?.user?.is_superuser,
-        final_isSuperuser: isSuperuser,
-        adminProfileError: adminProfileError ? {
-          status: (adminProfileError as any)?.status,
-          message: (adminProfileError as any)?.message
-        } : null
-      });
+    if (adminProfile && !isSuperuser && user?.is_staff !== true && !adminProfile?.user?.is_superuser) {
+      console.warn('AdminLayout: profile loaded but user/role incomplete. Profile keys:', Object.keys(adminProfile), 'user:', adminProfile.user ? Object.keys(adminProfile.user) : 'missing');
     }
-  }, [user, adminProfile, isSuperuser, adminProfileError]);
+  }, [adminProfile, isSuperuser, user?.is_staff]);
   const isSalesperson = hasRole('SP') && !isSuperuser && !hasRole('IM'); // Salesperson only, not if superuser or IM
   const isInventoryManager = hasRole('IM') && !isSuperuser; // Inventory Manager only, not if superuser
   const isContentCreator = hasRole('CC') && !isSuperuser; // Content Creator only, not if superuser
