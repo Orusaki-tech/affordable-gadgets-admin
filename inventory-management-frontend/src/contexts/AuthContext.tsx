@@ -8,7 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   user: User | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, onSuccess?: (profile: { user?: { is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> }) => void) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -150,7 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('storage', handleStorage);
   }, [queryClient, validateToken]);
 
-  const login = async (username: string, password: string) => {
+  const login = async (
+    username: string,
+    password: string,
+    onSuccess?: (profile: { user?: { is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> }) => void
+  ) => {
     try {
       const formData = new URLSearchParams();
       formData.set('username', username);
@@ -233,6 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: adminProfile.user?.email,
         is_superuser: adminProfile.user?.is_superuser,
       });
+      onSuccess?.(adminProfile);
     } catch (error: any) {
       console.error('Login error:', error);
       

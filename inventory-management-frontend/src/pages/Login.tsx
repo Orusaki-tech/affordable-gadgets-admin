@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import './Login.css';
+
+type ProfileForRedirect = { user?: { is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> };
 
 export const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -13,14 +15,12 @@ export const LoginPage: React.FC = () => {
   const { data: adminProfile } = useAdminProfile();
   const navigate = useNavigate();
 
-  // Redirect only after auth state and profile are in context (avoids "Standard User" flash)
-  useEffect(() => {
-    if (!isAuthenticated || !user?.id || !adminProfile) return;
-    const isSuperuser = adminProfile.user?.is_superuser === true;
+  const redirectByRole = useCallback((profile: ProfileForRedirect) => {
+    const isSuperuser = profile.user?.is_superuser === true;
     const hasRole = (roleName: string) => {
       if (isSuperuser) return true;
-      if (!adminProfile.roles) return false;
-      return adminProfile.roles.some(
+      if (!profile.roles) return false;
+      return profile.roles.some(
         (r: { name?: string; role_code?: string }) => r.name === roleName || r.role_code === roleName
       );
     };
@@ -31,7 +31,13 @@ export const LoginPage: React.FC = () => {
     } else {
       navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, user?.id, adminProfile, navigate]);
+  }, [navigate]);
+
+  // Redirect when already authenticated (e.g. user revisited /login with valid token)
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id || !adminProfile) return;
+    redirectByRole(adminProfile);
+  }, [isAuthenticated, user?.id, adminProfile, redirectByRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,8 +45,11 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(username, password);
-      // Keep loading true — useEffect will redirect when profile is ready; only clear on error so button stays "Logging in..."
+      await login(username, password, (profile) => {
+        // Redirect immediately after login with the profile we already have (no wait for re-render/cache)
+        if (profile) redirectByRole(profile);
+        else navigate('/dashboard', { replace: true });
+      });
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
       setLoading(false);
