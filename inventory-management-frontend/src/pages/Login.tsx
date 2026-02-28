@@ -40,20 +40,19 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(username, password);
-      // Do not navigate here — useEffect above runs after state/profile are ready and does role-based redirect
+      // Keep loading true — useEffect will redirect when profile is ready; only clear on error so button stays "Logging in..."
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
-    } finally {
       setLoading(false);
     }
   };
 
-  // Already authenticated: show redirecting until profile is ready, then useEffect will redirect
-  if (isAuthenticated && user?.id && !adminProfile) {
+  // Already authenticated: show "Logging in..." / "Redirecting..." until useEffect redirects (prevents form flash or double submit)
+  if (isAuthenticated && user?.id) {
     return (
       <div className="login-container">
         <div className="login-card">
-          <p className="login-subtitle">Redirecting...</p>
+          <p className="login-subtitle">{adminProfile ? 'Redirecting...' : 'Logging in...'}</p>
         </div>
       </div>
     );
