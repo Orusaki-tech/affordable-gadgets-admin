@@ -51,7 +51,12 @@ export const LoginPage: React.FC = () => {
         else navigate('/dashboard', { replace: true });
       });
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      const raw = err?.message ?? err?.body ?? '';
+      const safeMessage =
+        typeof raw === 'string' && (raw.trim().startsWith('<') || /<!doctype/i.test(raw))
+          ? 'Server returned an error. Check that the API URL is correct and the backend allows your host (e.g. ngrok).'
+          : (raw || 'Login failed. Please check your credentials.');
+      setError(safeMessage);
       setLoading(false);
     }
   };

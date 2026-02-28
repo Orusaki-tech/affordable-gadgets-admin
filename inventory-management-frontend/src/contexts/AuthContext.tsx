@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { ProfilesService, User } from '../api/index';
-import { setAuthToken, clearAuthToken, getAuthLoginUrl, getAuthLogoutUrl } from '../api/config';
+import { setAuthToken, clearAuthToken, getAuthLoginUrl, getAuthLogoutUrl, getApiRoot } from '../api/config';
 import { queryKeys } from '../hooks/queryKeys';
 
 type ProfileForSync = {
@@ -192,14 +192,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       formData.set('password', password);
 
       const authUrl = getAuthLoginUrl();
+      const apiRoot = getApiRoot();
+      const isNgrok = /^https?:\/\/[^/]*ngrok[^/]*\.(app|io)(\/|$)/i.test(apiRoot);
+      const loginHeaders: Record<string, string> = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      if (isNgrok) {
+        loginHeaders['ngrok-skip-browser-warning'] = 'true';
+      }
       // Backend (e.g. Railway) can be slow on cold start; allow up to 90s so login can complete.
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
       const authResponse = await fetch(authUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: loginHeaders,
         body: formData.toString(),
         signal: controller.signal,
       });
@@ -211,7 +217,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : await authResponse.text();
 
       if (!authResponse.ok) {
-        const error: any = new Error('Login failed. Please check your credentials.');
+        const error: any = new Error(
+          authResponse.status === 400
+            ? 'Server rejected the request. If the API is behind ngrok, ensure the backend ALLOWED_HOSTS includes the ngrok host (run ngrok-on-vm.sh on the VM).'
+            : 'Login failed. Please check your credentials.'
+        );
         error.status = authResponse.status;
         error.body = authBody;
         throw error;
