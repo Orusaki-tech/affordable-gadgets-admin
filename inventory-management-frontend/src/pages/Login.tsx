@@ -16,7 +16,8 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
 
   const redirectByRole = useCallback((profile: ProfileForRedirect) => {
-    const isSuperuser = profile.user?.is_superuser === true;
+    const isSuperuser =
+      profile.user?.is_superuser === true || (profile as any)?.is_superuser === true;
     const hasRole = (roleName: string) => {
       if (isSuperuser) return true;
       if (!profile.roles) return false;

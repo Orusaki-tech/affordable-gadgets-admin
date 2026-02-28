@@ -254,39 +254,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('✅ Token storage verified in localStorage');
       }
 
-      // Fetch admin profile to get user details
-      const adminProfile = await ProfilesService.profilesAdminRetrieve();
-      if (adminProfile.user?.id) {
-        queryClient.setQueryData(queryKeys.adminProfile(adminProfile.user.id), adminProfile);
+      // Fetch admin profile to get user details (same shape as validateToken: support nested user or top-level fields)
+      const adminProfile = await ProfilesService.profilesAdminRetrieve() as any;
+      const uid = adminProfile?.user?.id ?? adminProfile?.id;
+      const email = adminProfile?.user?.email ?? adminProfile?.email;
+      const profileUsername = adminProfile?.user?.username ?? adminProfile?.username ?? email ?? username;
+      const is_staff = adminProfile?.user?.is_staff ?? adminProfile?.is_staff ?? true;
+      const is_superuser = adminProfile?.user?.is_superuser ?? adminProfile?.is_superuser ?? false;
+
+      if (uid != null) {
+        queryClient.setQueryData(queryKeys.adminProfile(uid), adminProfile);
       }
       setHasValidated(true);
       setIsAuthenticated(true);
       setIsAdmin(true);
-      if (adminProfile.user) {
-        const nextUser = {
-          id: adminProfile.user.id,
-          email: adminProfile.user.email,
-          username: adminProfile.user.username || adminProfile.user.email || username,
-          is_staff: adminProfile.user.is_staff || false,
-          is_superuser: adminProfile.user.is_superuser || false,
-        };
-        setUser(nextUser);
-        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
-        localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
-      } else {
-        const nextUser = {
-          username,
-        };
-        setUser(nextUser);
-        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
-        localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
+      const nextUser = {
+        id: uid ?? undefined,
+        email: email ?? undefined,
+        username: profileUsername || username,
+        is_staff,
+        is_superuser,
+      };
+      setUser(nextUser);
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
+      localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
+      console.log('✅ Login successful, user authenticated:', { user_id: uid, email, is_superuser });
+
+      // Delay redirect so React commits state before navigation; avoids "Standard User" flash on destination page
+      if (onSuccess) {
+        setTimeout(() => onSuccess(adminProfile), 0);
       }
-      console.log('✅ Login successful, user authenticated:', {
-        user_id: adminProfile.user?.id,
-        email: adminProfile.user?.email,
-        is_superuser: adminProfile.user?.is_superuser,
-      });
-      onSuccess?.(adminProfile);
     } catch (error: any) {
       console.error('Login error:', error);
       
