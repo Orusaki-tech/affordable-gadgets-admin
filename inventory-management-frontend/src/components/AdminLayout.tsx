@@ -45,16 +45,18 @@ export const AdminLayout: React.FC = () => {
     return adminProfile.roles.some((role) => role.name === roleName || role.role_code === roleName);
   };
 
-  // Check superuser status - use user from AuthContext as fallback if adminProfile is not available
+  // Check superuser status - support nested user, top-level profile (backend can send is_superuser/is_staff on profile), and auth context
   const isSuperuser =
     adminProfile?.user?.is_superuser === true ||
     (adminProfile?.user as any)?.isSuperuser === true ||
+    (adminProfile as any)?.is_superuser === true ||
     user?.is_superuser === true;
 
   // Debug: log only when profile exists but user/role still missing (helps diagnose API shape)
   useEffect(() => {
-    if (adminProfile && !isSuperuser && user?.is_staff !== true && !adminProfile?.user?.is_superuser) {
-      console.warn('AdminLayout: profile loaded but user/role incomplete. Profile keys:', Object.keys(adminProfile), 'user:', adminProfile.user ? Object.keys(adminProfile.user) : 'missing');
+    const profileSuperuser = (adminProfile as any)?.is_superuser ?? adminProfile?.user?.is_superuser;
+    if (adminProfile && !isSuperuser && user?.is_staff !== true && !profileSuperuser) {
+      console.warn('AdminLayout: profile loaded but user/role incomplete. Top-level is_superuser:', (adminProfile as any)?.is_superuser, 'user:', adminProfile.user ? 'present' : 'missing');
     }
   }, [adminProfile, isSuperuser, user?.is_staff]);
   const isSalesperson = hasRole('SP') && !isSuperuser && !hasRole('IM'); // Salesperson only, not if superuser or IM
