@@ -24,10 +24,9 @@ export const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
 
-  const { data: adminProfile, isLoading: adminProfileLoading, error: adminProfileError } = useAdminProfile() as {
+  const { data: adminProfile, isLoading: adminProfileLoading } = useAdminProfile() as {
     data: AdminProfileResponse | undefined;
     isLoading: boolean;
-    error: unknown;
   };
 
   // Sync auth user from profile when profile loads (fixes incomplete user from cache or failed validation)
