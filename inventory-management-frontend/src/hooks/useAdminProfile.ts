@@ -6,16 +6,16 @@ import { queryKeys } from './queryKeys';
 /**
  * Single source of truth for admin profile.
  * - When AuthContext fetches profile on login/validate, it seeds the React Query cache.
+ * - Enabled when we have a token (isAuthenticated) so we can load profile even if context user is incomplete.
  * - Any component that calls useAdminProfile() reads from that same cache and re-renders when the data updates.
- * - Only one request is made (or cache is used); no duplicate requests per page.
  */
 export function useAdminProfile() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   return useQuery({
     queryKey: queryKeys.adminProfile(user?.id),
     queryFn: () => ProfilesService.profilesAdminRetrieve(),
     retry: false,
-    enabled: !!user,
+    enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 min – treat as shared data, avoid refetch on every nav
   });
 }

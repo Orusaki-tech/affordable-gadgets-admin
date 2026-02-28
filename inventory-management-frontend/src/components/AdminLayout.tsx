@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
+import { queryKeys } from '../hooks/queryKeys';
 import { StockAlertsService, StockAlertsResponse, type Brand, type AdminProfileResponse as BaseAdminProfileResponse } from '../api/index';
 import { NotificationBell } from './NotificationBell';
 import { ThemeToggleButton } from './ThemeSwitcher';
@@ -16,7 +17,8 @@ interface AdminProfileResponse extends Omit<BaseAdminProfileResponse, 'brands'> 
 }
 
 export const AdminLayout: React.FC = () => {
-  const { logout, user } = useAuth();
+  const { logout, user, setUserFromProfile } = useAuth();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -27,6 +29,14 @@ export const AdminLayout: React.FC = () => {
     isLoading: boolean;
     error: unknown;
   };
+
+  // Sync auth user from profile when profile loads (fixes incomplete user from cache or failed validation)
+  useEffect(() => {
+    if (!adminProfile?.user?.id) return;
+    if (user?.id === adminProfile.user.id) return; // already in sync
+    setUserFromProfile(adminProfile);
+    queryClient.setQueryData(queryKeys.adminProfile(adminProfile.user.id), adminProfile);
+  }, [adminProfile, user?.id, setUserFromProfile, queryClient]);
 
   const hasRole = (roleName: string) => {
     if (!adminProfile?.roles) return false;

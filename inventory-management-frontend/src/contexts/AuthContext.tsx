@@ -4,6 +4,8 @@ import { ProfilesService, User } from '../api/index';
 import { setAuthToken, clearAuthToken, getAuthLoginUrl, getAuthLogoutUrl } from '../api/config';
 import { queryKeys } from '../hooks/queryKeys';
 
+type ProfileForSync = { user?: { id?: number; username?: string; email?: string; is_staff?: boolean; is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> };
+
 interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
@@ -11,6 +13,8 @@ interface AuthContextType {
   login: (username: string, password: string, onSuccess?: (profile: { user?: { is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> }) => void) => Promise<void>;
   logout: () => void;
   loading: boolean;
+  /** Sync auth user from profile (e.g. when profile loads on dashboard so role/access is correct) */
+  setUserFromProfile: (profile: ProfileForSync | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -89,6 +93,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   }, [queryClient]);
+
+  const setUserFromProfile = useCallback((profile: ProfileForSync | null) => {
+    if (!profile?.user?.id) return;
+    const nextUser = {
+      id: profile.user.id,
+      username: profile.user.username ?? profile.user.email ?? '',
+      email: profile.user.email,
+      is_staff: profile.user.is_staff ?? false,
+      is_superuser: profile.user.is_superuser ?? false,
+    };
+    setUser(nextUser);
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
+    localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -305,7 +323,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isAdmin, user, login, logout, loading }}>
+    <AuthContext.Provider value={{ isAuthenticated, isAdmin, user, login, logout, loading, setUserFromProfile }}>
       {children}
     </AuthContext.Provider>
   );
