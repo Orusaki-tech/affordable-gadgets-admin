@@ -44,6 +44,8 @@ const getApiBaseUrl = () => {
 // If window is not available yet, it will use default and update later
 let initialBaseUrl = getApiBaseUrl();
 OpenAPI.BASE = initialBaseUrl;
+// Prevent caching of API responses (avoids stale 400/401 and "only works after opening DevTools" behavior)
+OpenAPI.HEADERS = { 'Cache-Control': 'no-store', Pragma: 'no-cache' };
 console.log(`✅ Initial API base URL set to: ${OpenAPI.BASE}`);
 
 // Update base URL dynamically when window becomes available (if needed)
@@ -114,7 +116,7 @@ export const getAuthLoginUrl = (): string => {
   return `${root}/api/auth/token/login/`;
 };
 
-// Helper to build absolute logout URL (same server as API)
+// Helper to build absolute logout URL (under same base as API: /api/inventory/logout/)
 export const getAuthLogoutUrl = (): string => {
   const base = OpenAPI.BASE || getApiBaseUrl();
   const normalized = base.replace(/\/$/, '');

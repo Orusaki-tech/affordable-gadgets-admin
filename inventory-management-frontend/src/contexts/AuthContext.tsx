@@ -53,18 +53,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ProfilesService.profilesAdminRetrieve(),
         timeoutPromise
       ]) as any;
-      
-      if (adminProfile.user && adminProfile.user.id && adminProfile.user.email) {
-        console.log('Token validation successful:', { user_id: adminProfile.user.id, email: adminProfile.user.email });
-        queryClient.setQueryData(queryKeys.adminProfile(adminProfile.user.id), adminProfile);
+
+      // Backend returns nested user and/or top-level fields; support both shapes
+      const uid = adminProfile?.user?.id ?? adminProfile?.id;
+      const email = adminProfile?.user?.email ?? adminProfile?.email;
+      const username = adminProfile?.user?.username ?? adminProfile?.username ?? email ?? '';
+      const is_staff = adminProfile?.user?.is_staff ?? adminProfile?.is_staff ?? true;
+      const is_superuser = adminProfile?.user?.is_superuser ?? adminProfile?.is_superuser ?? false;
+
+      if (uid != null && email != null) {
+        console.log('Token validation successful:', { user_id: uid, email });
+        queryClient.setQueryData(queryKeys.adminProfile(uid), adminProfile);
         setIsAdmin(true);
         setIsAuthenticated(true);
-        const nextUser = { 
-          id: adminProfile.user.id, 
-          username: adminProfile.user.username || adminProfile.user.email || '',
-          email: adminProfile.user.email,
-          is_staff: adminProfile.user.is_staff,
-          is_superuser: adminProfile.user.is_superuser,
+        const nextUser = {
+          id: uid,
+          username: username || email,
+          email,
+          is_staff,
+          is_superuser,
         };
         setUser(nextUser);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
@@ -74,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       // 401/403 = invalid token; timeout = server too slow; redirect/network = e.g. ERR_TOO_MANY_REDIRECTS — clear so user can re-login
-      const isAuthError = error?.status === 401 || error?.status === 403;
+      const isAuthError = error?.status === 401 || error?.status === 403 || error?.status === 404;
       const msg = String(error?.message ?? '');
       const isTimeout = msg.includes('Token validation timeout') || msg.includes('timeout');
       const isNetworkOrRedirect =
@@ -208,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: loginHeaders,
         body: formData.toString(),
         signal: controller.signal,
+        cache: 'no-store',
       });
       clearTimeout(timeoutId);
 
