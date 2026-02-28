@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useAdminProfile } from '../hooks/useAdminProfile';
 import './Login.css';
 
 export const LoginPage: React.FC = () => {
@@ -8,8 +9,29 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, user, isAuthenticated } = useAuth();
+  const { data: adminProfile } = useAdminProfile();
   const navigate = useNavigate();
+
+  // Redirect only after auth state and profile are in context (avoids "Standard User" flash)
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id || !adminProfile) return;
+    const isSuperuser = adminProfile.user?.is_superuser === true;
+    const hasRole = (roleName: string) => {
+      if (isSuperuser) return true;
+      if (!adminProfile.roles) return false;
+      return adminProfile.roles.some(
+        (r: { name?: string; role_code?: string }) => r.name === roleName || r.role_code === roleName
+      );
+    };
+    if (hasRole('CC') && !isSuperuser) {
+      navigate('/content-creator/dashboard', { replace: true });
+    } else if (hasRole('SP') && !isSuperuser) {
+      navigate('/products', { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, user?.id, adminProfile, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,13 +40,24 @@ export const LoginPage: React.FC = () => {
 
     try {
       await login(username, password);
-      navigate('/dashboard');
+      // Do not navigate here — useEffect above runs after state/profile are ready and does role-based redirect
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Already authenticated: show redirecting until profile is ready, then useEffect will redirect
+  if (isAuthenticated && user?.id && !adminProfile) {
+    return (
+      <div className="login-container">
+        <div className="login-card">
+          <p className="login-subtitle">Redirecting...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="login-container">

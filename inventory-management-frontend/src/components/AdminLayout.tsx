@@ -22,7 +22,11 @@ export const AdminLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
 
-  const { data: adminProfile, error: adminProfileError } = useAdminProfile() as { data: AdminProfileResponse | undefined; error: unknown };
+  const { data: adminProfile, isLoading: adminProfileLoading, error: adminProfileError } = useAdminProfile() as {
+    data: AdminProfileResponse | undefined;
+    isLoading: boolean;
+    error: unknown;
+  };
 
   const hasRole = (roleName: string) => {
     if (!adminProfile?.roles) return false;
@@ -143,7 +147,11 @@ export const AdminLayout: React.FC = () => {
           <p className="user-email">{user?.email}</p>
           <div className="user-roles">
             <span className="role-badge-small">
-              {isSuperuser ? 'Superuser' : 'Standard User'}
+              {adminProfileLoading && user && !adminProfile
+                ? 'Loading...'
+                : isSuperuser
+                  ? 'Superuser'
+                  : 'Standard User'}
             </span>
           </div>
           {adminProfile?.roles && adminProfile.roles.length > 0 && (
