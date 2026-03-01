@@ -239,7 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const authUrl = getAuthLoginUrl();
       const apiRoot = getApiRoot();
-      const isNgrok = /^https?:\/\/[^/]*ngrok[^/]*\.(app|io)(\/|$)/i.test(apiRoot);
+      const isNgrok = /^https?:\/\/[^/]*ngrok[^/]*\.(app|io|dev)(\/|$)/i.test(apiRoot);
       const loginHeaders: Record<string, string> = {
         'Content-Type': 'application/x-www-form-urlencoded',
       };
@@ -332,7 +332,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (typeof body === 'string') {
           const trimmed = body.trim();
           if (trimmed.startsWith('<') || /<!doctype/i.test(trimmed)) {
-            errorMessage = 'Server rejected the request. If using localhost, ensure the backend is in development mode (DJANGO_ENV not set or "development") and ALLOWED_HOSTS includes localhost.';
+            errorMessage = 'Server returned an HTML page instead of JSON (request was rejected or intercepted). Check: backend ALLOWED_HOSTS includes your API host (e.g. ngrok or Cloud Run URL); if using ngrok, the app sends the bypass header. For localhost, use development mode and ALLOWED_HOSTS including localhost.';
           } else {
             errorMessage = body;
           }

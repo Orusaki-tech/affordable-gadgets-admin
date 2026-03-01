@@ -1023,7 +1023,9 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
     }
 
     try {
-      // Send CSV as base64 in JSON so it works when multipart is stripped (e.g. ngrok, proxies)
+      // Same code in local and prod. We send JSON+base64 (not multipart) so proxies (e.g. ngrok)
+      // don't strip the body. In prod the request goes Browser → ngrok → Django; the body can
+      // be dropped in that path even though we send it correctly.
       const csvText = await file.text();
       const base64 = btoa(unescape(encodeURIComponent(csvText)));
       const response = await fetch(url, {
