@@ -17,6 +17,7 @@ const getApiBaseUrl = () => {
     const isProductionDomain = hostname.includes('.vercel.app') ||
                                 hostname.includes('.netlify.app') ||
                                 hostname.includes('.ngrok-free.app') ||
+                                hostname.includes('.ngrok-free.dev') ||
                                 hostname.includes('.ngrok.io') ||
                                 hostname.includes('.run.app') ||
                                 hostname.includes('.cloud.run') ||

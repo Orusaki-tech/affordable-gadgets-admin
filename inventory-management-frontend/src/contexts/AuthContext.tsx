@@ -239,11 +239,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const authUrl = getAuthLoginUrl();
       const apiRoot = getApiRoot();
-      const isNgrok = /^https?:\/\/[^/]*ngrok[^/]*\.(app|io|dev)(\/|$)/i.test(apiRoot);
       const loginHeaders: Record<string, string> = {
         'Content-Type': 'application/x-www-form-urlencoded',
       };
-      if (isNgrok) {
+      if (/ngrok/i.test(apiRoot)) {
         loginHeaders['ngrok-skip-browser-warning'] = 'true';
       }
       // Backend (ngrok/GCP) may be slow; allow up to 90s so login can complete.
