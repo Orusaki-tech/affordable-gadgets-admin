@@ -58,7 +58,7 @@ const getOpenApiHeaders = (): Record<string, string> => {
   }
   return headers;
 };
-OpenAPI.HEADERS = getOpenApiHeaders;
+OpenAPI.HEADERS = async () => getOpenApiHeaders();
 console.log(`✅ Initial API base URL set to: ${OpenAPI.BASE}`);
 
 // Update base URL dynamically when window becomes available (if needed)
@@ -73,7 +73,7 @@ if (typeof window !== 'undefined') {
       console.log(`✅ API base URL confirmed: ${OpenAPI.BASE}`);
     }
     // Re-evaluate shared headers in case base URL changed (e.g. ngrok/non-ngrok).
-    OpenAPI.HEADERS = getOpenApiHeaders;
+    OpenAPI.HEADERS = async () => getOpenApiHeaders();
   };
   
   // Try immediately
