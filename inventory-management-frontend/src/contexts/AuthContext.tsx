@@ -271,8 +271,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('✅ Token storage verified in localStorage');
       }
 
-      // Fetch admin profile to get user details (same shape as validateToken: support nested user or top-level fields)
-      const adminProfile = await ProfilesService.profilesAdminRetrieve() as any;
+      // Prefer profile returned in login response to avoid a second request/race on first redirect.
+      // Fallback to profilesAdminRetrieve for backward compatibility with older backend responses.
+      const adminProfile =
+        (authBody as any)?.profile ??
+        (authBody as any)?.admin_profile ??
+        await ProfilesService.profilesAdminRetrieve() as any;
       const uid = adminProfile?.user?.id ?? adminProfile?.id;
       const email = adminProfile?.user?.email ?? adminProfile?.email;
       const profileUsername = adminProfile?.user?.username ?? adminProfile?.username ?? email ?? username;
