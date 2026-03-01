@@ -1040,18 +1040,15 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
         setTimeout(() => onSuccess(), 2000);
       } else {
         setResult(data);
+        const errMsg = data.error || (data.errors && data.errors.length ? data.errors.slice(0, 3).join('; ') : null) || text?.slice(0, 200) || `HTTP ${response.status}`;
         if (response.status === 404) {
-          showToast('Import endpoint not found. Check that the API server is running and the API base URL is configured.', 'error');
-        } else if (response.status === 400 && data.error) {
-          const debugInfo = data.debug
-            ? ` [FILES: ${(data.debug.FILES_keys || []).join(',') || 'none'}]`
-            : '';
-          showToast(`Import failed: ${data.error}${debugInfo}`, 'error');
-        } else if (data.errors?.length || data.created !== undefined) {
-          showToast(`Import finished: ${data.created ?? 0} created, ${data.failed ?? 0} failed.`, 'error');
+          showToast('Import endpoint not found. Set REACT_APP_API_BASE_URL in Vercel to your backend URL (e.g. ngrok or GCP).', 'error');
+        } else if (response.status === 400 && !data?.error && /vercel\.app|netlify\.app/.test(url)) {
+          showToast('Import failed (400). In production, set REACT_APP_API_BASE_URL to your backend URL (e.g. https://your-backend.run.app/api/inventory).', 'error');
         } else {
-          showToast(`Import failed (${response.status}): ${(data.error || text || 'Unknown error').toString().slice(0, 150)}`, 'error');
+          showToast(`Import failed: ${errMsg}`, 'error');
         }
+        console.warn('Import CSV error response', { status: response.status, url, data, text: text?.slice(0, 500) });
       }
     } catch (error: any) {
       showToast(`Upload error: ${error.message}`, 'error');
