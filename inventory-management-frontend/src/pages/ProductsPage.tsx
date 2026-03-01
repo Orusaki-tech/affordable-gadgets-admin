@@ -9,6 +9,7 @@ import {
   ReservationRequestsService,
   PromotionsService,
 } from '../api/index';
+import { getInventoryBaseUrl, getApiRoot } from '../api/config';
 import { ModalLoader } from '../components/PageLoader';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
@@ -420,7 +421,7 @@ export const ProductsPage: React.FC = () => {
         // Fetch units for each product using server-side filtering
         const allUnits: any[] = [];
         const token = localStorage.getItem('auth_token');
-        const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+        const baseUrl = getInventoryBaseUrl();
         
         // Fetch units for each selected product with server-side filtering
         for (const productId of productIds) {
@@ -989,7 +990,7 @@ export const ProductsPage: React.FC = () => {
             const fullImageUrl = imageUrl 
               ? (imageUrl.startsWith('http') || imageUrl.startsWith('//') 
                   ? imageUrl 
-                  : `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
+                  : `${getApiRoot()}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
               : null;
 
             const stockSummary = product.id ? stockSummaries[product.id] : undefined;

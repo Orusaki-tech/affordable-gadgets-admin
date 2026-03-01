@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { ReturnRequestsService, ReturnRequestStatusEnum } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 
 export const ReturnRequestsPage: React.FC = () => {
@@ -135,7 +136,7 @@ export const ReturnRequestsPage: React.FC = () => {
     queryKey: ['my-reserved-units'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/units/?sale_status=RS&page_size=100`, {
         headers: { 'Authorization': `Token ${token}` },
       });
@@ -226,7 +227,7 @@ export const ReturnRequestsPage: React.FC = () => {
   const bulkApproveMutation = useMutation({
     mutationFn: async (requestIds: number[]) => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/return-requests/bulk_approve/`, {
         method: 'POST',
         headers: {

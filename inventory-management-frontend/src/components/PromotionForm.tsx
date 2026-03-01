@@ -5,6 +5,7 @@ import {
   Promotion,
   Brand,
 } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 
@@ -100,15 +101,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     queryKey: ['promotion-types'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
-      
-      if (typeof window !== 'undefined' && window.location) {
-        const hostname = window.location.hostname;
-        if (hostname !== 'localhost' && hostname !== '127.0.0.1' && baseUrl.includes('localhost')) {
-          baseUrl = baseUrl.replace('localhost', hostname).replace('127.0.0.1', hostname);
-        }
-      }
-      
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/promotion-types/?is_active=true`, {
         headers: {
           'Authorization': `Token ${token}`,
@@ -216,16 +209,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
         
         // Use direct fetch for FormData
         const token = localStorage.getItem('auth_token');
-        let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
-        
-        // Auto-detect base URL from hostname (same logic as config.ts)
-        if (typeof window !== 'undefined' && window.location) {
-          const hostname = window.location.hostname;
-          if (hostname !== 'localhost' && hostname !== '127.0.0.1' && baseUrl.includes('localhost')) {
-            baseUrl = baseUrl.replace('localhost', hostname).replace('127.0.0.1', hostname);
-          }
-        }
-        
+        const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/promotions/`, {
           method: 'POST',
           headers: {
@@ -310,16 +294,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
         
         // Use direct fetch for FormData
         const token = localStorage.getItem('auth_token');
-        let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
-        
-        // Auto-detect base URL from hostname (same logic as config.ts)
-        if (typeof window !== 'undefined' && window.location) {
-          const hostname = window.location.hostname;
-          if (hostname !== 'localhost' && hostname !== '127.0.0.1' && baseUrl.includes('localhost')) {
-            baseUrl = baseUrl.replace('localhost', hostname).replace('127.0.0.1', hostname);
-          }
-        }
-        
+        const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/promotions/${promotion.id}/`, {
           method: 'PATCH',
           headers: {
@@ -344,16 +319,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       } else {
         // No file upload, use JSON (avoids multipart parsing issues for arrays)
         const token = localStorage.getItem('auth_token');
-        let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
-
-        // Auto-detect base URL from hostname (same logic as config.ts)
-        if (typeof window !== 'undefined' && window.location) {
-          const hostname = window.location.hostname;
-          if (hostname !== 'localhost' && hostname !== '127.0.0.1' && baseUrl.includes('localhost')) {
-            baseUrl = baseUrl.replace('localhost', hostname).replace('127.0.0.1', hostname);
-          }
-        }
-
+        const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/promotions/${promotion.id}/`, {
           method: 'PATCH',
           headers: {

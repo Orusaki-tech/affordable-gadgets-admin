@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { InventoryUnitRW } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 
 interface BulkReserveUnitsModalProps {
   productId: number;
@@ -126,7 +127,7 @@ export const BulkReserveUnitsModal: React.FC<BulkReserveUnitsModalProps> = ({
     mutationFn: ({ unitIds, unitQuantities }: { unitIds: number[]; unitQuantities?: Record<number, number> }) => {
       // Use the existing API but with inventory_unit_ids array
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       
       return fetch(`${baseUrl}/reservation-requests/`, {
         method: 'POST',

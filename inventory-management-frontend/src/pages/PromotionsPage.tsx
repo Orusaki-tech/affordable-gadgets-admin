@@ -6,6 +6,7 @@ import {
   PromotionsService,
   ProfilesService,
 } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 import { useAuth } from '../contexts/AuthContext';
 import { ModalLoader } from '../components/PageLoader';
 import {
@@ -109,7 +110,7 @@ export const PromotionsPage: React.FC = () => {
     queryKey: ['promotion-types'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      let baseUrl = getInventoryBaseUrl();
       
       if (typeof window !== 'undefined' && window.location) {
         const hostname = window.location.hostname;
@@ -1049,7 +1050,7 @@ const PromotionTypesModal: React.FC<PromotionTypesModalProps> = ({ promotionType
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
       const token = localStorage.getItem('auth_token');
-      let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      let baseUrl = getInventoryBaseUrl();
       
       if (typeof window !== 'undefined' && window.location) {
         const hostname = window.location.hostname;
@@ -1084,7 +1085,7 @@ const PromotionTypesModal: React.FC<PromotionTypesModalProps> = ({ promotionType
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
       const token = localStorage.getItem('auth_token');
-      let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      let baseUrl = getInventoryBaseUrl();
       
       if (typeof window !== 'undefined' && window.location) {
         const hostname = window.location.hostname;
@@ -1119,7 +1120,7 @@ const PromotionTypesModal: React.FC<PromotionTypesModalProps> = ({ promotionType
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const token = localStorage.getItem('auth_token');
-      let baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      let baseUrl = getInventoryBaseUrl();
       
       if (typeof window !== 'undefined' && window.location) {
         const hostname = window.location.hostname;

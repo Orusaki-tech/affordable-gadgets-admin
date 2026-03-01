@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfilesService, StockAlertsService, ProductsService, StockAlert, StockAlertsResponse, StockAlertType } from '../api/index';
+import { getApiRoot } from '../api/config';
 
 export const StockAlertsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +64,7 @@ export const StockAlertsPage: React.FC = () => {
             const fullImageUrl = imageUrl 
               ? (imageUrl.startsWith('http') || imageUrl.startsWith('//') 
                   ? imageUrl 
-                  : `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
+                  : `${getApiRoot()}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
               : null;
             
             imageMap[productId] = fullImageUrl || null;

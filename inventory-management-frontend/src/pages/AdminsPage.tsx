@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useBrandsList } from '../hooks/useBrandsList';
 import { type Brand } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 
 interface AdminRole {
   id?: number;
@@ -72,7 +73,7 @@ export const AdminsPage: React.FC = () => {
     queryKey: ['admins', 'all'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const allAdmins: AdminProfile[] = [];
       let currentPage = 1;
       let hasMore = true;
@@ -114,7 +115,7 @@ export const AdminsPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: async (data: AdminCreatePayload) => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/admins/`, {
         method: 'POST',
         headers: {
@@ -166,7 +167,7 @@ export const AdminsPage: React.FC = () => {
     mutationFn: async (data: { admin_code: string }) => {
       if (!editingAdmin?.id) throw new Error('Admin ID required');
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/admins/${editingAdmin.id}/`, {
         method: 'PUT',
         headers: {
@@ -218,7 +219,7 @@ export const AdminsPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/admins/${id}/`, {
         method: 'DELETE',
         headers: {
@@ -244,7 +245,7 @@ export const AdminsPage: React.FC = () => {
     queryKey: ['admin-roles'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/admin-roles/`, {
         headers: { 'Authorization': `Token ${token}` },
       });
@@ -259,7 +260,7 @@ export const AdminsPage: React.FC = () => {
   const assignRolesMutation = useMutation({
     mutationFn: async ({ adminId, roleIds }: { adminId: number; roleIds: number[] }) => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/admins/${adminId}/roles/`, {
         method: 'POST',
         headers: {
@@ -305,7 +306,7 @@ export const AdminsPage: React.FC = () => {
       isGlobalAdmin: boolean;
     }) => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/admins/${adminId}/brands/`, {
         method: 'POST',
         headers: {

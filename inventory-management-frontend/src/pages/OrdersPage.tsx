@@ -4,6 +4,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { OrdersService, OrderStatusEnum, type OrderResponse } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 import { ModalLoader } from '../components/PageLoader';
 
 const OrderDetailsModal = lazy(() => import('../components/OrderDetailsModal').then((m) => ({ default: m.OrderDetailsModal })));
@@ -890,7 +891,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
     queryKey: ['reserved-units-for-order'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const allUnits: any[] = [];
       let page = 1;
       let hasMore = true;
@@ -947,7 +948,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ onClose, onCreate, 
     queryKey: ['approved-reservation-requests-for-order', adminProfile?.id, isSuperuser, isSalesperson],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const allRequests: any[] = [];
       let page = 1;
       let hasMore = true;

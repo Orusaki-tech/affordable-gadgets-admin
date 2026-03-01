@@ -115,7 +115,13 @@ export const clearAuthToken = () => {
   localStorage.removeItem('auth_token');
 };
 
-// Get the API server root (e.g. http://localhost:8000) from the current base
+// Inventory API base URL (e.g. https://example.com/api/inventory). Use this for all API paths.
+export const getInventoryBaseUrl = (): string => {
+  const base = OpenAPI.BASE || getApiBaseUrl();
+  return base.replace(/\/$/, '');
+};
+
+// Get the API server root (e.g. http://localhost:8000) from the current base. Use for media/static URLs.
 export const getApiRoot = (): string => {
   const base = OpenAPI.BASE || getApiBaseUrl();
   const normalized = base.replace(/\/$/, '');

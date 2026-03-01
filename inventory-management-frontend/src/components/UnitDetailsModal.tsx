@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { UnitsService } from '../api/index';
+import { getApiRoot } from '../api/config';
 import { UnitForm } from './UnitForm';
 
 interface UnitDetailsModalProps {
@@ -424,7 +425,7 @@ export const UnitDetailsModal: React.FC<UnitDetailsModalProps> = ({ unitId, onCl
                     const fullImageUrl = imageUrl 
                       ? (imageUrl.startsWith('http') || imageUrl.startsWith('//') 
                           ? imageUrl 
-                          : `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
+                          : `${getApiRoot()}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
                       : null;
                     
                     return (

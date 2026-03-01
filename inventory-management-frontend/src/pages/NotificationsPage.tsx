@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { NotificationsService, Notification } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 
 export const NotificationsPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -51,7 +52,7 @@ export const NotificationsPage: React.FC = () => {
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const unread = notificationsData?.results?.filter((n: Notification) => !n.is_read) || [];
       await Promise.all(
         unread

@@ -8,7 +8,7 @@ import {
   ProfilesService,
   OpenAPI,
 } from '../api/index';
-import { getApiRoot } from '../api/config';
+import { getApiRoot, getInventoryBaseUrl } from '../api/config';
 import { ModalLoader } from '../components/PageLoader';
 
 const UnitForm = lazy(() => import('../components/UnitForm').then((m) => ({ default: m.UnitForm })));
@@ -207,8 +207,9 @@ export const UnitsPage: React.FC = () => {
   // Bulk operations mutation
   const bulkUpdateMutation = useMutation({
     mutationFn: async ({ operation, data }: { operation: string; data: any }) => {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/inventory/units/bulk_update/', {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('token');
+      const baseUrl = getInventoryBaseUrl();
+      const response = await fetch(`${baseUrl}/units/bulk_update/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -338,7 +339,7 @@ export const UnitsPage: React.FC = () => {
           const fullImageUrl = imageUrl 
             ? (imageUrl.startsWith('http') || imageUrl.startsWith('//') 
                 ? imageUrl 
-                : `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
+                : `${getApiRoot()}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
             : null;
           
           if (fullImageUrl && !imageLoadingStates[unit.id]) {
@@ -661,7 +662,7 @@ export const UnitsPage: React.FC = () => {
             const fullImageUrl = imageUrl 
               ? (imageUrl.startsWith('http') || imageUrl.startsWith('//') 
                   ? imageUrl 
-                  : `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
+                  : `${getApiRoot()}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
               : null;
 
 
@@ -1033,7 +1034,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
       } else {
         setResult(data);
         if (response.status === 404) {
-          showToast('Import endpoint not found. Check that the API server is running and REACT_APP_API_BASE_URL is correct.', 'error');
+          showToast('Import endpoint not found. Check that the API server is running and the API base URL is configured.', 'error');
         } else if (response.status === 400 && data.error) {
           const debugHint = data.debug?.FILES_keys?.length === 0
             ? ' (Server received no file – check proxy/ngrok or use field name "file".)'

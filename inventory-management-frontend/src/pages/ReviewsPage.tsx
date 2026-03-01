@@ -6,6 +6,7 @@ import {
   Review,
   ProductTemplate,
 } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useProductsList } from '../hooks/useProductsList';
@@ -85,7 +86,7 @@ export const ReviewsPage: React.FC = () => {
       if (reviewData instanceof FormData) {
         // Use fetch directly for multipart/form-data
         const token = localStorage.getItem('auth_token');
-        const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+        const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/reviews/`, {
           method: 'POST',
           headers: {
@@ -141,7 +142,7 @@ export const ReviewsPage: React.FC = () => {
       // Check if it's FormData (for file upload) or regular object
       if (reviewData instanceof FormData) {
         const token = localStorage.getItem('auth_token');
-        const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+        const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/reviews/${editingReview.id}/`, {
           method: 'PATCH',
           headers: {
@@ -206,7 +207,7 @@ export const ReviewsPage: React.FC = () => {
   const bulkActionMutation = useMutation({
     mutationFn: async ({ action, reviewIds }: { action: 'delete' | 'hide'; reviewIds: number[] }) => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/reviews/bulk_action/`, {
         method: 'POST',
         headers: {

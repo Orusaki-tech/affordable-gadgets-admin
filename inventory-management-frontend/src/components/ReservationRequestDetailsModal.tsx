@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ReservationRequestsService, InventoryUnitRW, OrdersService, BrandsService, type ReservationRequest, type Brand, type OrderRequest } from '../api/index';
+import { getInventoryBaseUrl, getApiRoot } from '../api/config';
 
 // Extended type for InventoryUnitRW with additional computed properties
 type InventoryUnitRWExtended = InventoryUnitRW & {
@@ -87,7 +88,7 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
     queryFn: async () => {
       // Fetch available units - filter by sale_status=AV (Available)
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/units/?sale_status=AV&page=1&page_size=100`, {
         headers: {
           'Authorization': `Token ${token}`,
@@ -175,8 +176,8 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
     setIsSearchingCustomer(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
-      const response = await fetch(`${baseUrl}/public/cart/recognize/?phone=${encodeURIComponent(phone)}`, {
+      const apiRoot = getApiRoot();
+      const response = await fetch(`${apiRoot}/api/public/cart/recognize/?phone=${encodeURIComponent(phone)}`, {
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json',

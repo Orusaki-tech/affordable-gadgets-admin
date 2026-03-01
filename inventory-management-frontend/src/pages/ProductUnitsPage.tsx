@@ -8,6 +8,7 @@ import {
   UnitsService,
   InventoryUnitRW,
 } from '../api/index';
+import { getApiRoot } from '../api/config';
 import { ModalLoader } from '../components/PageLoader';
 
 const UnitForm = lazy(() => import('../components/UnitForm').then((m) => ({ default: m.UnitForm })));
@@ -274,7 +275,7 @@ export const ProductUnitsPage: React.FC = () => {
             const fullImageUrl = imageUrl 
               ? (imageUrl.startsWith('http') || imageUrl.startsWith('//') 
                   ? imageUrl 
-                  : `${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
+                  : `${getApiRoot()}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`)
               : null;
 
             return (

@@ -5,6 +5,7 @@ import {
   Brand,
   BrandRequest,
 } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 
 interface AdminRole {
   id?: number;
@@ -501,7 +502,7 @@ export const BrandsPage: React.FC = () => {
     queryKey: ['admins', 'all'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/admins/`, {
         headers: {
           'Authorization': `Token ${token}`,
@@ -860,7 +861,7 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
         formDataToSend.append('logo', formData.logo);
 
         const token = localStorage.getItem('auth_token');
-        const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+        const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/brands/`, {
           method: 'POST',
           headers: {
@@ -905,7 +906,7 @@ const BrandFormModal: React.FC<BrandFormModalProps> = ({
         formDataToSend.append('logo', formData.logo);
 
         const token = localStorage.getItem('auth_token');
-        const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+        const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/brands/${brand.id}/`, {
           method: 'PATCH',
           headers: {
@@ -1259,7 +1260,7 @@ const BrandAdminAssignmentModal: React.FC<BrandAdminAssignmentModalProps> = ({
 
           // Create a promise for this admin's update
           const token = localStorage.getItem('auth_token');
-          const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+          const baseUrl = getInventoryBaseUrl();
           
           updatePromises.push(
             fetch(`${baseUrl}/admins/${adminId}/brands/`, {

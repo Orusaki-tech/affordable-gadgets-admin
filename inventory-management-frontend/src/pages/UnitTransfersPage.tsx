@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
 import { UnitTransfersService, ProfilesService } from '../api/index';
+import { getInventoryBaseUrl } from '../api/config';
 
 export const UnitTransfersPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -58,7 +59,7 @@ export const UnitTransfersPage: React.FC = () => {
     queryKey: ['reserved-units-for-transfer'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/units/?sale_status=RS&page_size=100`, {
         headers: { 'Authorization': `Token ${token}` },
       });
@@ -74,7 +75,7 @@ export const UnitTransfersPage: React.FC = () => {
     queryKey: ['salespersons'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
+      const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/admins/?page_size=100`, {
         headers: { 'Authorization': `Token ${token}` },
       });
