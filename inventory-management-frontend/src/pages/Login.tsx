@@ -25,12 +25,13 @@ export const LoginPage: React.FC = () => {
         (r: { name?: string; role_code?: string }) => r.name === roleName || r.role_code === roleName
       );
     };
+    const state = { adminProfile: profile };
     if (hasRole('CC') && !isSuperuser) {
-      navigate('/content-creator/dashboard', { replace: true });
+      navigate('/content-creator/dashboard', { state, replace: true });
     } else if (hasRole('SP') && !isSuperuser) {
-      navigate('/products', { replace: true });
+      navigate('/products', { state, replace: true });
     } else {
-      navigate('/dashboard', { replace: true });
+      navigate('/dashboard', { state, replace: true });
     }
   }, [navigate]);
 
@@ -46,11 +47,9 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      await login(username, password, (profile) => {
-        // Redirect immediately after login with the profile we already have (no wait for re-render/cache)
-        if (profile) redirectByRole(profile);
-        else navigate('/dashboard', { replace: true });
-      });
+      // Do not redirect here. login() fetches profile and updates state/cache; redirect only
+      // from useEffect when adminProfile is available, so the dashboard never mounts with stale role.
+      await login(username, password);
     } catch (err: any) {
       const raw = err?.message ?? err?.body ?? '';
       const safeMessage =
@@ -62,7 +61,8 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  // Already authenticated: show "Logging in..." / "Redirecting..." until useEffect redirects (prevents form flash or double submit)
+  // Already authenticated: stay on this screen until profile is in state/cache, then useEffect redirects.
+  // This ensures the dashboard never mounts before role is populated (avoids "Standard User" / "ACCESS RESTRICTED").
   if (isAuthenticated && user?.id) {
     return (
       <div className="login-container">

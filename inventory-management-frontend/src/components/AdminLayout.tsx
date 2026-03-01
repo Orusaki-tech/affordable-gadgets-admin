@@ -29,6 +29,20 @@ export const AdminLayout: React.FC = () => {
     isLoading: boolean;
   };
 
+  // Profile passed from Login after redirect – use immediately so role/superuser show without refresh
+  const profileFromLoginState = (location.state as { adminProfile?: AdminProfileResponse } | undefined)?.adminProfile;
+  const effectiveProfile = adminProfile ?? profileFromLoginState;
+
+  // When we land with profile in state (post-login redirect), seed cache and auth so hasValidated/role stay correct
+  useEffect(() => {
+    if (!profileFromLoginState) return;
+    const profileUserId = profileFromLoginState.user?.id ?? (profileFromLoginState as any).user_id;
+    const keyId = profileUserId ?? (profileFromLoginState as any).id;
+    if (keyId != null) queryClient.setQueryData(queryKeys.adminProfile(keyId), profileFromLoginState);
+    setUserFromProfile(profileFromLoginState);
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [profileFromLoginState, setUserFromProfile, queryClient, navigate, location.pathname]);
+
   // Sync auth user from profile when profile loads (fixes incomplete user from cache or failed validation)
   useEffect(() => {
     if (!adminProfile) return;
@@ -41,15 +55,15 @@ export const AdminLayout: React.FC = () => {
   }, [adminProfile, user?.id, setUserFromProfile, queryClient]);
 
   const hasRole = (roleName: string) => {
-    if (!adminProfile?.roles) return false;
-    return adminProfile.roles.some((role) => role.name === roleName || role.role_code === roleName);
+    if (!effectiveProfile?.roles) return false;
+    return effectiveProfile.roles.some((role) => role.name === roleName || role.role_code === roleName);
   };
 
   // Check superuser status - support nested user, top-level profile (backend can send is_superuser/is_staff on profile), and auth context
   const isSuperuser =
-    adminProfile?.user?.is_superuser === true ||
-    (adminProfile?.user as any)?.isSuperuser === true ||
-    (adminProfile as any)?.is_superuser === true ||
+    effectiveProfile?.user?.is_superuser === true ||
+    (effectiveProfile?.user as any)?.isSuperuser === true ||
+    (effectiveProfile as any)?.is_superuser === true ||
     user?.is_superuser === true;
 
   // Debug: log only when profile exists but user/role still missing (helps diagnose API shape)
@@ -68,18 +82,18 @@ export const AdminLayout: React.FC = () => {
   // Get admin's brands (memoized to prevent unnecessary re-renders)
   // brands can be string or Brand[], parse if string
   const adminBrands = useMemo((): Brand[] => {
-    if (!adminProfile?.brands) return [];
-    if (typeof adminProfile.brands === 'string') {
+    if (!effectiveProfile?.brands) return [];
+    if (typeof effectiveProfile.brands === 'string') {
       try {
-        const parsed = JSON.parse(adminProfile.brands);
+        const parsed = JSON.parse(effectiveProfile.brands);
         return Array.isArray(parsed) ? parsed : [];
       } catch {
         return [];
       }
     }
-    return Array.isArray(adminProfile.brands) ? adminProfile.brands : [];
-  }, [adminProfile?.brands]);
-  const isGlobalAdmin = adminProfile?.is_global_admin === true;
+    return Array.isArray(effectiveProfile.brands) ? effectiveProfile.brands : [];
+  }, [effectiveProfile?.brands]);
+  const isGlobalAdmin = effectiveProfile?.is_global_admin === true;
   const isBundleReadOnly = !isSuperuser && !isGlobalAdmin && !isMarketingManager;
   const hasMultipleBrands = adminBrands.length > 1 && !isGlobalAdmin;
   
@@ -152,16 +166,16 @@ export const AdminLayout: React.FC = () => {
           <p className="user-email">{user?.email}</p>
           <div className="user-roles">
             <span className="role-badge-small">
-              {adminProfileLoading && user && !adminProfile
+              {adminProfileLoading && user && !effectiveProfile
                 ? 'Loading...'
                 : isSuperuser
                   ? 'Superuser'
                   : 'Standard User'}
             </span>
           </div>
-          {adminProfile?.roles && adminProfile.roles.length > 0 && (
+          {effectiveProfile?.roles && effectiveProfile.roles.length > 0 && (
             <div className="user-roles">
-              {adminProfile.roles.map((role) => (
+              {effectiveProfile.roles.map((role) => (
                 <span key={role.id} className="role-badge-small">
                   {role.display_name || role.role_name || role.name}
                 </span>

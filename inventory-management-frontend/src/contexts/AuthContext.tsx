@@ -225,11 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : await authResponse.text();
 
       if (!authResponse.ok) {
-        const error: any = new Error(
-          authResponse.status === 400
-            ? 'Server rejected the request. If the API is behind ngrok, ensure the backend ALLOWED_HOSTS includes the ngrok host (run ngrok-on-vm.sh on the VM).'
-            : 'Login failed. Please check your credentials.'
-        );
+        const error: any = new Error('Login failed.');
         error.status = authResponse.status;
         error.body = authBody;
         throw error;
@@ -280,7 +276,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
       console.log('✅ Login successful, user authenticated:', { user_id: uid, email, is_superuser });
 
-      // Delay redirect so React commits state before navigation; avoids "Standard User" flash on destination page
+      // Optional callback (e.g. for analytics). Do NOT navigate here; Login redirects only after
+      // profile is in cache and useEffect runs, so the destination page always has role populated.
       if (onSuccess) {
         setTimeout(() => onSuccess(adminProfile), 0);
       }
@@ -292,15 +289,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error?.name === 'AbortError') {
         errorMessage = 'Login timed out. The server may be starting up; please try again in a moment.';
       } else if (error?.body) {
-        // Handle Django REST Framework error format
-        if (error.body.non_field_errors && Array.isArray(error.body.non_field_errors) && error.body.non_field_errors.length > 0) {
-          errorMessage = error.body.non_field_errors[0];
-        } else if (typeof error.body === 'string') {
-          errorMessage = error.body;
-        } else if (error.body.detail) {
-          errorMessage = error.body.detail;
-        } else if (error.body.message) {
-          errorMessage = error.body.message;
+        // Handle Django REST Framework error format (non_field_errors, field errors, detail, message)
+        const body = error.body;
+        if (typeof body === 'string') {
+          const trimmed = body.trim();
+          if (trimmed.startsWith('<') || /<!doctype/i.test(trimmed)) {
+            errorMessage = 'Server rejected the request. If using localhost, ensure the backend is in development mode (DJANGO_ENV not set or "development") and ALLOWED_HOSTS includes localhost.';
+          } else {
+            errorMessage = body;
+          }
+        } else if (body?.non_field_errors && Array.isArray(body.non_field_errors) && body.non_field_errors.length > 0) {
+          errorMessage = body.non_field_errors[0];
+        } else if (body?.username && Array.isArray(body.username) && body.username.length > 0) {
+          errorMessage = body.username[0];
+        } else if (body?.password && Array.isArray(body.password) && body.password.length > 0) {
+          errorMessage = body.password[0];
+        } else if (body?.detail) {
+          errorMessage = typeof body.detail === 'string' ? body.detail : (Array.isArray(body.detail) ? body.detail[0] : String(body.detail));
+        } else if (body?.message) {
+          errorMessage = body.message;
         }
       }
       
