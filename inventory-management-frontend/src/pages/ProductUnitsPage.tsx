@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   ProductsService,
   ProfilesService,
+  UnitsService,
   InventoryUnitRW,
 } from '../api/index';
 import { ModalLoader } from '../components/PageLoader';
@@ -65,34 +66,29 @@ export const ProductUnitsPage: React.FC = () => {
     return statusMap[status] || null;
   };
 
-  // Fetch units filtered by product ID using server-side filtering
+  // Fetch units filtered by product ID using server-side filtering (same API base as rest of app)
   const { data, isLoading, error } = useQuery({
     queryKey: ['units', 'product', productId, page],
     placeholderData: keepPreviousData,
     staleTime: 30 * 1000,
     queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
-      const pageSize = 100;
-      
-      // Use server-side filtering via query parameter
-      const url = `${baseUrl}/units/?product_template=${productId}&page=${page}&page_size=${pageSize}`;
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          throw new Error('Authentication required or invalid.');
-        }
-        throw new Error(`Failed to fetch units: ${response.statusText}`);
-      }
-
-      const result = await response.json();
+      const result = await UnitsService.unitsList(
+        undefined, // condition
+        undefined, // ordering
+        page,
+        Number(productId), // product_template filter
+        undefined, // product_template__brand
+        undefined, // product_template__product_type
+        undefined, // ram_gb
+        undefined, // ram_gb__gte
+        undefined, // sale_status
+        undefined, // search
+        undefined, // selling_price
+        undefined, // selling_price_gte
+        undefined, // selling_price_lte
+        undefined, // storage_gb
+        undefined, // storage_gb_gte
+      );
       return result;
     },
     enabled: !authLoading && isAuthenticated && !!productId,

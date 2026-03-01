@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       setHasValidated(true);
       
-      // Add timeout to prevent hanging (15s to allow Render cold starts)
+      // Add timeout to prevent hanging (15s to allow backend/ngrok response)
       const timeoutMs = 15000;
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Token validation timeout')), timeoutMs)
@@ -246,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (isNgrok) {
         loginHeaders['ngrok-skip-browser-warning'] = 'true';
       }
-      // Backend (e.g. Railway) can be slow on cold start; allow up to 90s so login can complete.
+      // Backend (ngrok/GCP) may be slow; allow up to 90s so login can complete.
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
       const authResponse = await fetch(authUrl, {

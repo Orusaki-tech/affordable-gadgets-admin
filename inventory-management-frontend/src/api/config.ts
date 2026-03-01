@@ -13,12 +13,14 @@ const getApiBaseUrl = () => {
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
     // Only auto-detect for local network IPs (not production domains)
-    // Production domains like vercel.app, netlify.app, etc. should use env variable
-    const isProductionDomain = hostname.includes('.vercel.app') || 
-                                hostname.includes('.netlify.app') || 
-                                hostname.includes('.railway.app') ||
-                                hostname.includes('.herokuapp.com') ||
-                                hostname.includes('.onrender.com');
+    // Production: Vercel, Netlify, ngrok, GCP (Cloud Run), etc. Set REACT_APP_API_BASE_URL to backend (e.g. ngrok or GCP URL).
+    const isProductionDomain = hostname.includes('.vercel.app') ||
+                                hostname.includes('.netlify.app') ||
+                                hostname.includes('.ngrok-free.app') ||
+                                hostname.includes('.ngrok.io') ||
+                                hostname.includes('.run.app') ||
+                                hostname.includes('.cloud.run') ||
+                                hostname.includes('.herokuapp.com');
     
     if (!isProductionDomain && hostname !== 'localhost' && hostname !== '127.0.0.1') {
       const apiUrl = `http://${hostname}:8000/api/inventory`;
@@ -28,7 +30,7 @@ const getApiBaseUrl = () => {
     
     // Production domain: never use localhost. Use same origin (e.g. if /api is proxied) or require env.
     if (isProductionDomain && typeof window !== 'undefined') {
-      console.warn('⚠️ REACT_APP_API_BASE_URL not set in production. Using same-origin /api/inventory. Set the env var in Vercel/Netlify to point to your API.');
+      console.warn('⚠️ REACT_APP_API_BASE_URL not set in production. Using same-origin /api/inventory. Set the env var (e.g. in Vercel) to your backend URL (ngrok or GCP).');
       return `${window.location.origin}/api/inventory`;
     }
   }
