@@ -997,6 +997,7 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
       if (/ngrok[^/]*\.(app|io|dev)/i.test(getApiRoot())) {
         headers['ngrok-skip-browser-warning'] = 'true';
       }
+      // Do not set Content-Type: fetch will set multipart/form-data with boundary for FormData
       const response = await fetch(url, {
         method: 'POST',
         headers,
@@ -1004,13 +1005,22 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
       });
 
       const contentType = response.headers.get('content-type') || '';
-      let data: { created?: number; failed?: number; success?: boolean; error?: string; errors?: string[] } = {};
+      let data: { created?: number; failed?: number; success?: boolean; error?: string; errors?: string[]; debug?: { FILES_keys?: string[]; POST_keys?: string[] } } = {};
       const text = await response.text();
-      if (contentType.includes('application/json') && text) {
+      if (text) {
         try {
-          data = JSON.parse(text);
+          if (contentType.includes('application/json')) {
+            data = JSON.parse(text);
+          } else {
+            // Some proxies return 400 without JSON; still try parse for API errors
+            try {
+              data = JSON.parse(text);
+            } catch {
+              data = { error: text.slice(0, 200) };
+            }
+          }
         } catch {
-          data = {};
+          data = { error: text.slice(0, 200) || 'No response body' };
         }
       }
 
@@ -1024,10 +1034,15 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
         setResult(data);
         if (response.status === 404) {
           showToast('Import endpoint not found. Check that the API server is running and REACT_APP_API_BASE_URL is correct.', 'error');
+        } else if (response.status === 400 && data.error) {
+          const debugHint = data.debug?.FILES_keys?.length === 0
+            ? ' (Server received no file – check proxy/ngrok or use field name "file".)'
+            : '';
+          showToast(`Import failed: ${data.error}${debugHint}`, 'error');
         } else if (data.errors?.length || data.created !== undefined) {
           showToast(`Import finished: ${data.created ?? 0} created, ${data.failed ?? 0} failed.`, 'error');
         } else {
-          showToast(`Import failed (${response.status}): ${(data.error || text || 'Unknown error').toString().slice(0, 100)}`, 'error');
+          showToast(`Import failed (${response.status}): ${(data.error || text || 'Unknown error').toString().slice(0, 150)}`, 'error');
         }
       }
     } catch (error: any) {
