@@ -277,20 +277,6 @@ export const ProductsPage: React.FC = () => {
       alert('Product deleted successfully');
     },
     onError: (err: any) => {
-      // #region agent log
-      const errorInfo = {
-        hasResponse: !!err?.response,
-        hasData: !!err?.response?.data,
-        status: err?.response?.status,
-        statusText: err?.response?.statusText,
-        dataType: typeof err?.response?.data,
-        data: err?.response?.data,
-        message: err?.message,
-        fullError: err,
-      };
-      fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ProductsPage.tsx:292',message:'Product delete error caught',data:errorInfo,timestamp:Date.now(),sessionId:'debug-session',runId:'product-delete-error-debug',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
       // Extract error message from DRF ValidationError response
       let errorMessage = 'Unable to delete product because it still has inventory units.';
       

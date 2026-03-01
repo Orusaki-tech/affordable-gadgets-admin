@@ -55,27 +55,13 @@ export const usePaginatedProducts = (
   const { data: pageData, isLoading, error, refetch } = useQuery<PaginatedProductList>({
     queryKey: ['products', currentPage, normalizedSearch, productType, brand, stockStatus],
     queryFn: async () => {
-      // #region agent log
-      const fetchStartTime = Date.now();
-      fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'usePaginatedProducts.ts:35',message:'Product page fetch started',data:{page:currentPage,timestamp:fetchStartTime},timestamp:Date.now(),sessionId:'debug-session',runId:'perf-debug',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
-      const pageCallStart = Date.now();
-      const response = await ProductsService.productsList({
+      return ProductsService.productsList({
         page: currentPage,
         search: normalizedSearch || undefined,
         product_type: productType || undefined,
         brand: brand || undefined,
         stock_status: stockStatus || undefined,
       });
-      const pageCallEnd = Date.now();
-      const pageDuration = pageCallEnd - pageCallStart;
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/b929b5de-6cb5-433f-9de2-1e9133201c78',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'usePaginatedProducts.ts:45',message:'Product page fetched',data:{page:currentPage,productsInPage:response.results?.length||0,duration:pageDuration,hasNext:!!response.next,totalCount:response.count},timestamp:Date.now(),sessionId:'debug-session',runId:'perf-debug',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
-      
-      return response;
     },
     enabled,
   });
