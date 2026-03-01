@@ -10,9 +10,9 @@ import { queryKeys } from './queryKeys';
  * - Any component that calls useAdminProfile() reads from that same cache and re-renders when the data updates.
  */
 export function useAdminProfile() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   return useQuery({
-    queryKey: queryKeys.adminProfile(user?.id),
+    queryKey: queryKeys.adminProfile(),
     queryFn: () => ProfilesService.profilesAdminRetrieve(),
     retry: false,
     enabled: isAuthenticated,

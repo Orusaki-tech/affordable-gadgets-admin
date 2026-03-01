@@ -4,7 +4,8 @@
  */
 
 export const queryKeys = {
-  adminProfile: (userId: number | undefined) => ['admin-profile', userId] as const,
+  /** Stable key for current user's admin profile – do not key by userId so cache is shared after login before context updates */
+  adminProfile: () => ['admin-profile'] as const,
   brands: () => ['brands'] as const,
   colorsAll: () => ['colors-all'] as const,
   sourcesAll: () => ['sources-all'] as const,

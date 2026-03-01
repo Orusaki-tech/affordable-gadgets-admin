@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (uid != null && email != null) {
         console.log('Token validation successful:', { user_id: uid, email });
-        queryClient.setQueryData(queryKeys.adminProfile(uid), adminProfile);
+        queryClient.setQueryData(queryKeys.adminProfile(), adminProfile);
         setIsAdmin(true);
         setIsAuthenticated(true);
         const nextUser = {
@@ -254,9 +254,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const is_staff = adminProfile?.user?.is_staff ?? adminProfile?.is_staff ?? true;
       const is_superuser = adminProfile?.user?.is_superuser ?? adminProfile?.is_superuser ?? false;
 
-      if (uid != null) {
-        queryClient.setQueryData(queryKeys.adminProfile(uid), adminProfile);
-      }
+      queryClient.setQueryData(queryKeys.adminProfile(), adminProfile);
       setHasValidated(true);
       setIsAuthenticated(true);
       setIsAdmin(true);

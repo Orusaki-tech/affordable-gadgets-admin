@@ -34,12 +34,9 @@ export const AdminLayout: React.FC = () => {
   const effectiveProfile = adminProfile ?? profileFromLoginState;
 
   // When we land with profile in state (post-login redirect), seed cache and auth so role/cache stay in sync
-  // Do NOT clear state here – clearing it would drop profileFromLoginState before the query cache is read, causing "Standard User" flash
   useEffect(() => {
     if (!profileFromLoginState) return;
-    const profileUserId = profileFromLoginState.user?.id ?? (profileFromLoginState as any).user_id;
-    const keyId = profileUserId ?? (profileFromLoginState as any).id;
-    if (keyId != null) queryClient.setQueryData(queryKeys.adminProfile(keyId), profileFromLoginState);
+    queryClient.setQueryData(queryKeys.adminProfile(), profileFromLoginState);
     setUserFromProfile(profileFromLoginState);
   }, [profileFromLoginState, setUserFromProfile, queryClient]);
 
@@ -50,8 +47,7 @@ export const AdminLayout: React.FC = () => {
     if (user?.id !== undefined && profileUserId !== undefined && user.id === profileUserId) return; // already in sync
     if (!profileUserId && !adminProfile.username && !adminProfile.email && !(adminProfile as any).id) return;
     setUserFromProfile(adminProfile);
-    const keyId = profileUserId ?? (adminProfile as any).id;
-    if (keyId != null) queryClient.setQueryData(queryKeys.adminProfile(keyId), adminProfile);
+    queryClient.setQueryData(queryKeys.adminProfile(), adminProfile);
   }, [adminProfile, user?.id, setUserFromProfile, queryClient]);
 
   const hasRole = (roleName: string) => {
@@ -149,6 +145,15 @@ export const AdminLayout: React.FC = () => {
   const isActive = (path: string) => {
     return location.pathname === path ? 'active' : '';
   };
+
+  // Don't show "Standard User" / "ACCESS RESTRICTED" until profile is loaded – wait for profile (state or query)
+  if (user && !effectiveProfile && adminProfileLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <div>Loading your profile...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-layout">
