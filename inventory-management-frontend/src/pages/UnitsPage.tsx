@@ -354,56 +354,6 @@ export const UnitsPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredUnits]);
 
-  // #region agent log
-  useEffect(() => {
-    const checkLayout = () => {
-      const unitsPage = document.querySelector('.units-page');
-      const pageHeader = document.querySelector('.page-header');
-      const pageHeaderActions = document.querySelector('.page-header-actions');
-      const utilityActions = document.querySelector('.utility-actions');
-      const mainContent = document.querySelector('.main-content');
-      const contentWrapper = document.querySelector('.content-wrapper');
-      
-      const getScrollInfo = (el: Element | null) => {
-        if (!el) return null;
-        const computed = window.getComputedStyle(el);
-        return {
-          overflowY: computed.overflowY,
-          overflowX: computed.overflowX,
-          height: computed.height,
-          maxHeight: computed.maxHeight,
-          scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight,
-          hasScrollbar: el.scrollHeight > el.clientHeight
-        };
-      };
-      
-      const getButtonInfo = () => {
-        const buttons = utilityActions?.querySelectorAll('button');
-        if (!buttons) return null;
-        return Array.from(buttons).map((btn, i) => {
-          const rect = btn.getBoundingClientRect();
-          const computed = window.getComputedStyle(btn);
-          return {
-            index: i,
-            text: btn.textContent?.trim(),
-            width: rect.width,
-            right: rect.right,
-            visible: rect.right <= window.innerWidth,
-            flexShrink: computed.flexShrink,
-            minWidth: computed.minWidth
-          };
-        });
-      };
-    };
-    
-    // Check immediately and after a short delay to catch any async layout
-    checkLayout();
-    const timeout = setTimeout(checkLayout, 500);
-    return () => clearTimeout(timeout);
-  }, []);
-  // #endregion
-
   const getNextPage = () => {
     if (data?.next) {
       setPage(page + 1);
