@@ -979,6 +979,28 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
     }
   };
 
+  const parseResponse = async (response: Response) => {
+    const contentType = response.headers.get('content-type') || '';
+    let data: { created?: number; failed?: number; success?: boolean; error?: string; errors?: string[]; debug?: { FILES_keys?: string[]; POST_keys?: string[] } } = {};
+    const text = await response.text();
+    if (text) {
+      try {
+        if (contentType.includes('application/json')) {
+          data = JSON.parse(text);
+        } else {
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = { error: text.slice(0, 200) };
+          }
+        }
+      } catch {
+        data = { error: text.slice(0, 200) || 'No response body' };
+      }
+    }
+    return { data, text };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
@@ -987,59 +1009,44 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
     }
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
+    const baseUrl = getInventoryBaseUrl();
+    const url = `${baseUrl}/units/import_csv/`;
+    const token = localStorage.getItem('auth_token');
+    const apiRoot = getApiRoot();
+    const headers: Record<string, string> = {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Token ${token}` } : {}),
+    };
+    if (/ngrok/i.test(apiRoot)) {
+      headers['ngrok-skip-browser-warning'] = 'true';
+    }
 
     try {
-      const baseUrl = (OpenAPI.BASE || '').replace(/\/$/, '');
-      const url = `${baseUrl}/units/import_csv/`;
-      const token = localStorage.getItem('auth_token');
-      const headers: Record<string, string> = token ? { Authorization: `Token ${token}` } : {};
-      if (/ngrok[^/]*\.(app|io|dev)/i.test(getApiRoot())) {
-        headers['ngrok-skip-browser-warning'] = 'true';
-      }
-      // Do not set Content-Type: fetch will set multipart/form-data with boundary for FormData
+      // Send CSV as base64 in JSON so it works when multipart is stripped (e.g. ngrok, proxies)
+      const csvText = await file.text();
+      const base64 = btoa(unescape(encodeURIComponent(csvText)));
       const response = await fetch(url, {
         method: 'POST',
         headers,
-        body: formData,
+        body: JSON.stringify({ csv_base64: base64 }),
       });
 
-      const contentType = response.headers.get('content-type') || '';
-      let data: { created?: number; failed?: number; success?: boolean; error?: string; errors?: string[]; debug?: { FILES_keys?: string[]; POST_keys?: string[] } } = {};
-      const text = await response.text();
-      if (text) {
-        try {
-          if (contentType.includes('application/json')) {
-            data = JSON.parse(text);
-          } else {
-            // Some proxies return 400 without JSON; still try parse for API errors
-            try {
-              data = JSON.parse(text);
-            } catch {
-              data = { error: text.slice(0, 200) };
-            }
-          }
-        } catch {
-          data = { error: text.slice(0, 200) || 'No response body' };
-        }
-      }
+      const { data, text } = await parseResponse(response);
 
       if (response.ok) {
         setResult(data);
         showToast(`Successfully imported ${data.created ?? 0} unit(s)`, 'success');
-        setTimeout(() => {
-          onSuccess();
-        }, 2000);
+        setTimeout(() => onSuccess(), 2000);
       } else {
         setResult(data);
         if (response.status === 404) {
           showToast('Import endpoint not found. Check that the API server is running and the API base URL is configured.', 'error');
         } else if (response.status === 400 && data.error) {
-          const debugHint = data.debug?.FILES_keys?.length === 0
-            ? ' (Server received no file – check proxy/ngrok or use field name "file".)'
+          const debugInfo = data.debug
+            ? ` [FILES: ${(data.debug.FILES_keys || []).join(',') || 'none'}]`
             : '';
-          showToast(`Import failed: ${data.error}${debugHint}`, 'error');
+          showToast(`Import failed: ${data.error}${debugInfo}`, 'error');
         } else if (data.errors?.length || data.created !== undefined) {
           showToast(`Import finished: ${data.created ?? 0} created, ${data.failed ?? 0} failed.`, 'error');
         } else {
