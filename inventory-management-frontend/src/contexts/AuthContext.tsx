@@ -27,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_USER_KEY = 'auth_user';
 const AUTH_IS_ADMIN_KEY = 'auth_is_admin';
+const AUTH_PROFILE_KEY = 'auth_profile';
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const queryClient = useQueryClient();
@@ -100,11 +101,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(nextUser);
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
         localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
+        localStorage.setItem(AUTH_PROFILE_KEY, JSON.stringify(adminProfile));
       } else {
         throw new Error('Invalid admin profile');
       }
     } catch (error: any) {
-      // 401/403 = invalid token; timeout = server too slow; redirect/network = e.g. ERR_TOO_MANY_REDIRECTS; Invalid admin profile = bad response shape
+      // 401/403/404 = invalid token (destructive). timeout/network/invalid-profile = non-fatal on startup.
       const isAuthError = error?.status === 401 || error?.status === 403 || error?.status === 404;
       const msg = String(error?.message ?? '');
       const isInvalidProfile = msg.includes('Invalid admin profile');
@@ -115,14 +117,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         msg.includes('Load failed') ||
         msg.includes('redirect');
 
-      if (isAuthError || isTimeout || isNetworkOrRedirect || isInvalidProfile) {
-        console.warn('Token validation failed:', isInvalidProfile ? 'invalid profile response' : isTimeout ? 'timeout' : isNetworkOrRedirect ? 'network/redirect' : 'auth error', error);
+      if (isAuthError) {
+        console.warn('Token validation failed: auth error', error);
         clearAuthToken();
         localStorage.removeItem(AUTH_USER_KEY);
         localStorage.removeItem(AUTH_IS_ADMIN_KEY);
+        localStorage.removeItem(AUTH_PROFILE_KEY);
         setIsAuthenticated(false);
         setIsAdmin(false);
         setUser(null);
+      } else if (isInvalidProfile || isTimeout || isNetworkOrRedirect) {
+        console.warn('Token validation non-fatal:', isInvalidProfile ? 'invalid profile response' : isTimeout ? 'timeout' : 'network/redirect', error);
+        // Keep current auth/session from cached login payload.
       } else {
         // Other unexpected errors: keep token, allow user to retry
         console.warn('Token validation failed - other error:', error);
@@ -151,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(nextUser);
     localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
     localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
+    localStorage.setItem(AUTH_PROFILE_KEY, JSON.stringify(profile));
   }, []);
 
   useEffect(() => {
@@ -158,34 +165,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('AuthContext mount - token exists:', !!token, 'hasValidated:', hasValidated);
     
     if (token) {
-      // Optimistically restore cached auth state so full-page redirects don't look logged out.
+      // Restore cached auth/profile from last successful login first.
+      let hasCachedUser = false;
       try {
         const cachedUser = localStorage.getItem(AUTH_USER_KEY);
         const cachedIsAdminRaw = localStorage.getItem(AUTH_IS_ADMIN_KEY);
+        const cachedProfile = localStorage.getItem(AUTH_PROFILE_KEY);
         const cachedIsAdmin = cachedIsAdminRaw === 'true';
         if (cachedUser) {
           setUser(JSON.parse(cachedUser));
+          hasCachedUser = true;
+        }
+        if (cachedProfile) {
+          queryClient.setQueryData(queryKeys.adminProfile(), JSON.parse(cachedProfile));
         }
         setIsAuthenticated(true);
         setIsAdmin(cachedIsAdminRaw ? cachedIsAdmin : true);
       } catch (error) {
         console.warn('Failed to restore cached auth state:', error);
       }
-    }
-    
-    if (token && !hasValidated) {
-      // Validate token by fetching admin profile
-      console.log('Starting token validation...');
-      validateToken();
+
+      if (hasCachedUser) {
+        setHasValidated(true);
+        setLoading(false);
+        return;
+      }
+
+      if (!hasValidated) {
+        console.log('Starting token validation...');
+        validateToken();
+      } else {
+        console.log('Token already validated, skipping validation');
+        setLoading(false);
+      }
     } else if (!token) {
       console.log('No token found, setting loading to false');
       setLoading(false);
-    } else if (hasValidated) {
-      // Already validated, don't validate again
-      console.log('Token already validated, skipping validation');
-      setLoading(false);
     }
-  }, [hasValidated, validateToken]);
+  }, [hasValidated, validateToken, queryClient]);
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
@@ -198,6 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         queryClient.clear();
         localStorage.removeItem(AUTH_USER_KEY);
         localStorage.removeItem(AUTH_IS_ADMIN_KEY);
+        localStorage.removeItem(AUTH_PROFILE_KEY);
         setIsAuthenticated(false);
         setIsAdmin(false);
         setUser(null);
@@ -297,6 +315,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(nextUser);
       localStorage.setItem(AUTH_USER_KEY, JSON.stringify(nextUser));
       localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
+      localStorage.setItem(AUTH_PROFILE_KEY, JSON.stringify(adminProfile));
       console.log('✅ Login successful, user authenticated:', { user_id: uid, email, is_superuser });
 
       return adminProfile as ProfileForSync;
@@ -345,6 +364,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearAuthToken();
     localStorage.removeItem(AUTH_USER_KEY);
     localStorage.removeItem(AUTH_IS_ADMIN_KEY);
+    localStorage.removeItem(AUTH_PROFILE_KEY);
     setIsAuthenticated(false);
     setIsAdmin(false);
     setUser(null);

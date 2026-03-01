@@ -44,8 +44,21 @@ const getApiBaseUrl = () => {
 // If window is not available yet, it will use default and update later
 let initialBaseUrl = getApiBaseUrl();
 OpenAPI.BASE = initialBaseUrl;
-// Prevent caching of API responses (avoids stale 400/401 and "only works after opening DevTools" behavior)
-OpenAPI.HEADERS = { 'Cache-Control': 'no-store', Pragma: 'no-cache' };
+// Build shared headers for generated API client calls.
+// Important: include ngrok bypass header for all requests when API host is ngrok.
+const getOpenApiHeaders = (): Record<string, string> => {
+  const headers: Record<string, string> = {
+    'Cache-Control': 'no-store',
+    Pragma: 'no-cache',
+  };
+  const apiRoot = getApiRoot();
+  const isNgrok = /^https?:\/\/[^/]*ngrok[^/]*\.(app|io|dev)(\/|$)/i.test(apiRoot);
+  if (isNgrok) {
+    headers['ngrok-skip-browser-warning'] = 'true';
+  }
+  return headers;
+};
+OpenAPI.HEADERS = getOpenApiHeaders;
 console.log(`✅ Initial API base URL set to: ${OpenAPI.BASE}`);
 
 // Update base URL dynamically when window becomes available (if needed)
@@ -59,6 +72,8 @@ if (typeof window !== 'undefined') {
     } else {
       console.log(`✅ API base URL confirmed: ${OpenAPI.BASE}`);
     }
+    // Re-evaluate shared headers in case base URL changed (e.g. ngrok/non-ngrok).
+    OpenAPI.HEADERS = getOpenApiHeaders;
   };
   
   // Try immediately
