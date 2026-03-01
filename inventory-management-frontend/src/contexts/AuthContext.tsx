@@ -16,7 +16,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   user: User | null;
-  login: (username: string, password: string, onSuccess?: (profile: { user?: { is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> }) => void) => Promise<void>;
+  login: (username: string, password: string) => Promise<ProfileForSync | null>;
   logout: () => void;
   loading: boolean;
   /** Sync auth user from profile (e.g. when profile loads on dashboard so role/access is correct) */
@@ -188,11 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('storage', handleStorage);
   }, [queryClient, validateToken]);
 
-  const login = async (
-    username: string,
-    password: string,
-    onSuccess?: (profile: { user?: { is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> }) => void
-  ) => {
+  const login = async (username: string, password: string): Promise<ProfileForSync | null> => {
     try {
       const formData = new URLSearchParams();
       formData.set('username', username);
@@ -276,11 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem(AUTH_IS_ADMIN_KEY, 'true');
       console.log('✅ Login successful, user authenticated:', { user_id: uid, email, is_superuser });
 
-      // Optional callback (e.g. for analytics). Do NOT navigate here; Login redirects only after
-      // profile is in cache and useEffect runs, so the destination page always has role populated.
-      if (onSuccess) {
-        setTimeout(() => onSuccess(adminProfile), 0);
-      }
+      return adminProfile as ProfileForSync;
     } catch (error: any) {
       console.error('Login error:', error);
       

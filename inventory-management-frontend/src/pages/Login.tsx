@@ -47,9 +47,8 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Do not redirect here. login() fetches profile and updates state/cache; redirect only
-      // from useEffect when adminProfile is available, so the dashboard never mounts with stale role.
-      await login(username, password);
+      const profile = await login(username, password);
+      if (profile) redirectByRole(profile);
     } catch (err: any) {
       const raw = err?.message ?? err?.body ?? '';
       const safeMessage =
