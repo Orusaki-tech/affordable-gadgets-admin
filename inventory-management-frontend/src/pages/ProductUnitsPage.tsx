@@ -1,5 +1,5 @@
 import React, { useState, Suspense, lazy } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -68,6 +68,8 @@ export const ProductUnitsPage: React.FC = () => {
   // Fetch units filtered by product ID using server-side filtering
   const { data, isLoading, error } = useQuery({
     queryKey: ['units', 'product', productId, page],
+    placeholderData: keepPreviousData,
+    staleTime: 30 * 1000,
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
       const baseUrl = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api/inventory';
@@ -204,12 +206,13 @@ export const ProductUnitsPage: React.FC = () => {
   };
 
   const units = data?.results || [];
+  const hasData = units.length > 0 || (data && 'results' in data);
 
-  if (isLoading) {
+  if (isLoading && !hasData) {
     return <div className="loading">Loading units...</div>;
   }
 
-  if (error) {
+  if (error && !hasData) {
     return <div className="error">Error loading units: {(error as Error).message}</div>;
   }
 

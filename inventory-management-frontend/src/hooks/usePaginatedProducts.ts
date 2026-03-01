@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ProductsService, ProductTemplate, PaginatedProductList } from '../api/index';
 
@@ -48,6 +48,7 @@ export const usePaginatedProducts = (
   const [allProducts, setAllProducts] = useState<ProductTemplate[]>([]);
   const [hasMorePages, setHasMorePages] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const prevFilterKeyRef = useRef<string | null>(null);
 
   // Fetch products with pagination - only load current page
   const normalizedSearch = search.trim();
@@ -85,12 +86,20 @@ export const usePaginatedProducts = (
     }
   }, [pageData, currentPage, onPageChange]);
 
-  // Reset pagination when query parameters change
+  // Reset pagination only when user changes filters (not on mount or when navigating back)
   useEffect(() => {
-    setCurrentPage(initialPage);
-    setAllProducts([]);
-    setHasMorePages(true);
-    setTotalCount(0);
+    const filterKey = `${normalizedSearch}|${productType}|${brand}|${stockStatus}`;
+    if (prevFilterKeyRef.current === null) {
+      prevFilterKeyRef.current = filterKey;
+      return;
+    }
+    if (prevFilterKeyRef.current !== filterKey) {
+      prevFilterKeyRef.current = filterKey;
+      setCurrentPage(initialPage);
+      setAllProducts([]);
+      setHasMorePages(true);
+      setTotalCount(0);
+    }
   }, [initialPage, normalizedSearch, productType, brand, stockStatus]);
 
   // Load more products
