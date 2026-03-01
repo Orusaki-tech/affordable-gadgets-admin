@@ -48,7 +48,13 @@ export const LoginPage: React.FC = () => {
 
     try {
       const profile = await login(username, password);
-      if (profile) redirectByRole(profile);
+      if (profile) {
+        // Defer redirect so React commits auth state (setUser etc.) before navigation;
+        // otherwise the dashboard can mount with stale context and show "Standard User"
+        requestAnimationFrame(() => {
+          setTimeout(() => redirectByRole(profile), 0);
+        });
+      }
     } catch (err: any) {
       const raw = err?.message ?? err?.body ?? '';
       const safeMessage =

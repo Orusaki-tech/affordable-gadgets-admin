@@ -59,7 +59,7 @@ export const AdminLayout: React.FC = () => {
     return effectiveProfile.roles.some((role) => role.name === roleName || role.role_code === roleName);
   };
 
-  // Check superuser status - support nested user, top-level profile (backend can send is_superuser/is_staff on profile), and auth context
+  // Check superuser status – prefer profile (state or query), then auth context user (set on login)
   const isSuperuser =
     effectiveProfile?.user?.is_superuser === true ||
     (effectiveProfile?.user as any)?.isSuperuser === true ||
