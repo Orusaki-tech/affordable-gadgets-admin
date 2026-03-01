@@ -33,15 +33,15 @@ export const AdminLayout: React.FC = () => {
   const profileFromLoginState = (location.state as { adminProfile?: AdminProfileResponse } | undefined)?.adminProfile;
   const effectiveProfile = adminProfile ?? profileFromLoginState;
 
-  // When we land with profile in state (post-login redirect), seed cache and auth so hasValidated/role stay correct
+  // When we land with profile in state (post-login redirect), seed cache and auth so role/cache stay in sync
+  // Do NOT clear state here – clearing it would drop profileFromLoginState before the query cache is read, causing "Standard User" flash
   useEffect(() => {
     if (!profileFromLoginState) return;
     const profileUserId = profileFromLoginState.user?.id ?? (profileFromLoginState as any).user_id;
     const keyId = profileUserId ?? (profileFromLoginState as any).id;
     if (keyId != null) queryClient.setQueryData(queryKeys.adminProfile(keyId), profileFromLoginState);
     setUserFromProfile(profileFromLoginState);
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [profileFromLoginState, setUserFromProfile, queryClient, navigate, location.pathname]);
+  }, [profileFromLoginState, setUserFromProfile, queryClient]);
 
   // Sync auth user from profile when profile loads (fixes incomplete user from cache or failed validation)
   useEffect(() => {
