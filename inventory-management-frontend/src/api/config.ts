@@ -26,15 +26,14 @@ const getApiBaseUrl = () => {
       return apiUrl;
     }
     
-    // For production domains without env variable, warn and use localhost (will fail, but at least we warn)
-    if (isProductionDomain) {
-      console.error('❌ REACT_APP_API_BASE_URL environment variable is not set!');
-      console.error('   Please set REACT_APP_API_BASE_URL in your Vercel/Netlify project settings.');
-      console.error('   Example: https://your-api-domain.railway.app/api/inventory');
+    // Production domain: never use localhost. Use same origin (e.g. if /api is proxied) or require env.
+    if (isProductionDomain && typeof window !== 'undefined') {
+      console.warn('⚠️ REACT_APP_API_BASE_URL not set in production. Using same-origin /api/inventory. Set the env var in Vercel/Netlify to point to your API.');
+      return `${window.location.origin}/api/inventory`;
     }
   }
-  
-  // Default to localhost (for local development only)
+
+  // Default to localhost only when not in production (e.g. local dev)
   const defaultUrl = 'http://localhost:8000/api/inventory';
   console.log(`📍 Using default API URL: ${defaultUrl}`);
   return defaultUrl;

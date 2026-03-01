@@ -8,6 +8,7 @@ import {
   ProfilesService,
   OpenAPI,
 } from '../api/index';
+import { getApiRoot } from '../api/config';
 import { ModalLoader } from '../components/PageLoader';
 
 const UnitForm = lazy(() => import('../components/UnitForm').then((m) => ({ default: m.UnitForm })));
@@ -1042,25 +1043,25 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
       const baseUrl = (OpenAPI.BASE || '').replace(/\/$/, '');
       const url = `${baseUrl}/units/import_csv/`;
       const token = localStorage.getItem('auth_token');
+      const headers: Record<string, string> = token ? { Authorization: `Token ${token}` } : {};
+      if (/ngrok[^/]*\.(app|io|dev)/i.test(getApiRoot())) {
+        headers['ngrok-skip-browser-warning'] = 'true';
+      }
       const response = await fetch(url, {
         method: 'POST',
-        headers: token ? { Authorization: `Token ${token}` } : {},
+        headers,
         body: formData,
       });
 
       const contentType = response.headers.get('content-type') || '';
       let data: { created?: number; failed?: number; success?: boolean; error?: string; errors?: string[] } = {};
-      if (contentType.includes('application/json')) {
-        data = await response.json();
-      } else if (!response.ok) {
-        const text = await response.text();
-        if (response.status === 404) {
-          showToast('Import endpoint not found. Check that the API server is running and REACT_APP_API_BASE_URL is correct.', 'error');
-        } else {
-          showToast(`Import failed (${response.status}): ${text.slice(0, 80)}`, 'error');
+      const text = await response.text();
+      if (contentType.includes('application/json') && text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = {};
         }
-        setIsUploading(false);
-        return;
       }
 
       if (response.ok) {
@@ -1071,7 +1072,13 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
         }, 2000);
       } else {
         setResult(data);
-        showToast(`Import failed: ${data.error ?? 'Unknown error'}`, 'error');
+        if (response.status === 404) {
+          showToast('Import endpoint not found. Check that the API server is running and REACT_APP_API_BASE_URL is correct.', 'error');
+        } else if (data.errors?.length || data.created !== undefined) {
+          showToast(`Import finished: ${data.created ?? 0} created, ${data.failed ?? 0} failed.`, 'error');
+        } else {
+          showToast(`Import failed (${response.status}): ${(data.error || text || 'Unknown error').toString().slice(0, 100)}`, 'error');
+        }
       }
     } catch (error: any) {
       showToast(`Upload error: ${error.message}`, 'error');
