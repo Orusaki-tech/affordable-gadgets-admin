@@ -6,6 +6,7 @@ import {
   UnitsService,
   InventoryUnitRW,
   ProfilesService,
+  OpenAPI,
 } from '../api/index';
 import { ModalLoader } from '../components/PageLoader';
 
@@ -23,6 +24,7 @@ export const UnitsPage: React.FC = () => {
   const [showBulkPriceModal, setShowBulkPriceModal] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [toast, setToast] = useState<{message: string; type: 'success' | 'error'} | null>(null);
   const [imageLoadingStates, setImageLoadingStates] = useState<Record<number, { loading: boolean; error: boolean }>>({});
   const queryClient = useQueryClient();
@@ -126,10 +128,51 @@ export const UnitsPage: React.FC = () => {
     return params.toString();
   };
 
-  // CSV Export
-  const handleExport = () => {
+  // CSV Export: fetch blob and trigger download so the file downloads instead of opening in a new tab
+  const handleExport = async () => {
     const queryString = buildQueryString();
-    window.open(`/api/inventory/units/export_csv/?${queryString}`, '_blank');
+    const baseUrl = (OpenAPI.BASE || '').replace(/\/$/, '');
+    const url = `${baseUrl}/units/export_csv/${queryString ? `?${queryString}` : ''}`;
+    const token = localStorage.getItem('auth_token');
+    setIsExporting(true);
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: token ? { Authorization: `Token ${token}` } : {},
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        let message = 'Export failed';
+        try {
+          const json = JSON.parse(text);
+          message = json.error || json.detail || message;
+        } catch {
+          if (text) message = text.slice(0, 100);
+        }
+        showToast(message, 'error');
+        return;
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition');
+      let filename = 'inventory_units_export.csv';
+      if (disposition) {
+        const match = disposition.match(/filename="?([^";\n]+)"?/);
+        if (match) filename = match[1].trim();
+      }
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+      showToast('Units exported successfully', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Export failed', 'error');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const clearFilters = () => {
@@ -415,8 +458,12 @@ export const UnitsPage: React.FC = () => {
             </button>
             {(isInventoryManager || isSuperuser) && (
               <>
-                <button className="btn-secondary" onClick={handleExport}>
-                  📥 Export CSV
+                <button
+                  className="btn-secondary"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                >
+                  {isExporting ? '⏳ Exporting…' : '📥 Export CSV'}
                 </button>
                 <button className="btn-secondary" onClick={() => setShowImportModal(true)}>
                   📤 Import CSV
@@ -994,26 +1041,39 @@ const CSVImportModal: React.FC<CSVImportModalProps> = ({ onClose, onSuccess, sho
     formData.append('file', file);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/inventory/units/import_csv/', {
+      const baseUrl = (OpenAPI.BASE || '').replace(/\/$/, '');
+      const url = `${baseUrl}/units/import_csv/`;
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
+        headers: token ? { Authorization: `Token ${token}` } : {},
         body: formData,
       });
 
-      const data = await response.json();
-      
+      const contentType = response.headers.get('content-type') || '';
+      let data: { created?: number; failed?: number; success?: boolean; error?: string; errors?: string[] } = {};
+      if (contentType.includes('application/json')) {
+        data = await response.json();
+      } else if (!response.ok) {
+        const text = await response.text();
+        if (response.status === 404) {
+          showToast('Import endpoint not found. Check that the API server is running and REACT_APP_API_BASE_URL is correct.', 'error');
+        } else {
+          showToast(`Import failed (${response.status}): ${text.slice(0, 80)}`, 'error');
+        }
+        setIsUploading(false);
+        return;
+      }
+
       if (response.ok) {
         setResult(data);
-        showToast(`Successfully imported ${data.created} unit(s)`, 'success');
+        showToast(`Successfully imported ${data.created ?? 0} unit(s)`, 'success');
         setTimeout(() => {
           onSuccess();
         }, 2000);
       } else {
         setResult(data);
-        showToast(`Import failed: ${data.error}`, 'error');
+        showToast(`Import failed: ${data.error ?? 'Unknown error'}`, 'error');
       }
     } catch (error: any) {
       showToast(`Upload error: ${error.message}`, 'error');

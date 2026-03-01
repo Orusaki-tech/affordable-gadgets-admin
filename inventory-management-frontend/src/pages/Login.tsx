@@ -47,10 +47,15 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Only run login; do NOT redirect here. Redirect only from useEffect when we have
-      // isAuthenticated + user + adminProfile from cache, so the dashboard never mounts
-      // before the profile is in cache and context is committed (fixes "must refresh to see superuser").
-      await login(username, password);
+      // Redirect with the profile returned by login() so we don't get stuck waiting for a
+      // second profile read on this page before navigation.
+      const profile = await login(username, password);
+      if (profile) {
+        redirectByRole(profile);
+      } else {
+        // Defensive fallback: if profile is unexpectedly missing, go to dashboard and let layout load profile.
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err: any) {
       const raw = err?.message ?? err?.body ?? '';
       const safeMessage =
