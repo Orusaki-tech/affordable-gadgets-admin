@@ -54,22 +54,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         timeoutPromise
       ]) as any;
 
-      // Backend returns nested user and/or top-level fields; support both shapes
-      const uid = adminProfile?.user?.id ?? adminProfile?.id;
-      const email = adminProfile?.user?.email ?? adminProfile?.email;
-      const username = adminProfile?.user?.username ?? adminProfile?.username ?? email ?? '';
-      const is_staff = adminProfile?.user?.is_staff ?? adminProfile?.is_staff ?? true;
-      const is_superuser = adminProfile?.user?.is_superuser ?? adminProfile?.is_superuser ?? false;
+      // Backend returns nested user and/or top-level fields; support both shapes and camelCase from some clients
+      const uid =
+        adminProfile?.user?.id ??
+        (adminProfile as any)?.user?.id ??
+        adminProfile?.id ??
+        (adminProfile as any)?.user_id;
+      const email =
+        adminProfile?.user?.email ??
+        (adminProfile as any)?.user?.email ??
+        adminProfile?.email ??
+        '';
+      const username =
+        adminProfile?.user?.username ??
+        (adminProfile as any)?.user?.username ??
+        adminProfile?.username ??
+        email ??
+        '';
+      const is_staff =
+        adminProfile?.user?.is_staff ??
+        (adminProfile as any)?.user?.is_staff ??
+        adminProfile?.is_staff ??
+        true;
+      const is_superuser =
+        adminProfile?.user?.is_superuser ??
+        (adminProfile as any)?.user?.isSuperuser ??
+        adminProfile?.is_superuser ??
+        (adminProfile as any)?.isSuperuser ??
+        false;
 
-      if (uid != null && email != null) {
-        console.log('Token validation successful:', { user_id: uid, email });
+      // Accept profile if we have any identifier (uid or email/username) so we don't reject valid API shapes
+      const hasIdentity = uid != null || email !== '' || username !== '';
+      if (hasIdentity && adminProfile && typeof adminProfile === 'object') {
+        console.log('Token validation successful:', { user_id: uid, email: email || '(from username)' });
         queryClient.setQueryData(queryKeys.adminProfile(), adminProfile);
         setIsAdmin(true);
         setIsAuthenticated(true);
         const nextUser = {
-          id: uid,
-          username: username || email,
-          email,
+          id: uid ?? undefined,
+          username: username || email || 'admin',
+          email: email || username || '',
           is_staff,
           is_superuser,
         };
@@ -80,9 +104,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error('Invalid admin profile');
       }
     } catch (error: any) {
-      // 401/403 = invalid token; timeout = server too slow; redirect/network = e.g. ERR_TOO_MANY_REDIRECTS — clear so user can re-login
+      // 401/403 = invalid token; timeout = server too slow; redirect/network = e.g. ERR_TOO_MANY_REDIRECTS; Invalid admin profile = bad response shape
       const isAuthError = error?.status === 401 || error?.status === 403 || error?.status === 404;
       const msg = String(error?.message ?? '');
+      const isInvalidProfile = msg.includes('Invalid admin profile');
       const isTimeout = msg.includes('Token validation timeout') || msg.includes('timeout');
       const isNetworkOrRedirect =
         msg.includes('Failed to fetch') ||
@@ -90,8 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         msg.includes('Load failed') ||
         msg.includes('redirect');
 
-      if (isAuthError || isTimeout || isNetworkOrRedirect) {
-        console.warn('Token validation failed:', isTimeout ? 'timeout' : isNetworkOrRedirect ? 'network/redirect' : 'auth error', error);
+      if (isAuthError || isTimeout || isNetworkOrRedirect || isInvalidProfile) {
+        console.warn('Token validation failed:', isInvalidProfile ? 'invalid profile response' : isTimeout ? 'timeout' : isNetworkOrRedirect ? 'network/redirect' : 'auth error', error);
         clearAuthToken();
         localStorage.removeItem(AUTH_USER_KEY);
         localStorage.removeItem(AUTH_IS_ADMIN_KEY);

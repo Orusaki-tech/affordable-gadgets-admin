@@ -47,14 +47,10 @@ export const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      const profile = await login(username, password);
-      if (profile) {
-        // Defer redirect so React commits auth state (setUser etc.) before navigation;
-        // otherwise the dashboard can mount with stale context and show "Standard User"
-        requestAnimationFrame(() => {
-          setTimeout(() => redirectByRole(profile), 0);
-        });
-      }
+      // Only run login; do NOT redirect here. Redirect only from useEffect when we have
+      // isAuthenticated + user + adminProfile from cache, so the dashboard never mounts
+      // before the profile is in cache and context is committed (fixes "must refresh to see superuser").
+      await login(username, password);
     } catch (err: any) {
       const raw = err?.message ?? err?.body ?? '';
       const safeMessage =
