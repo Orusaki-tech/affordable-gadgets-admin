@@ -372,15 +372,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Notify server in background with short timeout; ignore errors (user is already logged out locally)
     if (token) {
       const logoutUrl = getAuthLogoutUrl();
+      const apiRoot = getApiRoot();
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Token ${token}`,
+      };
+      if (/ngrok/i.test(apiRoot)) {
+        headers['ngrok-skip-browser-warning'] = 'true';
+      }
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
       fetch(logoutUrl, {
         method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Token ${token}`,
-        },
+        headers,
         signal: controller.signal,
       })
         .then((res) => {
