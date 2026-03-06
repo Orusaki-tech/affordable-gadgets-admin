@@ -694,6 +694,9 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             <label>
               Display Locations <span className="required">*</span>
             </label>
+            <small className="form-help" style={{ display: 'block', marginBottom: '8px' }}>
+              Select where this promotion appears. Tick &quot;Homepage hero&quot; to show it in the homepage hero carousel (the main banner slots on the storefront).
+            </small>
             <div className="checkbox-group">
               <label className="checkbox-label">
                 <input
@@ -784,8 +787,8 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             </div>
             {errors.display_locations && <span className="error-text">{errors.display_locations}</span>}
             
-            {/* Layout Position Placeholders for Stories Carousel */}
-            {formData.display_locations.includes('stories_carousel') && (
+            {/* Carousel / display order: for Homepage hero (order) or Stories carousel (layout position) */}
+            {(formData.display_locations.includes('homepage_hero') || formData.display_locations.includes('stories_carousel')) && (
               <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 <div style={{ marginBottom: '12px', fontWeight: '600', color: '#374151', fontSize: '14px' }}>
                   Stories Carousel Layout Positions:
@@ -962,8 +965,13 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
                 </div>
                 <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                    Select Carousel Position:
+                    {formData.display_locations.includes('stories_carousel') ? 'Select Carousel Position:' : 'Display order (Homepage hero):'}
                   </label>
+                  {formData.display_locations.includes('homepage_hero') && (
+                    <div style={{ marginBottom: '8px', fontSize: '12px', color: '#6b7280' }}>
+                      Lower number = shown earlier in the homepage hero carousel. Use any positive integer.
+                    </div>
+                  )}
                   <select
                     value={formData.carousel_position || ''}
                     onChange={(e) => {

@@ -92,7 +92,8 @@ export const PromotionsPage: React.FC = () => {
   const isSuperuser = adminProfile?.user?.is_superuser === true;
   const isGlobalAdmin = (adminProfile as any)?.is_global_admin === true;
   const isMarketingManager = hasRole('MM') && !isSuperuser;
-  const canCreatePromotions = isSuperuser || isGlobalAdmin || isMarketingManager;
+  const isContentCreator = hasRole('CC') && !isSuperuser;
+  const canCreatePromotions = isSuperuser || isGlobalAdmin || isMarketingManager || isContentCreator;
 
   // Get admin's brands
   const adminBrands = useMemo(() => {

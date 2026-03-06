@@ -388,6 +388,9 @@ export const AdminLayout: React.FC = () => {
               <Link to="/reviews" className={isActive('/reviews')} onClick={() => setSidebarOpen(false)}>
                 Reviews
               </Link>
+              <Link to="/promotions" className={isActive('/promotions')} onClick={() => setSidebarOpen(false)}>
+                Promotions
+              </Link>
               <Link to="/tags" className={isActive('/tags')} onClick={() => setSidebarOpen(false)}>
                 Tags
               </Link>
