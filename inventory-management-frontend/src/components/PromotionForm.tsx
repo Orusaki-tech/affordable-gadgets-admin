@@ -638,16 +638,34 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
                   const objectUrl = URL.createObjectURL(file);
                   const img = new Image();
                   img.onload = () => {
-                    const isSquare = img.width === img.height;
-                    if (!isSquare) {
-                      setBannerImageWarning(`Image is ${img.width}x${img.height}. Stories carousel requires a square image (e.g. 1200x1200).`);
+                    const width = img.width;
+                    const height = img.height;
+                    const aspect = width / height;
+                    const isSquare = Math.abs(aspect - 1) < 0.05;
+                    const isSixteenNine = Math.abs(aspect - 16 / 9) < 0.05;
+
+                    if (!isSixteenNine && !isSquare) {
+                      setBannerImageWarning(
+                        `Image is ${width}x${height}. For best results, use a 16:9 banner (e.g. 1600x900) for the homepage hero. Square images (e.g. 1200x1200) also work well for stories, but any size will still be accepted.`
+                      );
+                    } else if (isSquare) {
+                      setBannerImageWarning(
+                        `Image is ${width}x${height} (square). This will look good in stories. For the homepage hero, a 16:9 banner (e.g. 1600x900) is usually best.`
+                      );
+                    } else if (isSixteenNine) {
+                      setBannerImageWarning(
+                        `Image is ${width}x${height} (≈16:9). Ideal for the homepage hero and will also work in stories.`
+                      );
                     } else {
                       setBannerImageWarning(null);
                     }
+
                     URL.revokeObjectURL(objectUrl);
                   };
                   img.onerror = () => {
-                    setBannerImageWarning('Could not read image dimensions. Please upload a square image.');
+                    setBannerImageWarning(
+                      'Could not read image dimensions. For best results, use a 16:9 banner (e.g. 1600x900) or a square image for stories.'
+                    );
                     URL.revokeObjectURL(objectUrl);
                   };
                   img.src = objectUrl;
@@ -665,7 +683,11 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             )}
             {errors.banner_image && <span className="error-text">{errors.banner_image}</span>}
             {bannerImageWarning && <div className="warning-message">{bannerImageWarning}</div>}
-            <small className="form-help">Required if "Stories Carousel" is selected as a display location</small>
+            <small className="form-help">
+              Recommended so this promotion shows visually in the homepage hero and stories/promotions
+              sections. Use a 16:9 banner (e.g. 1600x900) for the homepage hero; square also works well
+              in stories.
+            </small>
           </div>
 
           <div className="form-group">
@@ -673,6 +695,29 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
               Display Locations <span className="required">*</span>
             </label>
             <div className="checkbox-group">
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={formData.display_locations.includes('homepage_hero')}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setFormData({
+                        ...formData,
+                        display_locations: [...formData.display_locations, 'homepage_hero'],
+                      });
+                    } else {
+                      setFormData({
+                        ...formData,
+                        display_locations: formData.display_locations.filter(
+                          (loc: string) => loc !== 'homepage_hero'
+                        ),
+                      });
+                    }
+                  }}
+                  disabled={isLoading}
+                />
+                <span>Homepage hero banner (16:9 recommended)</span>
+              </label>
               <label className="checkbox-label">
                 <input
                   type="checkbox"
