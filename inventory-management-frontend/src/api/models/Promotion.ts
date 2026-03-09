@@ -41,6 +41,14 @@ export type Promotion = {
      * Fixed discount amount
      */
     discount_amount?: string | null;
+    /**
+     * Product showcased in storefront promo cards like the homepage hero.
+     */
+    featured_product?: number | null;
+    /**
+     * Explicit sale price to show and apply for the featured product.
+     */
+    featured_sale_price?: string | null;
     start_date: string;
     end_date: string;
     is_active?: boolean;

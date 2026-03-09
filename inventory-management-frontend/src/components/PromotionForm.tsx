@@ -25,7 +25,15 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
   preSelectedProductIds = [],
 }) => {
   // Use preSelectedProductIds if provided and no existing promotion, otherwise use promotion products
-  const initialProductIds = promotion?.products || preSelectedProductIds;
+  const initialFeaturedProductId = typeof (promotion as any)?.featured_product === 'number'
+    ? (promotion as any).featured_product
+    : null;
+  const initialProductIds = Array.from(
+    new Set([
+      ...(promotion?.products || preSelectedProductIds),
+      ...(initialFeaturedProductId ? [initialFeaturedProductId] : []),
+    ])
+  );
   
   // Use admin's brands - only show brands the admin is associated with
   // Extract brands from adminBrands prop (already filtered by backend)
@@ -52,6 +60,8 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     banner_image: null as File | null,
     discount_percentage: promotion?.discount_percentage?.toString() || '',
     discount_amount: promotion?.discount_amount?.toString() || '',
+    featured_product: initialFeaturedProductId as number | null,
+    featured_sale_price: (promotion as any)?.featured_sale_price?.toString() || '',
     start_date: promotion?.start_date ? new Date(promotion.start_date).toISOString().slice(0, 16) : '',
     end_date: promotion?.end_date ? new Date(promotion.end_date).toISOString().slice(0, 16) : '',
     is_active: promotion?.is_active !== undefined ? promotion.is_active : true,
@@ -121,6 +131,31 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
   
   // Create productsData array compatible with existing code
   const productsData = useMemo(() => allProducts, [allProducts]);
+  const selectedProducts = useMemo(
+    () => Array.from(selectedProductIds)
+      .map((productId) => productsData?.find((p) => p.id === productId))
+      .filter(Boolean),
+    [productsData, selectedProductIds]
+  );
+
+  useEffect(() => {
+    if (selectedProductIds.size === 0) {
+      setFormData((prev) => (
+        prev.featured_product === null
+          ? prev
+          : { ...prev, featured_product: null }
+      ));
+      return;
+    }
+
+    const currentFeatured = formData.featured_product;
+    if (currentFeatured !== null && selectedProductIds.has(Number(currentFeatured))) {
+      return;
+    }
+
+    const firstSelected = Array.from(selectedProductIds)[0] ?? null;
+    setFormData((prev) => ({ ...prev, featured_product: firstSelected }));
+  }, [formData.featured_product, selectedProductIds]);
 
   // Filter products by search, brand, and product type
   const filteredProducts = useMemo(() => {
@@ -398,6 +433,18 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       validationErrors.products = 'At least one product or product type must be specified';
     }
 
+    if (formData.featured_sale_price && !formData.featured_product) {
+      validationErrors.featured_product = 'Select the product that this promo card should feature';
+    }
+
+    if (
+      formData.featured_product !== null &&
+      formData.featured_product !== undefined &&
+      !selectedProductIds.has(Number(formData.featured_product))
+    ) {
+      validationErrors.featured_product = 'Featured product must also be included in the selected products list';
+    }
+
     // Cannot use both discount types
     if (formData.discount_percentage && formData.discount_amount) {
       validationErrors.discount = 'Cannot use both discount percentage and discount amount';
@@ -448,6 +495,14 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       ? formData.carousel_position
       : parseInt(String(formData.carousel_position), 10);
     const carouselPosition = Number.isFinite(parsedCarouselPosition) ? parsedCarouselPosition : null;
+    const parsedFeaturedProduct = typeof formData.featured_product === 'number'
+      ? formData.featured_product
+      : parseInt(String(formData.featured_product), 10);
+    const featuredProductId = Number.isFinite(parsedFeaturedProduct) ? parsedFeaturedProduct : null;
+    const selectedProductsForSubmit = Array.from(selectedProductIds);
+    if (featuredProductId && !selectedProductsForSubmit.includes(featuredProductId)) {
+      selectedProductsForSubmit.push(featuredProductId);
+    }
 
     const submitData: any = {
       brand: brandId,
@@ -461,7 +516,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       start_date: new Date(formData.start_date).toISOString(),
       end_date: new Date(formData.end_date).toISOString(),
       is_active: formData.is_active,
-      products: Array.from(selectedProductIds),
+      products: selectedProductsForSubmit,
     };
 
     if (promotionTypeId !== undefined) {
@@ -476,6 +531,14 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       submitData.discount_percentage = parseFloat(formData.discount_percentage);
     } else if (formData.discount_amount) {
       submitData.discount_amount = parseFloat(formData.discount_amount);
+    }
+
+    if (featuredProductId) {
+      submitData.featured_product = featuredProductId;
+    }
+
+    if (formData.featured_sale_price) {
+      submitData.featured_sale_price = parseFloat(formData.featured_sale_price);
     }
 
     if (formData.product_types) {
@@ -1281,6 +1344,53 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             </div>
             {errors.products && <span className="error-text">{errors.products}</span>}
             <small className="form-help">At least one product or product type must be selected.</small>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="featured_product">Featured Product For Promo Card</label>
+              <select
+                id="featured_product"
+                value={formData.featured_product ?? ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  featured_product: e.target.value ? parseInt(e.target.value, 10) : null,
+                })}
+                disabled={isLoading || selectedProducts.length === 0}
+              >
+                <option value="">Select featured product</option>
+                {selectedProducts.map((product) => (
+                  <option key={product!.id} value={product!.id}>
+                    {product!.product_name}
+                  </option>
+                ))}
+              </select>
+              <small className="form-help">
+                This product is used for the storefront promo card image, product name, options, and pricing.
+              </small>
+              {errors.featured_product && <span className="error-text">{errors.featured_product}</span>}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="featured_sale_price">Featured Promo Price (KES)</label>
+              <input
+                id="featured_sale_price"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.featured_sale_price}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  featured_sale_price: e.target.value,
+                })}
+                disabled={isLoading || !formData.featured_product}
+                placeholder="Optional override price"
+              />
+              <small className="form-help">
+                Optional explicit sale price. If left empty, the backend will derive the promo price from the discount fields.
+              </small>
+              {errors.featured_sale_price && <span className="error-text">{errors.featured_sale_price}</span>}
+            </div>
           </div>
 
           <div className="form-group">
