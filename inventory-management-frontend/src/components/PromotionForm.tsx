@@ -849,9 +849,45 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
               </label>
             </div>
             {errors.display_locations && <span className="error-text">{errors.display_locations}</span>}
-            
-            {/* Carousel / display order: for Homepage hero (order) or Stories carousel (layout position) */}
-            {(formData.display_locations.includes('homepage_hero') || formData.display_locations.includes('stories_carousel')) && (
+
+            {/* Display order for Homepage hero (simple numeric ordering) */}
+            {formData.display_locations.includes('homepage_hero') && !formData.display_locations.includes('stories_carousel') && (
+              <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                  Display order (Homepage hero):
+                </label>
+                <div style={{ marginBottom: '8px', fontSize: '12px', color: '#6b7280' }}>
+                  Lower numbers are shown earlier in the homepage hero carousel. You can use any positive integer.
+                </div>
+                <input
+                  type="number"
+                  min={1}
+                  value={formData.carousel_position ?? ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      carousel_position: e.target.value ? parseInt(e.target.value, 10) : null,
+                    })
+                  }
+                  disabled={isLoading}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '14px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    backgroundColor: '#ffffff',
+                    color: '#374151',
+                  }}
+                />
+                <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                  If left empty, promotions are ordered by their start date.
+                </div>
+              </div>
+            )}
+
+            {/* Stories carousel layout positions (1–5 grid mapping) */}
+            {formData.display_locations.includes('stories_carousel') && (
               <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
                 <div style={{ marginBottom: '12px', fontWeight: '600', color: '#374151', fontSize: '14px' }}>
                   Stories Carousel Layout Positions:
@@ -1028,13 +1064,8 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
                 </div>
                 <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' }}>
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
-                    {formData.display_locations.includes('stories_carousel') ? 'Select Carousel Position:' : 'Display order (Homepage hero):'}
+                    Select Carousel Position:
                   </label>
-                  {formData.display_locations.includes('homepage_hero') && (
-                    <div style={{ marginBottom: '8px', fontSize: '12px', color: '#6b7280' }}>
-                      Lower number = shown earlier in the homepage hero carousel. Use any positive integer.
-                    </div>
-                  )}
                   <select
                     value={formData.carousel_position || ''}
                     onChange={(e) => {
@@ -1063,7 +1094,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
                     <option value="5">Position 5 - Bottom Right Grid</option>
                   </select>
                   <div style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
-                    Select a specific position for this promotion in the carousel. If not selected, promotions will be assigned automatically based on creation order.
+                    Choose which tile this promotion should occupy in the Stories carousel layout. If not selected, positions are assigned automatically.
                   </div>
                 </div>
               </div>
