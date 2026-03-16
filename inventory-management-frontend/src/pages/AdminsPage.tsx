@@ -263,19 +263,42 @@ export const AdminsPage: React.FC = () => {
   });
 
   // Fetch available roles from dedicated endpoint
-  const { data: rolesData } = useQuery({
+  const {
+    data: rolesData,
+    isError: isRolesError,
+    error: rolesError,
+  } = useQuery({
     queryKey: ['admin-roles'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
       const baseUrl = getInventoryBaseUrl();
+      const apiRoot = getApiRoot();
       const response = await fetch(`${baseUrl}/admin-roles/`, {
-        headers: { 'Authorization': `Token ${token}` },
+        headers: {
+          Authorization: `Token ${token}`,
+          ...( /ngrok/i.test(apiRoot) ? { 'ngrok-skip-browser-warning': 'true' } : {} ),
+        },
       });
-      if (response.ok) {
-        const data = await response.json();
-        return data; // Returns array of all available roles
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.ok) {
+        const bodyText = await response.text().catch(() => '');
+        throw new Error(
+          `Failed to fetch admin roles (HTTP ${response.status}). ${
+            bodyText && bodyText.length < 500 ? bodyText : response.statusText
+          }`
+        );
       }
-      return [];
+      if (!contentType.includes('application/json')) {
+        const bodyText = await response.text().catch(() => '');
+        const hint =
+          bodyText.trim().startsWith('<') || /<!doctype/i.test(bodyText)
+            ? 'Server returned HTML instead of JSON. This usually means your API base URL is wrong (hitting the frontend), or a proxy/rewrite is intercepting /api requests.'
+            : 'Server returned non-JSON response.';
+        throw new Error(`Failed to fetch admin roles: ${hint}`);
+      }
+
+      const data = await response.json();
+      return data; // Returns array of all available roles
     },
   });
 
@@ -624,6 +647,9 @@ export const AdminsPage: React.FC = () => {
             }
           }}
           isLoading={assignRolesMutation.isPending}
+          loadError={
+            isRolesError ? String((rolesError as any)?.message ?? rolesError ?? '') : undefined
+          }
         />
       )}
 
@@ -794,6 +820,7 @@ interface RoleAssignmentModalProps {
   onClose: () => void;
   onAssign: (roleIds: number[]) => void;
   isLoading: boolean;
+  loadError?: string;
 }
 
 const RoleAssignmentModal: React.FC<RoleAssignmentModalProps> = ({
@@ -802,6 +829,7 @@ const RoleAssignmentModal: React.FC<RoleAssignmentModalProps> = ({
   onClose,
   onAssign,
   isLoading,
+  loadError,
 }) => {
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([]);
 
@@ -841,6 +869,18 @@ const RoleAssignmentModal: React.FC<RoleAssignmentModalProps> = ({
                 </span>
               )}
             </label>
+            {loadError && (
+              <div className="empty-state" style={{ textAlign: 'left', whiteSpace: 'pre-wrap' }}>
+                Failed to load roles.
+                {'\n'}
+                {loadError}
+              </div>
+            )}
+            {!loadError && availableRoles.length === 0 && (
+              <div className="empty-state" style={{ textAlign: 'left' }}>
+                No roles found. If this is unexpected, check the API URL and that your token is valid.
+              </div>
+            )}
             <div className="roles-grid">
               {availableRoles.map((role) => {
                 const isSelected = role.id ? selectedRoleIds.includes(role.id) : false;
