@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useBrandsList } from '../hooks/useBrandsList';
 import { type Brand } from '../api/index';
-import { getInventoryBaseUrl } from '../api/config';
+import { getApiRoot, getInventoryBaseUrl } from '../api/config';
 
 interface AdminRole {
   id?: number;
@@ -69,11 +69,17 @@ export const AdminsPage: React.FC = () => {
   const { data: currentAdminProfile, isLoading: isLoadingCurrent } = useAdminProfile();
 
   // Fetch ALL admins - fetch all pages to get complete list
-  const { data: allAdminsData, isLoading: isLoadingAdmins } = useQuery({
+  const {
+    data: allAdminsData,
+    isLoading: isLoadingAdmins,
+    isError: isAdminsError,
+    error: adminsError,
+  } = useQuery({
     queryKey: ['admins', 'all'],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
       const baseUrl = getInventoryBaseUrl();
+      const apiRoot = getApiRoot();
       const allAdmins: AdminProfile[] = [];
       let currentPage = 1;
       let hasMore = true;
@@ -83,11 +89,27 @@ export const AdminsPage: React.FC = () => {
         const response = await fetch(`${baseUrl}/admins/?page=${currentPage}&page_size=100`, {
           headers: {
             'Authorization': `Token ${token}`,
+            ...( /ngrok/i.test(apiRoot) ? { 'ngrok-skip-browser-warning': 'true' } : {} ),
           },
         });
         
+        const contentType = response.headers.get('content-type') || '';
         if (!response.ok) {
-          throw new Error('Failed to fetch admins');
+          const bodyText = await response.text().catch(() => '');
+          throw new Error(
+            `Failed to fetch admins (HTTP ${response.status}). ${
+              bodyText && bodyText.length < 500 ? bodyText : response.statusText
+            }`
+          );
+        }
+
+        if (!contentType.includes('application/json')) {
+          const bodyText = await response.text().catch(() => '');
+          const hint =
+            bodyText.trim().startsWith('<') || /<!doctype/i.test(bodyText)
+              ? 'Server returned HTML instead of JSON. This usually means your API base URL is wrong (hitting the frontend), or a proxy/rewrite is intercepting /api requests.'
+              : 'Server returned non-JSON response.';
+          throw new Error(`Failed to fetch admins: ${hint}`);
         }
         
         const data = await response.json();
@@ -477,6 +499,13 @@ export const AdminsPage: React.FC = () => {
       {/* All Admins List */}
       <div className="admins-cards-container">
         <h2>All Admins ({allAdminsData?.count || 0} total)</h2>
+        {isAdminsError && (
+          <div className="empty-state" style={{ textAlign: 'left', whiteSpace: 'pre-wrap' }}>
+            Failed to load admins.
+            {'\n'}
+            {String((adminsError as any)?.message ?? adminsError ?? '')}
+          </div>
+        )}
         {!allAdminsData?.results || allAdminsData.results.length === 0 ? (
           <div className="empty-state">
             No admins found
