@@ -11,6 +11,8 @@ import {
   ProductTemplate,
   ConditionEnum,
   SourceEnum,
+  AccessoriesLinkService,
+  ProductAccessory,
 } from '../api/index';
 import { useDebounce } from '../hooks/useDebounce';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used via useProductsList() result
@@ -71,6 +73,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [recentProducts, setRecentProducts] = useState<ProductTemplate[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [compatibleProductIds, setCompatibleProductIds] = useState<number[]>([]);
   const queryClient = useQueryClient();
   const debouncedProductSearch = useDebounce(productSearchTerm, 300);
 
@@ -358,6 +361,29 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     }
   }, [formData.product_template_id, productsData]);
 
+  const isAccessoryProduct = selectedProductType === 'AC';
+
+  // Load existing accessory links for this accessory product template (for convenience)
+  const { data: accessoryLinks } = useQuery({
+    queryKey: ['accessory-links', formData.product_template_id],
+    queryFn: () => {
+      if (!formData.product_template_id) {
+        throw new Error('No accessory product id');
+      }
+      return AccessoriesLinkService.accessoriesLinkList(formData.product_template_id, undefined, 1, 200);
+    },
+    enabled: !!formData.product_template_id && isAccessoryProduct,
+  });
+
+  useEffect(() => {
+    if (accessoryLinks && Array.isArray((accessoryLinks as any).results)) {
+      const ids = (accessoryLinks as any).results
+        .map((link: ProductAccessory) => link.main_product)
+        .filter((id: number | null | undefined): id is number => typeof id === 'number');
+      setCompatibleProductIds(ids);
+    }
+  }, [accessoryLinks]);
+
   const createMutation = useMutation({
     mutationFn: (data: InventoryUnitRequest) =>
       UnitsService.unitsCreate(data),
@@ -382,6 +408,29 @@ export const UnitForm: React.FC<UnitFormProps> = ({
           console.error('Error uploading images:', err);
           alert(`Unit created, but some images failed to upload: ${err.message || 'Unknown error'}`);
         }
+      }
+
+      // For accessories, optionally create ProductAccessory links for selected compatible products
+      try {
+        const accessoryProductId = createdUnit?.product_template as number | undefined;
+        if (accessoryProductId && selectedProductType === 'AC' && compatibleProductIds.length > 0) {
+          for (const mainProductId of compatibleProductIds) {
+            try {
+              await AccessoriesLinkService.accessoriesLinkCreate({
+                main_product: mainProductId,
+                accessory: accessoryProductId,
+                required_quantity: 1,
+              });
+            } catch (linkErr: any) {
+              // Ignore duplicate link errors; log others for debugging
+              // eslint-disable-next-line no-console
+              console.warn('Accessory link create error', linkErr);
+            }
+          }
+        }
+      } catch (linkOuterErr) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to create accessory links from unit form', linkOuterErr);
       }
       
       onSuccess();
@@ -417,7 +466,33 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       if (!unit?.id) throw new Error('Unit ID is required');
       return UnitsService.unitsUpdate(unit.id, data);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // For accessories, optionally create ProductAccessory links for selected compatible products.
+      // We only add missing links here; existing ones can still be managed from the dedicated accessories page.
+      try {
+        const accessoryProductId =
+          (formData.product_template_id as number | undefined) ||
+          (unit?.product_template as number | undefined);
+        if (accessoryProductId && selectedProductType === 'AC' && compatibleProductIds.length > 0) {
+          for (const mainProductId of compatibleProductIds) {
+            try {
+              await AccessoriesLinkService.accessoriesLinkCreate({
+                main_product: mainProductId,
+                accessory: accessoryProductId,
+                required_quantity: 1,
+              });
+            } catch (linkErr: any) {
+              // Ignore duplicate link errors; log others for debugging
+              // eslint-disable-next-line no-console
+              console.warn('Accessory link create error (update)', linkErr);
+            }
+          }
+        }
+      } catch (linkOuterErr) {
+        // eslint-disable-next-line no-console
+        console.error('Failed to update accessory links from unit form', linkOuterErr);
+      }
+
       onSuccess();
     },
     onError: (err: any) => {
@@ -1507,6 +1582,49 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                 />
               </div>
             </div>
+
+            {isAccessory && (
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="compatible_products">
+                    Compatible Devices (Phones, Laptops, Tablets)
+                  </label>
+                  <select
+                    id="compatible_products"
+                    multiple
+                    value={compatibleProductIds.map(String)}
+                    onChange={(e) => {
+                      const options = Array.from(e.target.selectedOptions);
+                      const ids = options
+                        .map((option) => parseInt(option.value, 10))
+                        .filter((id) => !Number.isNaN(id));
+                      setCompatibleProductIds(ids);
+                    }}
+                    disabled={isLoading}
+                    style={{ minHeight: '140px' }}
+                  >
+                    {productsData?.results
+                      ?.filter((product: ProductTemplate) =>
+                        product.product_type === 'PH' ||
+                        product.product_type === 'LT' ||
+                        product.product_type === 'TB'
+                      )
+                      .map((product: ProductTemplate) => (
+                        <option key={product.id} value={product.id}>
+                          {product.product_name}
+                          {product.brand ? ` - ${product.brand}` : ''}
+                          {product.model_series ? ` (${product.model_series})` : ''}
+                        </option>
+                      ))}
+                  </select>
+                  <small className="form-help">
+                    Select the phone, laptop, and tablet models this accessory works with. Saving the unit
+                    will automatically create accessory links for the selected devices (you can still manage
+                    all links from the Product Accessories page).
+                  </small>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-subsection">
