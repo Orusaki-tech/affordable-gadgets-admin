@@ -3714,6 +3714,77 @@ p, body {
   margin-bottom: var(--spacing-sm);
 }
 
+/* Accessory variant rows: responsive grid */
+.unit-form-modal .variant-row-grid {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(180px, 2fr) 70px minmax(100px, 120px) 36px;
+  gap: 1rem;
+  align-items: start;
+}
+
+/* Tablet: devices and images full width, color + qty + remove on one row */
+@media (max-width: 900px) {
+  .unit-form-modal .variant-row-grid {
+    grid-template-columns: 1fr 1fr auto;
+    grid-template-areas:
+      "color qty remove"
+      "devices devices devices"
+      "images images images";
+  }
+  .unit-form-modal .variant-cell-color { grid-area: color; }
+  .unit-form-modal .variant-cell-devices { grid-area: devices; }
+  .unit-form-modal .variant-cell-qty { grid-area: qty; }
+  .unit-form-modal .variant-cell-images { grid-area: images; }
+  .unit-form-modal .variant-cell-remove { grid-area: remove; }
+}
+
+/* Mobile: single column stack */
+@media (max-width: 600px) {
+  .unit-form-modal .variant-row-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "color"
+      "devices"
+      "qty"
+      "images"
+      "remove";
+  }
+  .unit-form-modal .variant-cell-color,
+  .unit-form-modal .variant-cell-devices,
+  .unit-form-modal .variant-cell-qty,
+  .unit-form-modal .variant-cell-images,
+  .unit-form-modal .variant-cell-remove {
+    padding-top: 0;
+  }
+  .unit-form-modal .variant-cell-remove {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--md-outline-variant, #e9ecef);
+  }
+}
+
+/* Variant section header: stack title and Add color on narrow */
+.unit-form-modal .variant-section-header {
+  flex-wrap: wrap;
+}
+@media (max-width: 480px) {
+  .unit-form-modal .variant-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Unit form modal: full width on small viewports */
+@media (max-width: 640px) {
+  .unit-form-modal {
+    max-width: 100vw;
+    margin: 0.5rem;
+    max-height: 98vh;
+  }
+  .unit-form-modal .form-section {
+    padding: var(--spacing-md);
+  }
+}
+
 @media (max-width: 640px) {
   .modal-body {
     padding: var(--spacing-md);

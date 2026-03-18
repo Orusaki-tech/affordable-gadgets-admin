@@ -86,12 +86,21 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   };
   const [variantRows, setVariantRows] = useState<AccessoryVariantRow[]>([]);
   const [isSubmittingVariants, setIsSubmittingVariants] = useState(false);
+  const [showVariantColorForm, setShowVariantColorForm] = useState(false);
+  const [deviceSearchTerm, setDeviceSearchTerm] = useState('');
+  const [activeDeviceSearchRowId, setActiveDeviceSearchRowId] = useState<string | null>(null);
+  const [deviceSearchHighlightedIndex, setDeviceSearchHighlightedIndex] = useState(-1);
+  const deviceSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const queryClient = useQueryClient();
   const debouncedProductSearch = useDebounce(productSearchTerm, 300);
+  const debouncedDeviceSearch = useDebounce(deviceSearchTerm, 300);
 
   const { data: productsData } = useProductsList(
     debouncedProductSearch.trim() || undefined
+  );
+  const { data: deviceSearchProductsData } = useProductsList(
+    debouncedDeviceSearch.trim() || undefined
   );
 
   // Enhanced filter with fuzzy matching and scoring
@@ -214,9 +223,10 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         }));
       }
       
-      // Reset form and close
+      // Reset form and close (both main and variant color forms)
       setNewColor({ name: '', hex_code: '#000000' });
       setShowColorForm(false);
+      setShowVariantColorForm(false);
     },
     onError: (err: any) => {
       let errorMessage = 'Failed to create color: ';
@@ -645,7 +655,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     setPreviewImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Device products (PH, LT, TB) for accessory compatible-devices multi-select
+  // Device products (PH, LT, TB) for accessory compatible-devices
   const deviceProducts = useMemo(
     () =>
       productsData?.results?.filter(
@@ -654,6 +664,27 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       ) ?? [],
     [productsData?.results]
   );
+
+  // Device search results (type-ahead): PH, LT, TB only, limit 15
+  const filteredDeviceProducts = useMemo(() => {
+    const list = deviceSearchProductsData?.results?.filter(
+      (p: ProductTemplate) =>
+        p.product_type === 'PH' || p.product_type === 'LT' || p.product_type === 'TB'
+    ) ?? [];
+    return list.slice(0, 15);
+  }, [deviceSearchProductsData?.results]);
+
+  // Map product id -> product for chip labels (from both main list and device search)
+  const productMapById = useMemo(() => {
+    const m = new Map<number, ProductTemplate>();
+    productsData?.results?.forEach((p: ProductTemplate) => {
+      if (p.id != null) m.set(p.id, p);
+    });
+    deviceSearchProductsData?.results?.forEach((p: ProductTemplate) => {
+      if (p.id != null) m.set(p.id, p);
+    });
+    return m;
+  }, [productsData?.results, deviceSearchProductsData?.results]);
 
   const addVariantRow = () => {
     setVariantRows(prev => [
@@ -1585,110 +1616,331 @@ export const UnitForm: React.FC<UnitFormProps> = ({
 
             {isAccessory && variantRows.length > 0 && (
               <div className="form-subsection" style={{ marginTop: '1rem' }}>
-                <h3>Accessory variants</h3>
-                <p style={{ fontSize: '0.875rem', color: '#6c757d', marginBottom: '1rem' }}>
-                  Add one row per variant (color + compatible devices + quantity). Images are attached per row.
+                <div className="variant-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <h3 style={{ margin: 0 }}>Accessory variants</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowVariantColorForm(true)}
+                    disabled={isLoading || showVariantColorForm}
+                    style={{
+                      padding: '0.4rem 0.75rem',
+                      fontSize: '0.8125rem',
+                      fontWeight: 500,
+                      color: '#0d6efd',
+                      background: 'transparent',
+                      border: '1px solid #0d6efd',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + Add color
+                  </button>
+                </div>
+                {showVariantColorForm && (
+                  <div style={{
+                    marginBottom: '1rem',
+                    padding: '1rem',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: 8,
+                    border: '1px solid #dee2e6',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <strong style={{ fontSize: '0.9375rem' }}>Add new color</strong>
+                      <button
+                        type="button"
+                        onClick={() => { setShowVariantColorForm(false); setNewColor({ name: '', hex_code: '#000000' }); }}
+                        style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#6c757d' }}
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', flexDirection: 'column' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Color name <span style={{ color: '#dc3545' }}>*</span></label>
+                        <input
+                          type="text"
+                          value={newColor.name}
+                          onChange={(e) => setNewColor(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="e.g. Black, Silver"
+                          style={{ width: '100%', padding: '0.5rem 0.6rem', border: '1px solid #ced4da', borderRadius: 6 }}
+                          disabled={createColorMutation.isPending}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Hex <span style={{ color: '#dc3545' }}>*</span></label>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <input
+                            type="color"
+                            value={newColor.hex_code}
+                            onChange={(e) => setNewColor(prev => ({ ...prev, hex_code: e.target.value }))}
+                            style={{ width: 44, height: 36, border: '1px solid #ced4da', borderRadius: 6, cursor: 'pointer' }}
+                            disabled={createColorMutation.isPending}
+                          />
+                          <input
+                            type="text"
+                            value={newColor.hex_code}
+                            onChange={(e) => {
+                              const hex = e.target.value.replace(/[^#0-9A-Fa-f]/g, '').slice(0, 7);
+                              setNewColor(prev => ({ ...prev, hex_code: hex.startsWith('#') ? hex : '#' + hex }));
+                            }}
+                            style={{ flex: 1, padding: '0.5rem 0.6rem', border: '1px solid #ced4da', borderRadius: 6, fontFamily: 'monospace' }}
+                            disabled={createColorMutation.isPending}
+                          />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newColor.name.trim() || !newColor.hex_code) { alert('Enter name and hex.'); return; }
+                            createColorMutation.mutate({ name: newColor.name.trim(), hex_code: newColor.hex_code });
+                          }}
+                          disabled={createColorMutation.isPending || !newColor.name.trim() || !newColor.hex_code}
+                          style={{ padding: '0.5rem 1rem', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.875rem' }}
+                        >
+                          {createColorMutation.isPending ? 'Adding…' : 'Add color'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setShowVariantColorForm(false); setNewColor({ name: '', hex_code: '#000000' }); }}
+                          disabled={createColorMutation.isPending}
+                          style={{ padding: '0.5rem 1rem', background: '#6c757d', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.875rem' }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <p style={{ fontSize: '0.8125rem', color: '#6c757d', marginBottom: '1rem', marginTop: 0 }}>
+                  One row per variant (color, compatible devices, quantity). Images are per row.
                 </p>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #dee2e6', textAlign: 'left' }}>
-                        <th style={{ padding: '0.5rem', width: '140px' }}>Color</th>
-                        <th style={{ padding: '0.5rem', minWidth: 200 }}>Compatible devices</th>
-                        <th style={{ padding: '0.5rem', width: 80 }}>Qty</th>
-                        <th style={{ padding: '0.5rem', minWidth: 180 }}>Images</th>
-                        <th style={{ padding: '0.5rem', width: 60 }}></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {variantRows.map((row) => (
-                        <tr key={row.id} style={{ borderBottom: '1px solid #eee', verticalAlign: 'top' }}>
-                          <td style={{ padding: '0.5rem' }}>
-                            <select
-                              value={row.colorId ?? ''}
-                              onChange={(e) =>
-                                updateVariantRow(row.id, {
-                                  colorId: e.target.value ? parseInt(e.target.value, 10) : undefined,
-                                })
-                              }
-                              disabled={isLoading}
-                              style={{ width: '100%', padding: '0.35rem' }}
-                            >
-                              <option value="">Select</option>
-                              {colorsData?.results?.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td style={{ padding: '0.5rem' }}>
-                            <select
-                              multiple
-                              value={row.compatibleProductIds.map(String)}
-                              onChange={(e) => {
-                                const ids = Array.from(e.target.selectedOptions)
-                                  .map((o) => parseInt(o.value, 10))
-                                  .filter((n) => !Number.isNaN(n));
-                                updateVariantRow(row.id, { compatibleProductIds: ids });
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {variantRows.map((row) => {
+                    const deviceSource = deviceSearchTerm.trim() ? filteredDeviceProducts : deviceProducts.slice(0, 15);
+                    const deviceOptions = deviceSource.filter(
+                      (p: ProductTemplate): p is ProductTemplate & { id: number } =>
+                        p.id != null && !row.compatibleProductIds.includes(p.id)
+                    );
+                    const isActiveDeviceRow = activeDeviceSearchRowId === row.id;
+                    return (
+                      <div
+                        key={row.id}
+                        style={{
+                          padding: '1rem',
+                          borderRadius: 8,
+                          border: '1px solid #e9ecef',
+                          backgroundColor: '#fff',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                        }}
+                      >
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(100px,1fr) minmax(180px,2fr) 70px minmax(100px,120px) 36px', gap: '1rem', alignItems: 'start' }} className="variant-row-grid">
+                          <div className="variant-cell variant-cell-color">
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Color</label>
+                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'stretch' }}>
+                              <select
+                                value={row.colorId ?? ''}
+                                onChange={(e) => updateVariantRow(row.id, { colorId: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                                disabled={isLoading}
+                                style={{
+                                  flex: 1,
+                                  padding: '0.5rem 0.6rem',
+                                  border: '1px solid #ced4da',
+                                  borderRadius: 6,
+                                  fontSize: '0.875rem',
+                                  minWidth: 0,
+                                }}
+                              >
+                                <option value="">Select</option>
+                                {colorsData?.results?.map((c) => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <div className="variant-cell variant-cell-devices" style={{ position: 'relative', minWidth: 0 }}>
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Compatible devices</label>
+                            <div
+                              style={{
+                                minHeight: 42,
+                                padding: '0.35rem 0.5rem',
+                                border: '1px solid #ced4da',
+                                borderRadius: 6,
+                                backgroundColor: '#fff',
                               }}
-                              disabled={isLoading}
-                              style={{ minHeight: 72, width: '100%', padding: '0.25rem' }}
                             >
-                              {deviceProducts.map((p: ProductTemplate) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.product_name}
-                                  {p.brand ? ` - ${p.brand}` : ''}
-                                  {p.model_series ? ` (${p.model_series})` : ''}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-                          <td style={{ padding: '0.5rem' }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: row.compatibleProductIds.length > 0 ? '0.35rem' : 0 }}>
+                                {row.compatibleProductIds.map((pid) => {
+                                  const p = productMapById.get(pid);
+                                  const label = p ? `${p.product_name}${p.brand ? ` – ${p.brand}` : ''}${p.model_series ? ` (${p.model_series})` : ''}` : `ID ${pid}`;
+                                  return (
+                                    <span
+                                      key={pid}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.25rem',
+                                        padding: '0.2rem 0.5rem',
+                                        fontSize: '0.75rem',
+                                        background: '#e7f1ff',
+                                        color: '#0d6efd',
+                                        borderRadius: 9999,
+                                        border: '1px solid #b6d4fe',
+                                      }}
+                                    >
+                                      <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => updateVariantRow(row.id, { compatibleProductIds: row.compatibleProductIds.filter((id) => id !== pid) })}
+                                        disabled={isLoading}
+                                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontSize: '1rem', lineHeight: 1 }}
+                                        aria-label="Remove"
+                                      >
+                                        ×
+                                      </button>
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                              <input
+                                ref={el => { if (isActiveDeviceRow) deviceSearchInputRef.current = el; }}
+                                type="text"
+                                value={isActiveDeviceRow ? deviceSearchTerm : ''}
+                                onChange={(e) => {
+                                  setActiveDeviceSearchRowId(row.id);
+                                  setDeviceSearchTerm(e.target.value);
+                                  setDeviceSearchHighlightedIndex(-1);
+                                }}
+                                onFocus={() => {
+                                  setActiveDeviceSearchRowId(row.id);
+                                  setDeviceSearchHighlightedIndex(-1);
+                                }}
+                                onBlur={() => setTimeout(() => setActiveDeviceSearchRowId(null), 200)}
+                                onKeyDown={(e) => {
+                                  if (!isActiveDeviceRow || deviceOptions.length === 0) return;
+                                  if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    setDeviceSearchHighlightedIndex(i => (i < deviceOptions.length - 1 ? i + 1 : i));
+                                  } else if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    setDeviceSearchHighlightedIndex(i => (i > 0 ? i - 1 : -1));
+                                  } else if (e.key === 'Enter' && deviceSearchHighlightedIndex >= 0 && deviceOptions[deviceSearchHighlightedIndex]) {
+                                    e.preventDefault();
+                                    const p = deviceOptions[deviceSearchHighlightedIndex];
+                                    if (p.id != null) {
+                                      updateVariantRow(row.id, { compatibleProductIds: [...row.compatibleProductIds, p.id] });
+                                    }
+                                    setDeviceSearchTerm('');
+                                    setDeviceSearchHighlightedIndex(-1);
+                                  } else if (e.key === 'Escape') {
+                                    setActiveDeviceSearchRowId(null);
+                                    setDeviceSearchHighlightedIndex(-1);
+                                  }
+                                }}
+                                placeholder="Search devices…"
+                                disabled={isLoading}
+                                style={{
+                                  width: '100%',
+                                  border: 'none',
+                                  outline: 'none',
+                                  fontSize: '0.875rem',
+                                  padding: '0.15rem 0',
+                                  minWidth: 120,
+                                }}
+                              />
+                            </div>
+                            {isActiveDeviceRow && deviceOptions.length > 0 && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  right: 0,
+                                  top: '100%',
+                                  marginTop: 2,
+                                  maxHeight: 220,
+                                  overflowY: 'auto',
+                                  background: '#fff',
+                                  border: '1px solid #ced4da',
+                                  borderRadius: 6,
+                                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                  zIndex: 1000,
+                                }}
+                                onMouseDown={(e) => e.preventDefault()}
+                              >
+                                {deviceOptions.map((p: ProductTemplate, idx) => (
+                                  <div
+                                    key={p.id}
+                                    onClick={() => {
+                                      if (p.id != null) {
+                                        updateVariantRow(row.id, { compatibleProductIds: [...row.compatibleProductIds, p.id] });
+                                      }
+                                      setDeviceSearchTerm('');
+                                      setDeviceSearchHighlightedIndex(-1);
+                                    }}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    style={{
+                                      padding: '0.5rem 0.75rem',
+                                      cursor: 'pointer',
+                                      fontSize: '0.875rem',
+                                      backgroundColor: deviceSearchHighlightedIndex === idx ? '#e7f1ff' : 'transparent',
+                                    }}
+                                  >
+                                    {p.product_name}
+                                    {p.brand ? ` – ${p.brand}` : ''}
+                                    {p.model_series ? ` (${p.model_series})` : ''}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <div className="variant-cell variant-cell-qty">
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Qty</label>
                             <input
                               type="number"
                               min={1}
                               value={row.quantity}
-                              onChange={(e) =>
-                                updateVariantRow(row.id, {
-                                  quantity: Math.max(1, parseInt(e.target.value, 10) || 1),
-                                })
-                              }
+                              onChange={(e) => updateVariantRow(row.id, { quantity: Math.max(1, parseInt(e.target.value, 10) || 1) })}
                               disabled={isLoading}
-                              style={{ width: '100%', padding: '0.35rem' }}
+                              style={{
+                                width: '100%',
+                                padding: '0.5rem 0.6rem',
+                                border: '1px solid #ced4da',
+                                borderRadius: 6,
+                                fontSize: '0.875rem',
+                              }}
                             />
-                          </td>
-                          <td style={{ padding: '0.5rem' }}>
+                          </div>
+                          <div className="variant-cell variant-cell-images">
+                            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Images</label>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-start' }}>
                               {row.previewUrls.map((url, idx) => (
                                 <div key={idx} style={{ position: 'relative' }}>
-                                  <img
-                                    src={url}
-                                    alt={`Preview ${idx + 1}`}
-                                    style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
-                                  />
+                                  <img src={url} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #dee2e6' }} />
                                   <button
                                     type="button"
                                     onClick={() => handleVariantRemoveImage(row.id, idx)}
                                     style={{
                                       position: 'absolute',
-                                      top: -4,
-                                      right: -4,
+                                      top: -6,
+                                      right: -6,
                                       width: 20,
                                       height: 20,
                                       borderRadius: '50%',
                                       border: 'none',
                                       background: '#dc3545',
-                                      color: 'white',
+                                      color: '#fff',
                                       cursor: 'pointer',
                                       fontSize: 12,
                                       lineHeight: 1,
                                     }}
-                                    title="Remove image"
+                                    aria-label="Remove image"
                                   >
                                     ×
                                   </button>
                                 </div>
                               ))}
-                              <label style={{ cursor: 'pointer' }}>
+                              <label style={{ cursor: 'pointer', margin: 0 }}>
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -1701,20 +1953,20 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  width: 56,
-                                  height: 56,
-                                  border: '1px dashed #ccc',
-                                  borderRadius: 4,
+                                  width: 52,
+                                  height: 52,
+                                  border: '1px dashed #ced4da',
+                                  borderRadius: 6,
                                   fontSize: '1.25rem',
                                   color: '#6c757d',
-                                  backgroundColor: '#f8f9fa',
+                                  background: '#f8f9fa',
                                 }}>
                                   +
                                 </span>
                               </label>
                             </div>
-                          </td>
-                          <td style={{ padding: '0.5rem' }}>
+                          </div>
+                          <div className="variant-cell variant-cell-remove" style={{ paddingTop: '1.5rem' }}>
                             {variantRows.length > 1 && (
                               <button
                                 type="button"
@@ -1729,28 +1981,31 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                   fontSize: '1.1rem',
                                 }}
                                 title="Remove row"
+                                aria-label="Remove variant"
                               >
                                 ×
                               </button>
                             )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <button
                   type="button"
                   onClick={addVariantRow}
                   disabled={isLoading}
                   style={{
-                    marginTop: '0.75rem',
+                    marginTop: '0.5rem',
                     padding: '0.5rem 1rem',
-                    backgroundColor: '#f8f9fa',
-                    border: '1px solid #dee2e6',
-                    borderRadius: 4,
-                    cursor: 'pointer',
                     fontSize: '0.875rem',
+                    fontWeight: 500,
+                    color: '#495057',
+                    background: '#f8f9fa',
+                    border: '1px solid #dee2e6',
+                    borderRadius: 6,
+                    cursor: 'pointer',
                   }}
                 >
                   + Add another variant
