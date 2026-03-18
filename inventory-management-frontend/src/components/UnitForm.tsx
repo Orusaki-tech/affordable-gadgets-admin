@@ -1735,7 +1735,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                           boxShadow: 'var(--shadow-sm)',
                         }}
                       >
-                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(100px,1fr) minmax(180px,2fr) 70px minmax(100px,120px) 36px', gap: '1rem', alignItems: 'start' }} className="variant-row-grid">
+                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(100px,1fr) minmax(180px,2fr) minmax(90px,110px) minmax(100px,120px) 36px', gap: '1rem', alignItems: 'start' }} className="variant-row-grid">
                           <div className="variant-cell variant-cell-color">
                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Color</label>
                             <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'stretch' }}>
@@ -1908,6 +1908,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                               style={{
                                 width: '100%',
                                 padding: '0.5rem 0.6rem',
+                                minWidth: 90,
                                 border: '1px solid var(--md-outline-variant)',
                                 borderRadius: 6,
                                 fontSize: '0.875rem',
@@ -1958,9 +1959,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  width: 52,
+                                  width: 80,
                                   height: 52,
-                                  border: '1px dashed var(--md-outline-variant)',
+                                  border: '1px solid var(--md-outline-variant)',
                                   borderRadius: 6,
                                   fontSize: '1.25rem',
                                   color: 'var(--md-on-surface-variant)',
