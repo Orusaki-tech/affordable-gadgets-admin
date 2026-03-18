@@ -6,7 +6,7 @@ import {
   PromotionsService,
   ProfilesService,
 } from '../api/index';
-import { getInventoryBaseUrl } from '../api/config';
+import { getDefaultApiHeaders, getInventoryBaseUrl } from '../api/config';
 import { useAuth } from '../contexts/AuthContext';
 import { ModalLoader } from '../components/PageLoader';
 import {
@@ -122,7 +122,7 @@ export const PromotionsPage: React.FC = () => {
       
       const response = await fetch(`${baseUrl}/promotion-types/`, {
         headers: {
-          'Authorization': `Token ${token}`,
+          ...getDefaultApiHeaders(token),
         },
       });
       
@@ -1062,10 +1062,7 @@ const PromotionTypesModal: React.FC<PromotionTypesModalProps> = ({ promotionType
       
       const response = await fetch(`${baseUrl}/promotion-types/`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getDefaultApiHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify(data),
       });
       
@@ -1097,10 +1094,7 @@ const PromotionTypesModal: React.FC<PromotionTypesModalProps> = ({ promotionType
       
       const response = await fetch(`${baseUrl}/promotion-types/${id}/`, {
         method: 'PATCH',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: getDefaultApiHeaders(token, { 'Content-Type': 'application/json' }),
         body: JSON.stringify(data),
       });
       
@@ -1132,9 +1126,7 @@ const PromotionTypesModal: React.FC<PromotionTypesModalProps> = ({ promotionType
       
       const response = await fetch(`${baseUrl}/promotion-types/${id}/`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
+        headers: getDefaultApiHeaders(token),
       });
       
       if (!response.ok) {

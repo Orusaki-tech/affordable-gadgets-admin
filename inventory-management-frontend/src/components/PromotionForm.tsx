@@ -5,7 +5,7 @@ import {
   Promotion,
   Brand,
 } from '../api/index';
-import { getInventoryBaseUrl } from '../api/config';
+import { getDefaultApiHeaders, getInventoryBaseUrl } from '../api/config';
 import { useDebounce } from '../hooks/useDebounce';
 import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 
@@ -113,9 +113,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       const token = localStorage.getItem('auth_token');
       const baseUrl = getInventoryBaseUrl();
       const response = await fetch(`${baseUrl}/promotion-types/?is_active=true`, {
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
+        headers: getDefaultApiHeaders(token),
       });
       
       if (!response.ok) {
@@ -247,9 +245,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
         const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/promotions/`, {
           method: 'POST',
-          headers: {
-            'Authorization': `Token ${token}`,
-          },
+          headers: getDefaultApiHeaders(token),
           body: formDataToSend,
         });
         
@@ -332,9 +328,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
         const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/promotions/${promotion.id}/`, {
           method: 'PATCH',
-          headers: {
-            'Authorization': `Token ${token}`,
-          },
+          headers: getDefaultApiHeaders(token),
           body: formDataToSend,
         });
         
@@ -357,10 +351,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
         const baseUrl = getInventoryBaseUrl();
         const response = await fetch(`${baseUrl}/promotions/${promotion.id}/`, {
           method: 'PATCH',
-          headers: {
-            'Authorization': `Token ${token}`,
-            'Content-Type': 'application/json',
-          },
+          headers: getDefaultApiHeaders(token, { 'Content-Type': 'application/json' }),
           body: JSON.stringify(data),
         });
 

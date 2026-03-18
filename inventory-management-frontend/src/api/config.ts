@@ -1,5 +1,8 @@
 import { OpenAPI } from './core/OpenAPI';
 
+export const isNgrokOrigin = (url: string): boolean =>
+  /^https?:\/\/[^/]*ngrok[^/]*\.(app|io|dev)(\/|$)/i.test(url);
+
 // Configure base URL from environment variable or auto-detect from current hostname
 const getApiBaseUrl = () => {
   // If environment variable is set, use it
@@ -54,8 +57,7 @@ const getOpenApiHeaders = (): Record<string, string> => {
     Pragma: 'no-cache',
   };
   const apiRoot = getApiRoot();
-  const isNgrok = /^https?:\/\/[^/]*ngrok[^/]*\.(app|io|dev)(\/|$)/i.test(apiRoot);
-  if (isNgrok) {
+  if (isNgrokOrigin(apiRoot)) {
     headers['ngrok-skip-browser-warning'] = 'true';
   }
   return headers;
@@ -144,4 +146,25 @@ export const getAuthLogoutUrl = (): string => {
   const base = OpenAPI.BASE || getApiBaseUrl();
   const normalized = base.replace(/\/$/, '');
   return `${normalized}/logout/`;
+};
+
+/**
+ * Shared headers for manual fetch() calls.
+ * Keeps behavior consistent with the generated API client (OpenAPI.HEADERS),
+ * including ngrok bypass headers when the API base is an ngrok URL.
+ */
+export const getDefaultApiHeaders = (
+  token?: string | null,
+  extra?: Record<string, string>
+): Record<string, string> => {
+  const headers: Record<string, string> = {
+    ...getOpenApiHeaders(),
+    ...(extra || {}),
+  };
+
+  if (token) {
+    headers.Authorization = `Token ${token}`;
+  }
+
+  return headers;
 };
