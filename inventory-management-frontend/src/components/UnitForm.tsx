@@ -1640,9 +1640,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                   <div style={{
                     marginBottom: '1rem',
                     padding: '1rem',
-                    backgroundColor: '#f8f9fa',
+                    backgroundColor: 'var(--md-surface-container-high)',
                     borderRadius: 8,
-                    border: '1px solid #dee2e6',
+                    border: '1px solid var(--md-outline-variant)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                       <strong style={{ fontSize: '0.9375rem' }}>Add new color</strong>
@@ -1657,24 +1657,24 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                     </div>
                     <div style={{ display: 'flex', gap: '0.75rem', flexDirection: 'column' }}>
                       <div>
-                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Color name <span style={{ color: '#dc3545' }}>*</span></label>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Color name <span style={{ color: 'var(--md-error)' }}>*</span></label>
                         <input
                           type="text"
                           value={newColor.name}
                           onChange={(e) => setNewColor(prev => ({ ...prev, name: e.target.value }))}
                           placeholder="e.g. Black, Silver"
-                          style={{ width: '100%', padding: '0.5rem 0.6rem', border: '1px solid #ced4da', borderRadius: 6 }}
+                          style={{ width: '100%', padding: '0.5rem 0.6rem', border: '1px solid var(--md-outline-variant)', borderRadius: 6, backgroundColor: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)' }}
                           disabled={createColorMutation.isPending}
                         />
                       </div>
                       <div>
-                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Hex <span style={{ color: '#dc3545' }}>*</span></label>
+                        <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>Hex <span style={{ color: 'var(--md-error)' }}>*</span></label>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                           <input
                             type="color"
                             value={newColor.hex_code}
                             onChange={(e) => setNewColor(prev => ({ ...prev, hex_code: e.target.value }))}
-                            style={{ width: 44, height: 36, border: '1px solid #ced4da', borderRadius: 6, cursor: 'pointer' }}
+                            style={{ width: 44, height: 36, border: '1px solid var(--md-outline-variant)', borderRadius: 6, cursor: 'pointer', backgroundColor: 'var(--md-surface-container-low)' }}
                             disabled={createColorMutation.isPending}
                           />
                           <input
@@ -1684,7 +1684,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                               const hex = e.target.value.replace(/[^#0-9A-Fa-f]/g, '').slice(0, 7);
                               setNewColor(prev => ({ ...prev, hex_code: hex.startsWith('#') ? hex : '#' + hex }));
                             }}
-                            style={{ flex: 1, padding: '0.5rem 0.6rem', border: '1px solid #ced4da', borderRadius: 6, fontFamily: 'monospace' }}
+                            style={{ flex: 1, padding: '0.5rem 0.6rem', border: '1px solid var(--md-outline-variant)', borderRadius: 6, fontFamily: 'monospace', backgroundColor: 'var(--md-surface-container-low)', color: 'var(--md-on-surface)' }}
                             disabled={createColorMutation.isPending}
                           />
                         </div>
@@ -1697,7 +1697,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                             createColorMutation.mutate({ name: newColor.name.trim(), hex_code: newColor.hex_code });
                           }}
                           disabled={createColorMutation.isPending || !newColor.name.trim() || !newColor.hex_code}
-                          style={{ padding: '0.5rem 1rem', background: '#0d6efd', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.875rem' }}
+                          style={{ padding: '0.5rem 1rem', background: 'var(--md-primary)', color: 'var(--md-on-primary)', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.875rem' }}
                         >
                           {createColorMutation.isPending ? 'Adding…' : 'Add color'}
                         </button>
@@ -1705,7 +1705,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                           type="button"
                           onClick={() => { setShowVariantColorForm(false); setNewColor({ name: '', hex_code: '#000000' }); }}
                           disabled={createColorMutation.isPending}
-                          style={{ padding: '0.5rem 1rem', background: '#6c757d', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.875rem' }}
+                          style={{ padding: '0.5rem 1rem', background: 'var(--md-surface-container-high)', color: 'var(--md-on-surface)', border: '1px solid var(--md-outline-variant)', borderRadius: 6, cursor: 'pointer', fontSize: '0.875rem' }}
                         >
                           Cancel
                         </button>
@@ -1713,7 +1713,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                     </div>
                   </div>
                 )}
-                <p style={{ fontSize: '0.8125rem', color: '#6c757d', marginBottom: '1rem', marginTop: 0 }}>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--md-on-surface-variant)', marginBottom: '1rem', marginTop: 0 }}>
                   One row per variant (color, compatible devices, quantity). Images are per row.
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1730,9 +1730,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                         style={{
                           padding: '1rem',
                           borderRadius: 8,
-                          border: '1px solid #e9ecef',
-                          backgroundColor: '#fff',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                          border: '1px solid var(--md-outline-variant)',
+                          backgroundColor: 'var(--md-surface-container)',
+                          boxShadow: 'var(--shadow-sm)',
                         }}
                       >
                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(100px,1fr) minmax(180px,2fr) 70px minmax(100px,120px) 36px', gap: '1rem', alignItems: 'start' }} className="variant-row-grid">
@@ -1746,9 +1746,11 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                 style={{
                                   flex: 1,
                                   padding: '0.5rem 0.6rem',
-                                  border: '1px solid #ced4da',
+                                  border: '1px solid var(--md-outline-variant)',
                                   borderRadius: 6,
                                   fontSize: '0.875rem',
+                                  backgroundColor: 'var(--md-surface-container-low)',
+                                  color: 'var(--md-on-surface)',
                                   minWidth: 0,
                                 }}
                               >
@@ -1765,9 +1767,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                               style={{
                                 minHeight: 42,
                                 padding: '0.35rem 0.5rem',
-                                border: '1px solid #ced4da',
+                                border: '1px solid var(--md-outline-variant)',
                                 borderRadius: 6,
-                                backgroundColor: '#fff',
+                                backgroundColor: 'var(--md-surface-container-low)',
                               }}
                             >
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: row.compatibleProductIds.length > 0 ? '0.35rem' : 0 }}>
@@ -1783,10 +1785,10 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                         gap: '0.25rem',
                                         padding: '0.2rem 0.5rem',
                                         fontSize: '0.75rem',
-                                        background: '#e7f1ff',
-                                        color: '#0d6efd',
+                                        background: 'var(--md-primary-container)',
+                                        color: 'var(--md-on-primary-container)',
                                         borderRadius: 9999,
-                                        border: '1px solid #b6d4fe',
+                                        border: '1px solid var(--md-primary)',
                                       }}
                                     >
                                       <span style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
@@ -1860,10 +1862,10 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                   marginTop: 2,
                                   maxHeight: 220,
                                   overflowY: 'auto',
-                                  background: '#fff',
-                                  border: '1px solid #ced4da',
+                                  background: 'var(--md-surface-container-high)',
+                                  border: '1px solid var(--md-outline-variant)',
                                   borderRadius: 6,
-                                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                                  boxShadow: 'var(--shadow-lg)',
                                   zIndex: 1000,
                                 }}
                                 onMouseDown={(e) => e.preventDefault()}
@@ -1883,7 +1885,8 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                       padding: '0.5rem 0.75rem',
                                       cursor: 'pointer',
                                       fontSize: '0.875rem',
-                                      backgroundColor: deviceSearchHighlightedIndex === idx ? '#e7f1ff' : 'transparent',
+                                      color: 'var(--md-on-surface)',
+                                      backgroundColor: deviceSearchHighlightedIndex === idx ? 'var(--md-surface-container)' : 'transparent',
                                     }}
                                   >
                                     {p.product_name}
@@ -1905,9 +1908,11 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                               style={{
                                 width: '100%',
                                 padding: '0.5rem 0.6rem',
-                                border: '1px solid #ced4da',
+                                border: '1px solid var(--md-outline-variant)',
                                 borderRadius: 6,
                                 fontSize: '0.875rem',
+                                backgroundColor: 'var(--md-surface-container-low)',
+                                color: 'var(--md-on-surface)',
                               }}
                             />
                           </div>
@@ -1955,11 +1960,11 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                   justifyContent: 'center',
                                   width: 52,
                                   height: 52,
-                                  border: '1px dashed #ced4da',
+                                  border: '1px dashed var(--md-outline-variant)',
                                   borderRadius: 6,
                                   fontSize: '1.25rem',
-                                  color: '#6c757d',
-                                  background: '#f8f9fa',
+                                  color: 'var(--md-on-surface-variant)',
+                                  background: 'var(--md-surface-container-low)',
                                 }}>
                                   +
                                 </span>
@@ -2001,9 +2006,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                     padding: '0.5rem 1rem',
                     fontSize: '0.875rem',
                     fontWeight: 500,
-                    color: '#495057',
-                    background: '#f8f9fa',
-                    border: '1px solid #dee2e6',
+                    color: 'var(--md-on-surface)',
+                    background: 'var(--md-surface-container-low)',
+                    border: '1px solid var(--md-outline-variant)',
                     borderRadius: 6,
                     cursor: 'pointer',
                   }}
