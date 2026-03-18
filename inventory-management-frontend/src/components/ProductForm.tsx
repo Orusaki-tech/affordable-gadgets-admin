@@ -844,8 +844,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
           )}
 
-          {/* Image Upload Section - Hidden for Inventory Managers */}
-          {!isInventoryManager && (
+          {/* Product Images: Inventory Managers and Content Creators (and Superusers) can upload */}
           <div className="form-group" style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid #dee2e6' }}>
             <label>Product Images</label>
             
@@ -1007,7 +1006,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 : 'Select images to upload. They will be attached when you create the product. The first image will be set as primary.'}
             </small>
           </div>
-          )}
 
           {/* SEO Section - Hidden for Inventory Managers */}
           {!isInventoryManager && (
