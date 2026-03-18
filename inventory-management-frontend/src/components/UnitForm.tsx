@@ -74,6 +74,19 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   const [recentProducts, setRecentProducts] = useState<ProductTemplate[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [compatibleProductIds, setCompatibleProductIds] = useState<number[]>([]);
+
+  // Accessory-only: multi-row variants (color, compatible devices, qty, images per row)
+  type AccessoryVariantRow = {
+    id: string;
+    colorId?: number;
+    quantity: number;
+    compatibleProductIds: number[];
+    imageFiles: File[];
+    previewUrls: string[];
+  };
+  const [variantRows, setVariantRows] = useState<AccessoryVariantRow[]>([]);
+  const [isSubmittingVariants, setIsSubmittingVariants] = useState(false);
+
   const queryClient = useQueryClient();
   const debouncedProductSearch = useDebounce(productSearchTerm, 300);
 
@@ -381,8 +394,59 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         .map((link: ProductAccessory) => link.main_product)
         .filter((id: number | null | undefined): id is number => typeof id === 'number');
       setCompatibleProductIds(ids);
+      // When editing accessory, sync first variant row's compatible devices
+      setVariantRows(prev => {
+        if (prev.length === 0) return prev;
+        return prev.map((row, i) =>
+          i === 0 ? { ...row, compatibleProductIds: ids } : row
+        );
+      });
     }
   }, [accessoryLinks]);
+
+  // Initialize variant rows: when editing accessory, one row from unitDetails
+  useEffect(() => {
+    if (!unit?.id || !unitDetails) return;
+    const productId =
+      typeof unitDetails.product_template === 'number'
+        ? unitDetails.product_template
+        : (unitDetails.product_template as unknown as { id?: number })?.id;
+    const product = productsData?.results?.find(
+      (p: ProductTemplate) => p.id === productId
+    );
+    if (product?.product_type !== 'AC') return;
+    const colorId = unitDetails.product_color
+      ? (typeof unitDetails.product_color === 'number'
+        ? unitDetails.product_color
+        : (unitDetails.product_color as unknown as { id?: number })?.id)
+      : undefined;
+    setVariantRows([
+      {
+        id: '0',
+        colorId,
+        quantity: unitDetails.quantity ?? 1,
+        compatibleProductIds: [], // filled by accessoryLinks effect
+        imageFiles: [],
+        previewUrls: [],
+      },
+    ]);
+  }, [unit?.id, unitDetails, productsData?.results]);
+
+  // When creating new unit and user selects accessory, ensure at least one variant row
+  useEffect(() => {
+    if (!unit && isAccessoryProduct && variantRows.length === 0) {
+      setVariantRows([
+        {
+          id: crypto.randomUUID?.() ?? `row-${Date.now()}`,
+          colorId: undefined,
+          quantity: 1,
+          compatibleProductIds: [],
+          imageFiles: [],
+          previewUrls: [],
+        },
+      ]);
+    }
+  }, [unit, isAccessoryProduct, variantRows.length]);
 
   const createMutation = useMutation({
     mutationFn: (data: InventoryUnitRequest) =>
@@ -581,6 +645,80 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     setPreviewImages(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Device products (PH, LT, TB) for accessory compatible-devices multi-select
+  const deviceProducts = useMemo(
+    () =>
+      productsData?.results?.filter(
+        (p: ProductTemplate) =>
+          p.product_type === 'PH' || p.product_type === 'LT' || p.product_type === 'TB'
+      ) ?? [],
+    [productsData?.results]
+  );
+
+  const addVariantRow = () => {
+    setVariantRows(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID?.() ?? `row-${Date.now()}-${prev.length}`,
+        colorId: undefined,
+        quantity: 1,
+        compatibleProductIds: [],
+        imageFiles: [],
+        previewUrls: [],
+      },
+    ]);
+  };
+
+  const updateVariantRow = (rowId: string, patch: Partial<AccessoryVariantRow>) => {
+    setVariantRows(prev =>
+      prev.map(row => (row.id === rowId ? { ...row, ...patch } : row))
+    );
+  };
+
+  const removeVariantRow = (rowId: string) => {
+    setVariantRows(prev => {
+      const next = prev.filter(row => row.id !== rowId);
+      next.forEach((row, i) => {
+        if (row.previewUrls.length) {
+          row.previewUrls.forEach(url => URL.revokeObjectURL(url));
+        }
+      });
+      return next;
+    });
+  };
+
+  const handleVariantImageSelect = (rowId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    const newPreviews = files.map(f => URL.createObjectURL(f));
+    setVariantRows(prev =>
+      prev.map(row =>
+        row.id === rowId
+          ? {
+              ...row,
+              imageFiles: [...row.imageFiles, ...files],
+              previewUrls: [...row.previewUrls, ...newPreviews],
+            }
+          : row
+      )
+    );
+    e.target.value = '';
+  };
+
+  const handleVariantRemoveImage = (rowId: string, index: number) => {
+    setVariantRows(prev =>
+      prev.map(row => {
+        if (row.id !== rowId) return row;
+        URL.revokeObjectURL(row.previewUrls[index]);
+        return {
+          ...row,
+          imageFiles: row.imageFiles.filter((_, i) => i !== index),
+          previewUrls: row.previewUrls.filter((_, i) => i !== index),
+        };
+      })
+    );
+  };
+
   const handleUploadImages = async () => {
     if (!unit?.id) {
       alert('Please save the unit first before uploading images');
@@ -605,14 +743,13 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Determine if this is an accessory product
-    const currentIsAccessory = selectedProductType === 'AC';
-    
-    // Build submit data, converting empty strings to undefined
-    const submitData: any = {
+  const buildBaseUnitPayload = (): InventoryUnitRequest => {
+    const dateSourced = formData.date_sourced
+      ? (typeof formData.date_sourced === 'string'
+          ? formData.date_sourced.split('T')[0]
+          : formData.date_sourced)
+      : undefined;
+    return {
       product_template_id: formData.product_template_id!,
       selling_price: formData.selling_price || '0',
       cost_of_unit: formData.cost_of_unit || '0',
@@ -620,37 +757,153 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       source: formData.source,
       available_online: formData.available_online !== undefined ? formData.available_online : true,
       grade: formData.grade || undefined,
-      // Ensure date_sourced is in YYYY-MM-DD format
-      date_sourced: formData.date_sourced 
-        ? (typeof formData.date_sourced === 'string' 
-          ? formData.date_sourced.split('T')[0]  // Extract just the date part if it's a datetime string
-          : formData.date_sourced)
-        : undefined,
-      // Quantity: Always 1 for unique items (PH, LT, TB). Accessories can be > 1 unless a serial is provided.
-      quantity: currentIsAccessory ? (accessoryHasSerial ? 1 : (formData.quantity || 1)) : 1,
+      date_sourced: dateSourced,
+      quantity: 1, // overridden per row for accessories
       storage_gb: formData.storage_gb || undefined,
       ram_gb: formData.ram_gb || undefined,
       battery_mah: formData.battery_mah || undefined,
       is_sim_enabled: formData.is_sim_enabled || false,
       processor_details: formData.processor_details || undefined,
-      product_color_id: formData.product_color_id || undefined,
+      product_color_id: undefined, // overridden per row for accessories
       acquisition_source_details_id: formData.acquisition_source_details_id || undefined,
-      // Only include serial_number and imei if they have values
       serial_number: formData.serial_number || undefined,
       imei: formData.imei || undefined,
     };
+  };
 
-    // Use submitData directly (cast to any to include available_online)
-    const cleanedData: any = submitData;
+  const runAccessoryVariantsSubmit = async () => {
+    const productTemplateId = formData.product_template_id;
+    if (!productTemplateId) {
+      alert('Please select a product template.');
+      return;
+    }
+    setIsSubmittingVariants(true);
+    const basePayload = buildBaseUnitPayload();
 
-    if (unit?.id) {
-      updateMutation.mutate(cleanedData);
-    } else {
-      createMutation.mutate(cleanedData);
+    try {
+      if (unit?.id) {
+        const row0 = variantRows[0];
+        await UnitsService.unitsUpdate(unit.id, {
+          ...basePayload,
+          product_color_id: row0.colorId || undefined,
+          quantity: Math.max(1, row0.quantity),
+        });
+        for (let i = 0; i < row0.imageFiles.length; i++) {
+          await UnitImagesService.unitImagesCreate({
+            inventory_unit: unit.id,
+            image: row0.imageFiles[i],
+            is_primary: i === 0,
+          });
+        }
+        for (const mainId of row0.compatibleProductIds) {
+          try {
+            await AccessoriesLinkService.accessoriesLinkCreate({
+              main_product: mainId,
+              accessory: productTemplateId,
+              required_quantity: 1,
+            });
+          } catch {
+            // ignore duplicate link
+          }
+        }
+        for (let i = 1; i < variantRows.length; i++) {
+          const row = variantRows[i];
+          const created = await UnitsService.unitsCreate({
+            ...basePayload,
+            product_template_id: productTemplateId,
+            product_color_id: row.colorId || undefined,
+            quantity: Math.max(1, row.quantity),
+          });
+          if (created?.id) {
+            for (let j = 0; j < row.imageFiles.length; j++) {
+              await UnitImagesService.unitImagesCreate({
+                inventory_unit: created.id,
+                image: row.imageFiles[j],
+                is_primary: j === 0,
+              });
+            }
+            for (const mainId of row.compatibleProductIds) {
+              try {
+                await AccessoriesLinkService.accessoriesLinkCreate({
+                  main_product: mainId,
+                  accessory: productTemplateId,
+                  required_quantity: 1,
+                });
+              } catch {
+                // ignore duplicate
+              }
+            }
+          }
+        }
+      } else {
+        for (let rowIndex = 0; rowIndex < variantRows.length; rowIndex++) {
+          const row = variantRows[rowIndex];
+          const created = await UnitsService.unitsCreate({
+            ...basePayload,
+            product_template_id: productTemplateId,
+            product_color_id: row.colorId || undefined,
+            quantity: Math.max(1, row.quantity),
+          });
+          if (created?.id) {
+            for (let j = 0; j < row.imageFiles.length; j++) {
+              await UnitImagesService.unitImagesCreate({
+                inventory_unit: created.id,
+                image: row.imageFiles[j],
+                is_primary: j === 0,
+              });
+            }
+            for (const mainId of row.compatibleProductIds) {
+              try {
+                await AccessoriesLinkService.accessoriesLinkCreate({
+                  main_product: mainId,
+                  accessory: productTemplateId,
+                  required_quantity: 1,
+                });
+              } catch {
+                // ignore duplicate
+              }
+            }
+          }
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['units'] });
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      console.error('Accessory variants submit error', err);
+      alert(err?.body?.detail || err?.message || 'Failed to save accessory variants.');
+    } finally {
+      setIsSubmittingVariants(false);
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending || uploadImageMutation.isPending;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const currentIsAccessory = selectedProductType === 'AC';
+    if (currentIsAccessory && variantRows.length > 0) {
+      runAccessoryVariantsSubmit();
+      return;
+    }
+
+    const submitData: any = {
+      ...buildBaseUnitPayload(),
+      quantity: currentIsAccessory ? (accessoryHasSerial ? 1 : (formData.quantity || 1)) : 1,
+      product_color_id: formData.product_color_id || undefined,
+    };
+
+    if (unit?.id) {
+      updateMutation.mutate(submitData);
+    } else {
+      createMutation.mutate(submitData);
+    }
+  };
+
+  const isLoading =
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    uploadImageMutation.isPending ||
+    isSubmittingVariants;
   const isPhoneOrTablet = selectedProductType === 'PH' || selectedProductType === 'TB';
   const isAccessory = selectedProductType === 'AC';
   const accessoryHasSerial = isAccessory && !!formData.serial_number?.trim();
@@ -1150,184 +1403,360 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                 </small>
               </div>
 
-              <div className="form-group">
-                <label htmlFor="product_color_id">Color</label>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                  <select
-                    id="product_color_id"
-                    value={formData.product_color_id || ''}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      product_color_id: e.target.value ? parseInt(e.target.value) : undefined,
-                    })}
-                    disabled={isLoading || showColorForm}
-                    style={{ flex: 1 }}
-                  >
-                    <option value="">Select color</option>
-                    {colorsData?.results?.map((color) => (
-                      <option key={color.id} value={color.id}>
-                        {color.name}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => setShowColorForm(true)}
-                    disabled={isLoading || showColorForm}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none',
+              {!isAccessory && (
+                <div className="form-group">
+                  <label htmlFor="product_color_id">Color</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
+                    <select
+                      id="product_color_id"
+                      value={formData.product_color_id || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        product_color_id: e.target.value ? parseInt(e.target.value) : undefined,
+                      })}
+                      disabled={isLoading || showColorForm}
+                      style={{ flex: 1 }}
+                    >
+                      <option value="">Select color</option>
+                      {colorsData?.results?.map((color) => (
+                        <option key={color.id} value={color.id}>
+                          {color.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowColorForm(true)}
+                      disabled={isLoading || showColorForm}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        backgroundColor: '#28a745',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title="Add new color"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                  {showColorForm && (
+                    <div style={{
+                      marginTop: '1rem',
+                      padding: '1rem',
+                      backgroundColor: '#f8f9fa',
                       borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      whiteSpace: 'nowrap',
-                    }}
-                    title="Add new color"
-                  >
-                    + Add
-                  </button>
-                </div>
-                
-                {showColorForm && (
-                  <div style={{
-                    marginTop: '1rem',
-                    padding: '1rem',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '4px',
-                    border: '1px solid #dee2e6',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                      <strong>Add New Color</strong>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowColorForm(false);
-                          setNewColor({ name: '', hex_code: '#000000' });
-                        }}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          fontSize: '1.25rem',
-                          cursor: 'pointer',
-                          color: '#666',
-                        }}
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
-                      <div>
-                        <label htmlFor="new_color_name" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                          Color Name <span style={{ color: 'red' }}>*</span>
-                        </label>
-                        <input
-                          id="new_color_name"
-                          type="text"
-                          value={newColor.name}
-                          onChange={(e) => setNewColor({ ...newColor, name: e.target.value })}
-                          placeholder="e.g., Black, Silver, Gold"
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px',
-                          }}
-                          disabled={createColorMutation.isPending}
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="new_color_hex" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
-                          Hex Code <span style={{ color: 'red' }}>*</span>
-                        </label>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <input
-                            id="new_color_hex"
-                            type="color"
-                            value={newColor.hex_code}
-                            onChange={(e) => setNewColor({ ...newColor, hex_code: e.target.value.toUpperCase() })}
-                            style={{
-                              width: '60px',
-                              height: '40px',
-                              border: '1px solid #ccc',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                            }}
-                            disabled={createColorMutation.isPending}
-                          />
-                          <input
-                            type="text"
-                            value={newColor.hex_code}
-                            onChange={(e) => {
-                              const hex = e.target.value.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 7);
-                              if (hex.startsWith('#') || hex.length === 0) {
-                                setNewColor({ ...newColor, hex_code: hex.startsWith('#') ? hex : '#' + hex });
-                              }
-                            }}
-                            placeholder="#000000"
-                            pattern="^#[0-9A-F]{6}$"
-                            style={{
-                              flex: 1,
-                              padding: '0.5rem',
-                              border: '1px solid #ccc',
-                              borderRadius: '4px',
-                              fontFamily: 'monospace',
-                            }}
-                            disabled={createColorMutation.isPending}
-                          />
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!newColor.name.trim() || !newColor.hex_code) {
-                              alert('Please fill in both color name and hex code');
-                              return;
-                            }
-                            createColorMutation.mutate({
-                              name: newColor.name.trim(),
-                              hex_code: newColor.hex_code,
-                            });
-                          }}
-                          disabled={createColorMutation.isPending || !newColor.name.trim() || !newColor.hex_code}
-                          style={{
-                            flex: 1,
-                            padding: '0.5rem',
-                            backgroundColor: '#007bff',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {createColorMutation.isPending ? 'Creating...' : 'Create Color'}
-                        </button>
+                      border: '1px solid #dee2e6',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                        <strong>Add New Color</strong>
                         <button
                           type="button"
                           onClick={() => {
                             setShowColorForm(false);
                             setNewColor({ name: '', hex_code: '#000000' });
                           }}
-                          disabled={createColorMutation.isPending}
                           style={{
-                            padding: '0.5rem 1rem',
-                            backgroundColor: '#6c757d',
-                            color: 'white',
+                            background: 'none',
                             border: 'none',
-                            borderRadius: '4px',
+                            fontSize: '1.25rem',
                             cursor: 'pointer',
+                            color: '#666',
                           }}
                         >
-                          Cancel
+                          ×
                         </button>
                       </div>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
+                        <div>
+                          <label htmlFor="new_color_name" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
+                            Color Name <span style={{ color: 'red' }}>*</span>
+                          </label>
+                          <input
+                            id="new_color_name"
+                            type="text"
+                            value={newColor.name}
+                            onChange={(e) => setNewColor({ ...newColor, name: e.target.value })}
+                            placeholder="e.g., Black, Silver, Gold"
+                            style={{
+                              width: '100%',
+                              padding: '0.5rem',
+                              border: '1px solid #ccc',
+                              borderRadius: '4px',
+                            }}
+                            disabled={createColorMutation.isPending}
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="new_color_hex" style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem' }}>
+                            Hex Code <span style={{ color: 'red' }}>*</span>
+                          </label>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <input
+                              id="new_color_hex"
+                              type="color"
+                              value={newColor.hex_code}
+                              onChange={(e) => setNewColor({ ...newColor, hex_code: e.target.value.toUpperCase() })}
+                              style={{
+                                width: '60px',
+                                height: '40px',
+                                border: '1px solid #ccc',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                              }}
+                              disabled={createColorMutation.isPending}
+                            />
+                            <input
+                              type="text"
+                              value={newColor.hex_code}
+                              onChange={(e) => {
+                                const hex = e.target.value.toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 7);
+                                if (hex.startsWith('#') || hex.length === 0) {
+                                  setNewColor({ ...newColor, hex_code: hex.startsWith('#') ? hex : '#' + hex });
+                                }
+                              }}
+                              placeholder="#000000"
+                              pattern="^#[0-9A-F]{6}$"
+                              style={{
+                                flex: 1,
+                                padding: '0.5rem',
+                                border: '1px solid #ccc',
+                                borderRadius: '4px',
+                                fontFamily: 'monospace',
+                              }}
+                              disabled={createColorMutation.isPending}
+                            />
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!newColor.name.trim() || !newColor.hex_code) {
+                                alert('Please fill in both color name and hex code');
+                                return;
+                              }
+                              createColorMutation.mutate({
+                                name: newColor.name.trim(),
+                                hex_code: newColor.hex_code,
+                              });
+                            }}
+                            disabled={createColorMutation.isPending || !newColor.name.trim() || !newColor.hex_code}
+                            style={{
+                              flex: 1,
+                              padding: '0.5rem',
+                              backgroundColor: '#007bff',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {createColorMutation.isPending ? 'Creating...' : 'Create Color'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowColorForm(false);
+                              setNewColor({ name: '', hex_code: '#000000' });
+                            }}
+                            disabled={createColorMutation.isPending}
+                            style={{
+                              padding: '0.5rem 1rem',
+                              backgroundColor: '#6c757d',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {isAccessory && variantRows.length > 0 && (
+              <div className="form-subsection" style={{ marginTop: '1rem' }}>
+                <h3>Accessory variants</h3>
+                <p style={{ fontSize: '0.875rem', color: '#6c757d', marginBottom: '1rem' }}>
+                  Add one row per variant (color + compatible devices + quantity). Images are attached per row.
+                </p>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #dee2e6', textAlign: 'left' }}>
+                        <th style={{ padding: '0.5rem', width: '140px' }}>Color</th>
+                        <th style={{ padding: '0.5rem', minWidth: 200 }}>Compatible devices</th>
+                        <th style={{ padding: '0.5rem', width: 80 }}>Qty</th>
+                        <th style={{ padding: '0.5rem', minWidth: 180 }}>Images</th>
+                        <th style={{ padding: '0.5rem', width: 60 }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {variantRows.map((row) => (
+                        <tr key={row.id} style={{ borderBottom: '1px solid #eee', verticalAlign: 'top' }}>
+                          <td style={{ padding: '0.5rem' }}>
+                            <select
+                              value={row.colorId ?? ''}
+                              onChange={(e) =>
+                                updateVariantRow(row.id, {
+                                  colorId: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                                })
+                              }
+                              disabled={isLoading}
+                              style={{ width: '100%', padding: '0.35rem' }}
+                            >
+                              <option value="">Select</option>
+                              {colorsData?.results?.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <select
+                              multiple
+                              value={row.compatibleProductIds.map(String)}
+                              onChange={(e) => {
+                                const ids = Array.from(e.target.selectedOptions)
+                                  .map((o) => parseInt(o.value, 10))
+                                  .filter((n) => !Number.isNaN(n));
+                                updateVariantRow(row.id, { compatibleProductIds: ids });
+                              }}
+                              disabled={isLoading}
+                              style={{ minHeight: 72, width: '100%', padding: '0.25rem' }}
+                            >
+                              {deviceProducts.map((p: ProductTemplate) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.product_name}
+                                  {p.brand ? ` - ${p.brand}` : ''}
+                                  {p.model_series ? ` (${p.model_series})` : ''}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <input
+                              type="number"
+                              min={1}
+                              value={row.quantity}
+                              onChange={(e) =>
+                                updateVariantRow(row.id, {
+                                  quantity: Math.max(1, parseInt(e.target.value, 10) || 1),
+                                })
+                              }
+                              disabled={isLoading}
+                              style={{ width: '100%', padding: '0.35rem' }}
+                            />
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-start' }}>
+                              {row.previewUrls.map((url, idx) => (
+                                <div key={idx} style={{ position: 'relative' }}>
+                                  <img
+                                    src={url}
+                                    alt={`Preview ${idx + 1}`}
+                                    style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 4, border: '1px solid #ddd' }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleVariantRemoveImage(row.id, idx)}
+                                    style={{
+                                      position: 'absolute',
+                                      top: -4,
+                                      right: -4,
+                                      width: 20,
+                                      height: 20,
+                                      borderRadius: '50%',
+                                      border: 'none',
+                                      background: '#dc3545',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      fontSize: 12,
+                                      lineHeight: 1,
+                                    }}
+                                    title="Remove image"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                              <label style={{ cursor: 'pointer' }}>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  onChange={(e) => handleVariantImageSelect(row.id, e)}
+                                  disabled={isLoading}
+                                  style={{ display: 'none' }}
+                                />
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: 56,
+                                  height: 56,
+                                  border: '1px dashed #ccc',
+                                  borderRadius: 4,
+                                  fontSize: '1.25rem',
+                                  color: '#6c757d',
+                                  backgroundColor: '#f8f9fa',
+                                }}>
+                                  +
+                                </span>
+                              </label>
+                            </div>
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            {variantRows.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeVariantRow(row.id)}
+                                disabled={isLoading}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: '#dc3545',
+                                  cursor: 'pointer',
+                                  padding: '0.25rem',
+                                  fontSize: '1.1rem',
+                                }}
+                                title="Remove row"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button
+                  type="button"
+                  onClick={addVariantRow}
+                  disabled={isLoading}
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.5rem 1rem',
+                    backgroundColor: '#f8f9fa',
+                    border: '1px solid #dee2e6',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                  }}
+                >
+                  + Add another variant
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="form-subsection">
@@ -1509,36 +1938,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
             )}
 
             <div className="form-row">
-              {isAccessory && (
-                <div className="form-group">
-                  <label htmlFor="quantity">
-                    Quantity <span className="required">*</span>
-                  </label>
-                  <input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    value={formData.quantity || 1}
-                    onChange={(e) => setFormData({
-                      ...formData,
-                      quantity: e.target.value ? parseInt(e.target.value) : 1,
-                    })}
-                    required={isAccessory}
-                    disabled={isLoading || accessoryHasSerial}
-                    title={accessoryHasSerial
-                      ? "Quantity is fixed to 1 when an accessory has a serial number."
-                      : "Required for accessories. Can be > 1 for bulk items."
-                    }
-                  />
-                  <small className="form-help">
-                    {accessoryHasSerial
-                      ? 'Quantity is fixed to 1 because a serial number is provided.'
-                      : 'Required for accessories. Each accessory unit can have quantity > 1 (no unique identifier).'
-                    }
-                  </small>
-                </div>
-              )}
-
               <div className="form-group">
                 <label htmlFor="date_sourced">Date Sourced</label>
                 <input
@@ -1583,48 +1982,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
               </div>
             </div>
 
-            {isAccessory && (
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="compatible_products">
-                    Compatible Devices (Phones, Laptops, Tablets)
-                  </label>
-                  <select
-                    id="compatible_products"
-                    multiple
-                    value={compatibleProductIds.map(String)}
-                    onChange={(e) => {
-                      const options = Array.from(e.target.selectedOptions);
-                      const ids = options
-                        .map((option) => parseInt(option.value, 10))
-                        .filter((id) => !Number.isNaN(id));
-                      setCompatibleProductIds(ids);
-                    }}
-                    disabled={isLoading}
-                    style={{ minHeight: '140px' }}
-                  >
-                    {productsData?.results
-                      ?.filter((product: ProductTemplate) =>
-                        product.product_type === 'PH' ||
-                        product.product_type === 'LT' ||
-                        product.product_type === 'TB'
-                      )
-                      .map((product: ProductTemplate) => (
-                        <option key={product.id} value={product.id}>
-                          {product.product_name}
-                          {product.brand ? ` - ${product.brand}` : ''}
-                          {product.model_series ? ` (${product.model_series})` : ''}
-                        </option>
-                      ))}
-                  </select>
-                  <small className="form-help">
-                    Select the phone, laptop, and tablet models this accessory works with. Saving the unit
-                    will automatically create accessory links for the selected devices (you can still manage
-                    all links from the Product Accessories page).
-                  </small>
-                </div>
-              </div>
-            )}
+            {/* Compatible devices for accessories are in the variant table above */}
           </div>
 
           <div className="form-subsection">
@@ -1728,6 +2086,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
             </div>
           </div>
 
+          {!isAccessory && (
           <div className="form-subsection">
             <h3>Unit Images</h3>
             <div className="form-group">
@@ -1890,6 +2249,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
               </small>
             </div>
           </div>
+          )}
 
           <div className="form-actions">
             <button
