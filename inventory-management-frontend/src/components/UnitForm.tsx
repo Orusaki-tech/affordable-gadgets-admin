@@ -765,6 +765,15 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   };
 
   const updateVariantRow = (rowId: string, patch: Partial<AccessoryVariantRow>) => {
+    // Compatible devices are stored as ProductAccessory links (global to the accessory product template),
+    // so keep all variant rows and top-level state in sync.
+    if (Object.prototype.hasOwnProperty.call(patch, 'compatibleProductIds')) {
+      const ids = patch.compatibleProductIds ?? [];
+      setCompatibleProductIds(ids);
+      setVariantRows(prev => prev.map(row => ({ ...row, compatibleProductIds: ids })));
+      return;
+    }
+
     setVariantRows(prev =>
       prev.map(row => (row.id === rowId ? { ...row, ...patch } : row))
     );
@@ -959,6 +968,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         }
       }
       queryClient.invalidateQueries({ queryKey: ['units'] });
+      queryClient.invalidateQueries({ queryKey: ['accessory-links'] });
+      queryClient.invalidateQueries({ queryKey: ['product-accessories'] });
+      queryClient.invalidateQueries({ queryKey: ['accessory-variant-units'] });
       onSuccess();
       onClose();
     } catch (err: any) {
