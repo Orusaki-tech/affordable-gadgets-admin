@@ -274,8 +274,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     return { results: images, count: images.length };
   }, [unitDetails?.images]);
 
+  // Populate form when editing (unitDetails loaded)
   useEffect(() => {
-    if (unitDetails) {
+    if (!unitDetails) return;
       // Format date_sourced to YYYY-MM-DD if it's a datetime string
       let formattedDateSourced = unitDetails.date_sourced || undefined;
       if (formattedDateSourced && typeof formattedDateSourced === 'string') {
@@ -305,54 +306,42 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         product_color_id: unitDetails.product_color ? (typeof unitDetails.product_color === 'number' ? unitDetails.product_color : (unitDetails.product_color as any).id) : undefined,
         acquisition_source_details_id: unitDetails.acquisition_source_details ? (typeof unitDetails.acquisition_source_details === 'number' ? unitDetails.acquisition_source_details : (unitDetails.acquisition_source_details as any).id) : undefined,
       });
-
-      // Find product type from selected product
-      if (unitDetails.product_template) {
-        const product = productsData?.results?.find(
-          (p) => p.id === (typeof unitDetails.product_template === 'number' ? unitDetails.product_template : undefined)
-        );
-        setSelectedProductType(product?.product_type || '');
-        
-        // Set display text for selected product
-        if (product) {
-          const display = `${product.product_name}${product.brand ? ` - ${product.brand}` : ''}${product.model_series ? ` (${product.model_series})` : ''}`;
-          setSelectedProductDisplay(display);
-          setProductSearchTerm('');
-        }
-      }
-    } else if (!unit) {
-      // Reset for new unit
-      setFormData({
-        product_template_id: undefined,
-        selling_price: undefined,
-        cost_of_unit: undefined,
-        condition: undefined,
-        source: undefined,
-        available_online: true,
-        grade: undefined,
-        date_sourced: undefined,
-        quantity: 1,
-        serial_number: '',
-        imei: '',
-        storage_gb: undefined,
-        ram_gb: undefined,
-        battery_mah: undefined,
-        is_sim_enabled: false,
-        processor_details: '',
-        product_color_id: undefined,
-        acquisition_source_details_id: undefined,
-      });
-      setSelectedProductType('');
-      setProductSearchTerm('');
-      setSelectedProductDisplay('');
-      setShowProductSuggestions(false);
-      // Clear preview images when creating new unit
-      previewImages.forEach(url => URL.revokeObjectURL(url));
-      setPreviewImages([]);
-      setSelectedImages([]);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unitDetails, unit, productsData]);
+  }, [unitDetails]);
+
+  // Reset form when switching into "create" mode.
+  // This must NOT depend on productsData, otherwise typing in the product search will trigger resets.
+  useEffect(() => {
+    if (unit) return;
+    setFormData({
+      product_template_id: undefined,
+      selling_price: undefined,
+      cost_of_unit: undefined,
+      condition: undefined,
+      source: undefined,
+      available_online: true,
+      grade: undefined,
+      date_sourced: undefined,
+      quantity: 1,
+      serial_number: '',
+      imei: '',
+      storage_gb: undefined,
+      ram_gb: undefined,
+      battery_mah: undefined,
+      is_sim_enabled: false,
+      processor_details: '',
+      product_color_id: undefined,
+      acquisition_source_details_id: undefined,
+    });
+    setSelectedProductType('');
+    setProductSearchTerm('');
+    setSelectedProductDisplay('');
+    setShowProductSuggestions(false);
+    previewImages.forEach(url => URL.revokeObjectURL(url));
+    setPreviewImages([]);
+    setSelectedImages([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unit]);
 
   // Cleanup preview URLs on unmount
   useEffect(() => {
