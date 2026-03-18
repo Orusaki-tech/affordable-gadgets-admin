@@ -1777,18 +1777,117 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                           </div>
                           <div className="variant-cell variant-cell-devices" style={{ position: 'relative', minWidth: 0 }}>
                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Compatible devices</label>
-                            <div
-                              style={{
-                                height: 52,
-                                minHeight: 52,
-                                boxSizing: 'border-box',
-                                padding: '0.5rem 0.6rem',
-                                border: '1px solid var(--md-outline-variant)',
-                                borderRadius: 6,
-                                backgroundColor: 'var(--md-surface-container-low)',
-                              }}
-                            >
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: row.compatibleProductIds.length > 0 ? '0.35rem' : 0 }}>
+                            <div style={{ position: 'relative' }}>
+                              <div
+                                style={{
+                                  minHeight: 52,
+                                  padding: '0.5rem 0.6rem',
+                                  border: '1px solid var(--md-outline-variant)',
+                                  borderRadius: 6,
+                                  backgroundColor: 'var(--md-surface-container-low)',
+                                }}
+                              >
+                                <input
+                                  ref={el => { if (isActiveDeviceRow) deviceSearchInputRef.current = el; }}
+                                  type="text"
+                                  value={isActiveDeviceRow ? deviceSearchTerm : ''}
+                                  onChange={(e) => {
+                                    setActiveDeviceSearchRowId(row.id);
+                                    setDeviceSearchTerm(e.target.value);
+                                    setDeviceSearchHighlightedIndex(-1);
+                                  }}
+                                  onFocus={() => {
+                                    setActiveDeviceSearchRowId(row.id);
+                                    setDeviceSearchHighlightedIndex(-1);
+                                  }}
+                                  onBlur={() => setTimeout(() => setActiveDeviceSearchRowId(null), 200)}
+                                  onKeyDown={(e) => {
+                                    if (!isActiveDeviceRow || deviceOptions.length === 0) return;
+                                    if (e.key === 'ArrowDown') {
+                                      e.preventDefault();
+                                      setDeviceSearchHighlightedIndex(i => (i < deviceOptions.length - 1 ? i + 1 : i));
+                                    } else if (e.key === 'ArrowUp') {
+                                      e.preventDefault();
+                                      setDeviceSearchHighlightedIndex(i => (i > 0 ? i - 1 : -1));
+                                    } else if (e.key === 'Enter' && deviceSearchHighlightedIndex >= 0 && deviceOptions[deviceSearchHighlightedIndex]) {
+                                      e.preventDefault();
+                                      const p = deviceOptions[deviceSearchHighlightedIndex];
+                                      if (p.id != null) {
+                                        updateVariantRow(row.id, { compatibleProductIds: [...row.compatibleProductIds, p.id] });
+                                      }
+                                      setDeviceSearchTerm('');
+                                      setDeviceSearchHighlightedIndex(-1);
+                                      setActiveDeviceSearchRowId(null);
+                                    } else if (e.key === 'Escape') {
+                                      setActiveDeviceSearchRowId(null);
+                                      setDeviceSearchHighlightedIndex(-1);
+                                    }
+                                  }}
+                                  placeholder="Search devices…"
+                                  disabled={isLoading}
+                                  style={{
+                                    width: '100%',
+                                    height: 52,
+                                    border: 'none',
+                                    outline: 'none',
+                                    fontSize: '0.875rem',
+                                    backgroundColor: 'transparent',
+                                    color: 'var(--md-on-surface)',
+                                    padding: '0.15rem 0',
+                                    minWidth: 120,
+                                    boxSizing: 'border-box',
+                                  }}
+                                />
+                              </div>
+                              {isActiveDeviceRow && deviceOptions.length > 0 && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    right: 0,
+                                    top: '100%',
+                                    marginTop: 2,
+                                    maxHeight: 220,
+                                    overflowY: 'auto',
+                                    background: 'var(--md-surface-container-high)',
+                                    border: '1px solid var(--md-outline-variant)',
+                                    borderRadius: 6,
+                                    boxShadow: 'var(--shadow-lg)',
+                                    zIndex: 1000,
+                                  }}
+                                  onMouseDown={(e) => e.preventDefault()}
+                                >
+                                  {deviceOptions.map((p: ProductTemplate, idx) => (
+                                    <div
+                                      key={p.id}
+                                      onClick={() => {
+                                        if (p.id != null) {
+                                          updateVariantRow(row.id, { compatibleProductIds: [...row.compatibleProductIds, p.id] });
+                                        }
+                                        setDeviceSearchTerm('');
+                                        setDeviceSearchHighlightedIndex(-1);
+                                        setActiveDeviceSearchRowId(null);
+                                      }}
+                                      onMouseDown={(e) => e.preventDefault()}
+                                      style={{
+                                        padding: '0.5rem 0.75rem',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                        color: 'var(--md-on-surface)',
+                                        backgroundColor: deviceSearchHighlightedIndex === idx ? 'var(--md-surface-container)' : 'transparent',
+                                      }}
+                                    >
+                                      {p.product_name}
+                                      {p.brand ? ` – ${p.brand}` : ''}
+                                      {p.model_series ? ` (${p.model_series})` : ''}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {row.compatibleProductIds.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.35rem' }}>
                                 {row.compatibleProductIds.map((pid) => {
                                   const p = productMapById.get(pid);
                                   const label = p ? `${p.product_name}${p.brand ? ` – ${p.brand}` : ''}${p.model_series ? ` (${p.model_series})` : ''}` : `ID ${pid}`;
@@ -1820,100 +1919,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                     </span>
                                   );
                                 })}
-                              </div>
-                              <input
-                                ref={el => { if (isActiveDeviceRow) deviceSearchInputRef.current = el; }}
-                                type="text"
-                                value={isActiveDeviceRow ? deviceSearchTerm : ''}
-                                onChange={(e) => {
-                                  setActiveDeviceSearchRowId(row.id);
-                                  setDeviceSearchTerm(e.target.value);
-                                  setDeviceSearchHighlightedIndex(-1);
-                                }}
-                                onFocus={() => {
-                                  setActiveDeviceSearchRowId(row.id);
-                                  setDeviceSearchHighlightedIndex(-1);
-                                }}
-                                onBlur={() => setTimeout(() => setActiveDeviceSearchRowId(null), 200)}
-                                onKeyDown={(e) => {
-                                  if (!isActiveDeviceRow || deviceOptions.length === 0) return;
-                                  if (e.key === 'ArrowDown') {
-                                    e.preventDefault();
-                                    setDeviceSearchHighlightedIndex(i => (i < deviceOptions.length - 1 ? i + 1 : i));
-                                  } else if (e.key === 'ArrowUp') {
-                                    e.preventDefault();
-                                    setDeviceSearchHighlightedIndex(i => (i > 0 ? i - 1 : -1));
-                                  } else if (e.key === 'Enter' && deviceSearchHighlightedIndex >= 0 && deviceOptions[deviceSearchHighlightedIndex]) {
-                                    e.preventDefault();
-                                    const p = deviceOptions[deviceSearchHighlightedIndex];
-                                    if (p.id != null) {
-                                      updateVariantRow(row.id, { compatibleProductIds: [...row.compatibleProductIds, p.id] });
-                                    }
-                                    setDeviceSearchTerm('');
-                                    setDeviceSearchHighlightedIndex(-1);
-                                    setActiveDeviceSearchRowId(null);
-                                  } else if (e.key === 'Escape') {
-                                    setActiveDeviceSearchRowId(null);
-                                    setDeviceSearchHighlightedIndex(-1);
-                                  }
-                                }}
-                                placeholder="Search devices…"
-                                disabled={isLoading}
-                                style={{
-                                  width: '100%',
-                                  border: 'none',
-                                  outline: 'none',
-                                  fontSize: '0.875rem',
-                                  backgroundColor: 'transparent',
-                                  color: 'var(--md-on-surface)',
-                                  padding: '0.15rem 0',
-                                  minWidth: 120,
-                                }}
-                              />
-                            </div>
-                            {isActiveDeviceRow && deviceOptions.length > 0 && (
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  left: 0,
-                                  right: 0,
-                                  top: '100%',
-                                  marginTop: 2,
-                                  maxHeight: 220,
-                                  overflowY: 'auto',
-                                  background: 'var(--md-surface-container-high)',
-                                  border: '1px solid var(--md-outline-variant)',
-                                  borderRadius: 6,
-                                  boxShadow: 'var(--shadow-lg)',
-                                  zIndex: 1000,
-                                }}
-                                onMouseDown={(e) => e.preventDefault()}
-                              >
-                                {deviceOptions.map((p: ProductTemplate, idx) => (
-                                  <div
-                                    key={p.id}
-                                    onClick={() => {
-                                      if (p.id != null) {
-                                        updateVariantRow(row.id, { compatibleProductIds: [...row.compatibleProductIds, p.id] });
-                                      }
-                                      setDeviceSearchTerm('');
-                                      setDeviceSearchHighlightedIndex(-1);
-                                      setActiveDeviceSearchRowId(null);
-                                    }}
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    style={{
-                                      padding: '0.5rem 0.75rem',
-                                      cursor: 'pointer',
-                                      fontSize: '0.875rem',
-                                      color: 'var(--md-on-surface)',
-                                      backgroundColor: deviceSearchHighlightedIndex === idx ? 'var(--md-surface-container)' : 'transparent',
-                                    }}
-                                  >
-                                    {p.product_name}
-                                    {p.brand ? ` – ${p.brand}` : ''}
-                                    {p.model_series ? ` (${p.model_series})` : ''}
-                                  </div>
-                                ))}
                               </div>
                             )}
                           </div>
