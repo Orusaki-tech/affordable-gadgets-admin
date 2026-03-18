@@ -406,54 +406,16 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         .map((link: ProductAccessory) => link.main_product)
         .filter((id: number | null | undefined): id is number => typeof id === 'number');
       setCompatibleProductIds(ids);
-      // Keep all variant rows in sync with compatible devices
+      // When editing, hydrate only the first row from existing links (other rows are separate units)
       setVariantRows(prev => {
         if (prev.length === 0) return prev;
-        return prev.map((row) => ({ ...row, compatibleProductIds: ids }));
+        return prev.map((row, i) => (i === 0 ? { ...row, compatibleProductIds: ids } : row));
       });
     }
   }, [accessoryLinks]);
 
-  // Fetch all accessory units for this product template (to hydrate variant rows when editing)
-  const accessoryProductTemplateId =
-    typeof unitDetails?.product_template === 'number'
-      ? unitDetails?.product_template
-      : (unitDetails?.product_template as unknown as { id?: number })?.id;
-
-  const { data: accessoryVariantUnitDetails } = useQuery({
-    queryKey: ['accessory-variant-units', accessoryProductTemplateId],
-    enabled: !!unit?.id && !!accessoryProductTemplateId && selectedProductType === 'AC',
-    queryFn: async () => {
-      if (!accessoryProductTemplateId) throw new Error('No accessory product template id');
-      const all: any[] = [];
-      let page = 1;
-      // Safety cap to avoid infinite loops
-      while (page <= 10) {
-        const res = await UnitsService.unitsList(
-          undefined,
-          undefined,
-          page,
-          accessoryProductTemplateId,
-          undefined,
-          'AC'
-        );
-        const results = (res as any)?.results ?? [];
-        if (!Array.isArray(results) || results.length === 0) break;
-        all.push(...results);
-        if (!((res as any)?.next)) break;
-        page += 1;
-      }
-
-      const ids = all
-        .map((u: any) => u?.id)
-        .filter((id: any): id is number => typeof id === 'number');
-
-      const details = await Promise.all(ids.map((id) => UnitsService.unitsRetrieve(id)));
-      return details;
-    },
-  });
-
-  // Initialize variant rows: when editing accessory, hydrate from all units of this product template (with images)
+  // Initialize variant rows: when editing accessory, hydrate ONLY this unit (row 1).
+  // Additional rows are for creating new units, not for bulk-editing existing ones.
   useEffect(() => {
     if (!unit?.id || !unitDetails) return;
     const productId =
@@ -464,47 +426,36 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       (p: ProductTemplate) => p.id === productId
     );
     if (product?.product_type !== 'AC') return;
-    const detailsList = Array.isArray(accessoryVariantUnitDetails) && accessoryVariantUnitDetails.length > 0
-      ? accessoryVariantUnitDetails
-      : [unitDetails];
+    const colorId = unitDetails.product_color
+      ? (typeof unitDetails.product_color === 'number'
+        ? unitDetails.product_color
+        : (unitDetails.product_color as unknown as { id?: number })?.id)
+      : undefined;
 
-    // Ensure currently edited unit is first
-    const sorted = [...detailsList].sort((a: any, b: any) => {
-      const aId = typeof a?.id === 'number' ? a.id : 0;
-      const bId = typeof b?.id === 'number' ? b.id : 0;
-      if (aId === unit.id) return -1;
-      if (bId === unit.id) return 1;
-      return aId - bId;
-    });
+    const existingImages =
+      Array.isArray((unitDetails as any).images)
+        ? (unitDetails as any).images
+            .map((img: any) => {
+              const url = img?.image_url || img?.image;
+              if (!url || typeof url !== 'string') return null;
+              return { id: img.id, url, isPrimary: !!img.is_primary };
+            })
+            .filter(Boolean)
+        : [];
 
-    setVariantRows(sorted.map((d: any) => {
-      const colorId = d.product_color
-        ? (typeof d.product_color === 'number'
-          ? d.product_color
-          : (d.product_color as unknown as { id?: number })?.id)
-        : undefined;
-      const existingImages =
-        Array.isArray(d.images)
-          ? d.images
-              .map((img: any) => {
-                const url = img?.image_url || img?.image;
-                if (!url || typeof url !== 'string') return null;
-                return { id: img.id, url, isPrimary: !!img.is_primary };
-              })
-              .filter(Boolean)
-          : [];
-      return {
-        id: String(d.id ?? crypto.randomUUID?.() ?? `row-${Date.now()}`),
-        unitId: typeof d.id === 'number' ? d.id : undefined,
+    setVariantRows([
+      {
+        id: '0',
+        unitId: unit.id,
         colorId,
-        quantity: d.quantity ?? 1,
-        compatibleProductIds: [], // filled by accessoryLinks effect
+        quantity: unitDetails.quantity ?? 1,
+        compatibleProductIds: [], // filled by accessoryLinks effect (row 1)
         imageFiles: [],
         previewUrls: [],
         existingImages,
-      } as AccessoryVariantRow;
-    }));
-  }, [unit?.id, unitDetails, accessoryVariantUnitDetails, productsData?.results]);
+      },
+    ]);
+  }, [unit?.id, unitDetails, productsData?.results]);
 
   // When creating new unit and user selects accessory, ensure at least one variant row
   useEffect(() => {
@@ -765,15 +716,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   };
 
   const updateVariantRow = (rowId: string, patch: Partial<AccessoryVariantRow>) => {
-    // Compatible devices are stored as ProductAccessory links (global to the accessory product template),
-    // so keep all variant rows and top-level state in sync.
-    if (Object.prototype.hasOwnProperty.call(patch, 'compatibleProductIds')) {
-      const ids = patch.compatibleProductIds ?? [];
-      setCompatibleProductIds(ids);
-      setVariantRows(prev => prev.map(row => ({ ...row, compatibleProductIds: ids })));
-      return;
-    }
-
     setVariantRows(prev =>
       prev.map(row => (row.id === rowId ? { ...row, ...patch } : row))
     );
@@ -886,53 +828,57 @@ export const UnitForm: React.FC<UnitFormProps> = ({
 
     try {
       if (unit?.id) {
-        for (let i = 0; i < variantRows.length; i++) {
-          const row = variantRows[i];
-          const targetUnitId = row.unitId ?? (i === 0 ? unit.id : undefined);
-
-          if (targetUnitId) {
-            await UnitsService.unitsUpdate(targetUnitId, {
-              ...basePayload,
-              product_color_id: row.colorId || undefined,
-              quantity: Math.max(1, row.quantity),
+        const row0 = variantRows[0];
+        await UnitsService.unitsUpdate(unit.id, {
+          ...basePayload,
+          product_color_id: row0?.colorId || undefined,
+          quantity: Math.max(1, row0?.quantity ?? 1),
+        });
+        for (let i = 0; i < (row0?.imageFiles?.length ?? 0); i++) {
+          await UnitImagesService.unitImagesCreate({
+            inventory_unit: unit.id,
+            image: row0.imageFiles[i],
+            is_primary: i === 0,
+          });
+        }
+        for (const mainId of (row0?.compatibleProductIds ?? [])) {
+          try {
+            await AccessoriesLinkService.accessoriesLinkCreate({
+              main_product: mainId,
+              accessory: productTemplateId,
+              required_quantity: 1,
             });
+          } catch {
+            // ignore duplicate
+          }
+        }
+
+        for (let i = 1; i < variantRows.length; i++) {
+          const row = variantRows[i];
+          const created = await UnitsService.unitsCreate({
+            ...basePayload,
+            product_template_id: productTemplateId,
+            product_color_id: row.colorId || undefined,
+            quantity: Math.max(1, row.quantity),
+          });
+          if (created?.id) {
             for (let j = 0; j < row.imageFiles.length; j++) {
               await UnitImagesService.unitImagesCreate({
-                inventory_unit: targetUnitId,
+                inventory_unit: created.id,
                 image: row.imageFiles[j],
                 is_primary: j === 0,
               });
             }
-          } else {
-            const created = await UnitsService.unitsCreate({
-              ...basePayload,
-              product_template_id: productTemplateId,
-              product_color_id: row.colorId || undefined,
-              quantity: Math.max(1, row.quantity),
-            });
-            if (created?.id) {
-              // persist unit id back into state for future edits (best-effort)
-              const createdId = created.id as number;
-              setVariantRows(prev => prev.map(r => (r.id === row.id ? { ...r, unitId: createdId } : r)));
-              for (let j = 0; j < row.imageFiles.length; j++) {
-                await UnitImagesService.unitImagesCreate({
-                  inventory_unit: createdId,
-                  image: row.imageFiles[j],
-                  is_primary: j === 0,
+            for (const mainId of row.compatibleProductIds) {
+              try {
+                await AccessoriesLinkService.accessoriesLinkCreate({
+                  main_product: mainId,
+                  accessory: productTemplateId,
+                  required_quantity: 1,
                 });
+              } catch {
+                // ignore duplicate
               }
-            }
-          }
-
-          for (const mainId of row.compatibleProductIds) {
-            try {
-              await AccessoriesLinkService.accessoriesLinkCreate({
-                main_product: mainId,
-                accessory: productTemplateId,
-                required_quantity: 1,
-              });
-            } catch {
-              // ignore duplicate
             }
           }
         }
@@ -970,7 +916,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       queryClient.invalidateQueries({ queryKey: ['units'] });
       queryClient.invalidateQueries({ queryKey: ['accessory-links'] });
       queryClient.invalidateQueries({ queryKey: ['product-accessories'] });
-      queryClient.invalidateQueries({ queryKey: ['accessory-variant-units'] });
       onSuccess();
       onClose();
     } catch (err: any) {
