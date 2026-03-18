@@ -1746,10 +1746,16 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                 style={{
                                   flex: 1,
                                   height: 52,
+                                  minHeight: 52,
+                                  boxSizing: 'border-box',
+                                  WebkitAppearance: 'none',
+                                  MozAppearance: 'none',
+                                  appearance: 'none',
                                   padding: '0.5rem 0.6rem',
                                   border: '1px solid var(--md-outline-variant)',
                                   borderRadius: 6,
                                   fontSize: '0.875rem',
+                                  lineHeight: 1.2,
                                   backgroundColor: 'var(--md-surface-container-low)',
                                   color: 'var(--md-on-surface)',
                                   minWidth: 0,
@@ -1766,7 +1772,9 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Compatible devices</label>
                             <div
                               style={{
+                                height: 52,
                                 minHeight: 52,
+                                boxSizing: 'border-box',
                                 padding: '0.5rem 0.6rem',
                                 border: '1px solid var(--md-outline-variant)',
                                 borderRadius: 6,
@@ -1909,11 +1917,14 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                               style={{
                                 width: '100%',
                                 height: 52,
+                                minHeight: 52,
+                                boxSizing: 'border-box',
                                 padding: '0.5rem 0.6rem',
                                 minWidth: 90,
                                 border: '1px solid var(--md-outline-variant)',
                                 borderRadius: 6,
                                 fontSize: '0.875rem',
+                                lineHeight: 1.2,
                                 backgroundColor: 'var(--md-surface-container-low)',
                                 color: 'var(--md-on-surface)',
                               }}
