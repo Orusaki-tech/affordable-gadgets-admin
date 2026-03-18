@@ -78,11 +78,13 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   // Accessory-only: multi-row variants (color, compatible devices, qty, images per row)
   type AccessoryVariantRow = {
     id: string;
+    unitId?: number;
     colorId?: number;
     quantity: number;
     compatibleProductIds: number[];
     imageFiles: File[];
     previewUrls: string[];
+    existingImages?: Array<{ id: number; url: string; isPrimary?: boolean }>;
   };
   const [variantRows, setVariantRows] = useState<AccessoryVariantRow[]>([]);
   const [isSubmittingVariants, setIsSubmittingVariants] = useState(false);
@@ -404,17 +406,54 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         .map((link: ProductAccessory) => link.main_product)
         .filter((id: number | null | undefined): id is number => typeof id === 'number');
       setCompatibleProductIds(ids);
-      // When editing accessory, sync first variant row's compatible devices
+      // Keep all variant rows in sync with compatible devices
       setVariantRows(prev => {
         if (prev.length === 0) return prev;
-        return prev.map((row, i) =>
-          i === 0 ? { ...row, compatibleProductIds: ids } : row
-        );
+        return prev.map((row) => ({ ...row, compatibleProductIds: ids }));
       });
     }
   }, [accessoryLinks]);
 
-  // Initialize variant rows: when editing accessory, one row from unitDetails
+  // Fetch all accessory units for this product template (to hydrate variant rows when editing)
+  const accessoryProductTemplateId =
+    typeof unitDetails?.product_template === 'number'
+      ? unitDetails?.product_template
+      : (unitDetails?.product_template as unknown as { id?: number })?.id;
+
+  const { data: accessoryVariantUnitDetails } = useQuery({
+    queryKey: ['accessory-variant-units', accessoryProductTemplateId],
+    enabled: !!unit?.id && !!accessoryProductTemplateId && selectedProductType === 'AC',
+    queryFn: async () => {
+      if (!accessoryProductTemplateId) throw new Error('No accessory product template id');
+      const all: any[] = [];
+      let page = 1;
+      // Safety cap to avoid infinite loops
+      while (page <= 10) {
+        const res = await UnitsService.unitsList(
+          undefined,
+          undefined,
+          page,
+          accessoryProductTemplateId,
+          undefined,
+          'AC'
+        );
+        const results = (res as any)?.results ?? [];
+        if (!Array.isArray(results) || results.length === 0) break;
+        all.push(...results);
+        if (!((res as any)?.next)) break;
+        page += 1;
+      }
+
+      const ids = all
+        .map((u: any) => u?.id)
+        .filter((id: any): id is number => typeof id === 'number');
+
+      const details = await Promise.all(ids.map((id) => UnitsService.unitsRetrieve(id)));
+      return details;
+    },
+  });
+
+  // Initialize variant rows: when editing accessory, hydrate from all units of this product template (with images)
   useEffect(() => {
     if (!unit?.id || !unitDetails) return;
     const productId =
@@ -425,22 +464,47 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       (p: ProductTemplate) => p.id === productId
     );
     if (product?.product_type !== 'AC') return;
-    const colorId = unitDetails.product_color
-      ? (typeof unitDetails.product_color === 'number'
-        ? unitDetails.product_color
-        : (unitDetails.product_color as unknown as { id?: number })?.id)
-      : undefined;
-    setVariantRows([
-      {
-        id: '0',
+    const detailsList = Array.isArray(accessoryVariantUnitDetails) && accessoryVariantUnitDetails.length > 0
+      ? accessoryVariantUnitDetails
+      : [unitDetails];
+
+    // Ensure currently edited unit is first
+    const sorted = [...detailsList].sort((a: any, b: any) => {
+      const aId = typeof a?.id === 'number' ? a.id : 0;
+      const bId = typeof b?.id === 'number' ? b.id : 0;
+      if (aId === unit.id) return -1;
+      if (bId === unit.id) return 1;
+      return aId - bId;
+    });
+
+    setVariantRows(sorted.map((d: any) => {
+      const colorId = d.product_color
+        ? (typeof d.product_color === 'number'
+          ? d.product_color
+          : (d.product_color as unknown as { id?: number })?.id)
+        : undefined;
+      const existingImages =
+        Array.isArray(d.images)
+          ? d.images
+              .map((img: any) => {
+                const url = img?.image_url || img?.image;
+                if (!url || typeof url !== 'string') return null;
+                return { id: img.id, url, isPrimary: !!img.is_primary };
+              })
+              .filter(Boolean)
+          : [];
+      return {
+        id: String(d.id ?? crypto.randomUUID?.() ?? `row-${Date.now()}`),
+        unitId: typeof d.id === 'number' ? d.id : undefined,
         colorId,
-        quantity: unitDetails.quantity ?? 1,
+        quantity: d.quantity ?? 1,
         compatibleProductIds: [], // filled by accessoryLinks effect
         imageFiles: [],
         previewUrls: [],
-      },
-    ]);
-  }, [unit?.id, unitDetails, productsData?.results]);
+        existingImages,
+      } as AccessoryVariantRow;
+    }));
+  }, [unit?.id, unitDetails, accessoryVariantUnitDetails, productsData?.results]);
 
   // When creating new unit and user selects accessory, ensure at least one variant row
   useEffect(() => {
@@ -813,56 +877,53 @@ export const UnitForm: React.FC<UnitFormProps> = ({
 
     try {
       if (unit?.id) {
-        const row0 = variantRows[0];
-        await UnitsService.unitsUpdate(unit.id, {
-          ...basePayload,
-          product_color_id: row0.colorId || undefined,
-          quantity: Math.max(1, row0.quantity),
-        });
-        for (let i = 0; i < row0.imageFiles.length; i++) {
-          await UnitImagesService.unitImagesCreate({
-            inventory_unit: unit.id,
-            image: row0.imageFiles[i],
-            is_primary: i === 0,
-          });
-        }
-        for (const mainId of row0.compatibleProductIds) {
-          try {
-            await AccessoriesLinkService.accessoriesLinkCreate({
-              main_product: mainId,
-              accessory: productTemplateId,
-              required_quantity: 1,
-            });
-          } catch {
-            // ignore duplicate link
-          }
-        }
-        for (let i = 1; i < variantRows.length; i++) {
+        for (let i = 0; i < variantRows.length; i++) {
           const row = variantRows[i];
-          const created = await UnitsService.unitsCreate({
-            ...basePayload,
-            product_template_id: productTemplateId,
-            product_color_id: row.colorId || undefined,
-            quantity: Math.max(1, row.quantity),
-          });
-          if (created?.id) {
+          const targetUnitId = row.unitId ?? (i === 0 ? unit.id : undefined);
+
+          if (targetUnitId) {
+            await UnitsService.unitsUpdate(targetUnitId, {
+              ...basePayload,
+              product_color_id: row.colorId || undefined,
+              quantity: Math.max(1, row.quantity),
+            });
             for (let j = 0; j < row.imageFiles.length; j++) {
               await UnitImagesService.unitImagesCreate({
-                inventory_unit: created.id,
+                inventory_unit: targetUnitId,
                 image: row.imageFiles[j],
                 is_primary: j === 0,
               });
             }
-            for (const mainId of row.compatibleProductIds) {
-              try {
-                await AccessoriesLinkService.accessoriesLinkCreate({
-                  main_product: mainId,
-                  accessory: productTemplateId,
-                  required_quantity: 1,
+          } else {
+            const created = await UnitsService.unitsCreate({
+              ...basePayload,
+              product_template_id: productTemplateId,
+              product_color_id: row.colorId || undefined,
+              quantity: Math.max(1, row.quantity),
+            });
+            if (created?.id) {
+              // persist unit id back into state for future edits (best-effort)
+              const createdId = created.id as number;
+              setVariantRows(prev => prev.map(r => (r.id === row.id ? { ...r, unitId: createdId } : r)));
+              for (let j = 0; j < row.imageFiles.length; j++) {
+                await UnitImagesService.unitImagesCreate({
+                  inventory_unit: createdId,
+                  image: row.imageFiles[j],
+                  is_primary: j === 0,
                 });
-              } catch {
-                // ignore duplicate
               }
+            }
+          }
+
+          for (const mainId of row.compatibleProductIds) {
+            try {
+              await AccessoriesLinkService.accessoriesLinkCreate({
+                main_product: mainId,
+                accessory: productTemplateId,
+                required_quantity: 1,
+              });
+            } catch {
+              // ignore duplicate
             }
           }
         }
@@ -1933,6 +1994,26 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                           <div className="variant-cell variant-cell-images">
                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Images</label>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'flex-start' }}>
+                              {(row.existingImages ?? []).map((img) => (
+                                <div key={img.id} style={{ position: 'relative' }}>
+                                  <img src={img.url} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--md-outline-variant)' }} />
+                                  {img.isPrimary && (
+                                    <div style={{
+                                      position: 'absolute',
+                                      bottom: 2,
+                                      right: 2,
+                                      padding: '1px 4px',
+                                      borderRadius: 4,
+                                      fontSize: 10,
+                                      background: 'var(--md-primary)',
+                                      color: 'var(--md-on-primary)',
+                                      lineHeight: 1.2,
+                                    }}>
+                                      Primary
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
                               {row.previewUrls.map((url, idx) => (
                                 <div key={idx} style={{ position: 'relative' }}>
                                   <img src={url} alt="" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid #dee2e6' }} />
