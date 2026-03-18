@@ -1046,15 +1046,15 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                       ref={searchInputRef}
                     id="product_template_id_search"
                     type="text"
-                    value={productSearchTerm || selectedProductDisplay}
+                    value={productSearchTerm}
                     onChange={(e) => {
                       const value = e.target.value;
                       setProductSearchTerm(value);
                       setShowProductSuggestions(true);
                         setHighlightedIndex(-1);
                       
-                      // Clear selection if user is typing
-                      if (value !== selectedProductDisplay) {
+                      // Clear selection if user starts typing a new search
+                      if (formData.product_template_id) {
                         setFormData(prev => ({ ...prev, product_template_id: undefined }));
                           setSelectedProductDisplay('');
                       }
@@ -1917,6 +1917,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                     }
                                     setDeviceSearchTerm('');
                                     setDeviceSearchHighlightedIndex(-1);
+                                    setActiveDeviceSearchRowId(null);
                                   } else if (e.key === 'Escape') {
                                     setActiveDeviceSearchRowId(null);
                                     setDeviceSearchHighlightedIndex(-1);
@@ -1929,6 +1930,8 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                   border: 'none',
                                   outline: 'none',
                                   fontSize: '0.875rem',
+                                  backgroundColor: 'transparent',
+                                  color: 'var(--md-on-surface)',
                                   padding: '0.15rem 0',
                                   minWidth: 120,
                                 }}
@@ -1961,6 +1964,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                                       }
                                       setDeviceSearchTerm('');
                                       setDeviceSearchHighlightedIndex(-1);
+                                      setActiveDeviceSearchRowId(null);
                                     }}
                                     onMouseDown={(e) => e.preventDefault()}
                                     style={{
