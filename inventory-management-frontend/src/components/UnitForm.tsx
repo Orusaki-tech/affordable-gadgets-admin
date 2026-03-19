@@ -918,6 +918,13 @@ export const UnitForm: React.FC<UnitFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Ensure a product template is actually selected (chip/ID), not just search text
+    if (!formData.product_template_id) {
+      alert('Please select a product template from the list.');
+      searchInputRef.current?.focus();
+      return;
+    }
+
     const currentIsAccessory = selectedProductType === 'AC';
     if (currentIsAccessory && variantRows.length > 0) {
       runAccessoryVariantsSubmit();
@@ -1065,7 +1072,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                         }
                     }}
                     placeholder="Type to search products (name, brand, model)..."
-                    required
                     disabled={isLoading}
                     style={{ 
                       width: '100%', 
