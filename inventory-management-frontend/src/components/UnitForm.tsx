@@ -985,13 +985,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                       const value = e.target.value;
                       setProductSearchTerm(value);
                       setShowProductSuggestions(true);
-                        setHighlightedIndex(-1);
-                      
-                      // Clear selection if user starts typing a new search
-                      if (formData.product_template_id) {
-                        setFormData(prev => ({ ...prev, product_template_id: undefined }));
-                          setSelectedProductDisplay('');
-                      }
+                      setHighlightedIndex(-1);
                     }}
                     onFocus={() => setShowProductSuggestions(true)}
                     onBlur={() => {
@@ -1115,6 +1109,51 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                       </button>
                     )}
                   </div>
+
+                  {formData.product_template_id && selectedProductDisplay && (
+                    <div style={{ marginTop: '0.5rem' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          backgroundColor: '#e7f3ff',
+                          color: '#0b5ed7',
+                          border: '1px solid #b6d4fe',
+                          borderRadius: '999px',
+                          padding: '0.3rem 0.7rem',
+                          fontSize: '0.85rem',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Selected: {selectedProductDisplay}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProductSearchTerm('');
+                            setSelectedProductDisplay('');
+                            setFormData(prev => ({ ...prev, product_template_id: undefined }));
+                            setShowProductSuggestions(false);
+                            setHighlightedIndex(-1);
+                            searchInputRef.current?.focus();
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#0b5ed7',
+                            cursor: 'pointer',
+                            fontSize: '1rem',
+                            lineHeight: 1,
+                            padding: 0,
+                          }}
+                          title="Remove selected product template"
+                          aria-label="Remove selected product template"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    </div>
+                  )}
                   
                   {/* Suggestions Dropdown */}
                   {showProductSuggestions && filteredProducts.length > 0 && (
