@@ -90,14 +90,14 @@ In the Product Form, scroll down to find the **"SEO Fields"** section. The SEO f
 **Location:** Product Form → SEO Section → "URL Slug"
 
 **What it is:**
-- The URL-friendly version of your product name
+- The URL-friendly version of `brand` + `model_series` (and `product_type` for separation)
 - Used in the product page URL: `yoursite.com/products/[slug]`
 - Auto-generated if left empty
 
 **How to fill it:**
 - **Format:** Lowercase, hyphens instead of spaces
 - **Example:** `iphone-15-pro-max-256gb-titanium`
-- **Auto-generation:** If you leave it empty, it will be auto-generated from the product name
+- **Auto-generation:** If you leave it empty, it will be auto-generated from `brand` + `model_series` (+ `product_type`)
 
 **Best Practices:**
 - Use lowercase letters

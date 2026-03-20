@@ -246,16 +246,33 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product, adminProfile, isContentCreator]);
 
-  // Auto-generate slug from product_name
+  // Auto-generate slug from structured fields (brand + model_series + product_type)
   useEffect(() => {
-    if (!product && formData.product_name && !formData.slug) {
-      const generatedSlug = formData.product_name
+    if (!product && !formData.slug) {
+      const brand = formData.brand?.trim();
+      const modelSeries = formData.model_series?.trim();
+      const productType = formData.product_type?.trim();
+
+      const isMissing = (v?: string) => !v || v.trim() === "" || v.trim().toUpperCase() === "N/A";
+
+      // Accessories are also expected to use model_series as the accessory type.
+      const isAccessory = productType?.toUpperCase() === 'AC';
+      const source = !isMissing(brand) && !isMissing(modelSeries)
+        ? [brand, modelSeries, productType].filter(Boolean).join('-')
+        : isAccessory
+          ? undefined // Don't fall back for accessories; backend will enforce model_series.
+          : formData.product_name?.trim();
+
+      if (!source) return;
+
+      const generatedSlug = source
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
+
       setFormData(prev => ({ ...prev, slug: generatedSlug }));
     }
-  }, [formData.product_name, product, formData.slug]);
+  }, [formData.brand, formData.model_series, formData.product_type, formData.product_name, product, formData.slug]);
 
   // Cleanup preview URLs on unmount
   useEffect(() => {
