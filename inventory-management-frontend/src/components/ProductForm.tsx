@@ -56,6 +56,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   });
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
@@ -120,6 +121,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   useEffect(() => {
     if (product) {
+      setIsSlugManuallyEdited(true);
       setFormData({
         product_name: product.product_name || '',
         brand: product.brand || '',
@@ -197,6 +199,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       setPreviewImages([]);
       setSelectedImages([]);
     } else {
+      setIsSlugManuallyEdited(false);
       setFormData({
         product_name: '',
         brand: '',
@@ -248,7 +251,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   // Auto-generate slug from structured fields (brand + model_series + product_type)
   useEffect(() => {
-    if (!product && !formData.slug) {
+    if (!product && !isSlugManuallyEdited) {
       const brand = formData.brand?.trim();
       const modelSeries = formData.model_series?.trim();
       const productType = formData.product_type?.trim();
@@ -270,9 +273,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
-      setFormData(prev => ({ ...prev, slug: generatedSlug }));
+      if (generatedSlug && generatedSlug !== formData.slug) {
+        setFormData(prev => ({ ...prev, slug: generatedSlug }));
+      }
     }
-  }, [formData.brand, formData.model_series, formData.product_type, formData.product_name, product, formData.slug]);
+  }, [
+    formData.brand,
+    formData.model_series,
+    formData.product_type,
+    formData.product_name,
+    formData.slug,
+    product,
+    isSlugManuallyEdited,
+  ]);
 
   // Cleanup preview URLs on unmount
   useEffect(() => {
@@ -1250,7 +1263,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               id="slug"
               type="text"
               value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
+              onChange={(e) => {
+                setIsSlugManuallyEdited(true);
+                setFormData({
+                  ...formData,
+                  slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'),
+                });
+              }}
               disabled={isLoading}
               placeholder="auto-generated-from-product-name"
             />
