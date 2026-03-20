@@ -255,16 +255,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       const brand = formData.brand?.trim();
       const modelSeries = formData.model_series?.trim();
       const productType = formData.product_type?.trim();
+      const productName = formData.product_name?.trim();
 
       const isMissing = (v?: string) => !v || v.trim() === "" || v.trim().toUpperCase() === "N/A";
 
-      // Accessories are also expected to use model_series as the accessory type.
-      const isAccessory = productType?.toUpperCase() === 'AC';
-      const source = !isMissing(brand) && !isMissing(modelSeries)
-        ? [brand, modelSeries, productType].filter(Boolean).join('-')
-        : isAccessory
-          ? undefined // Don't fall back for accessories; backend will enforce model_series.
-          : formData.product_name?.trim();
+      const source = !isMissing(brand) && !isMissing(modelSeries) && !isMissing(productName)
+        ? [brand, modelSeries, productName, productType].filter(Boolean).join('-')
+        : productName;
 
       if (!source) return;
 
