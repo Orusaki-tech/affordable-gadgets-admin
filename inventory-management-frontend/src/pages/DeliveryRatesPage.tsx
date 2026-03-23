@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OpenAPI } from '../api/index';
+import { getDefaultApiHeaders } from '../api/config';
 import {
   Box,
   Card,
@@ -53,10 +54,9 @@ type DeliveryRatesResponse = {
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth_token');
-  return {
+  return getDefaultApiHeaders(token, {
     'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Token ${token}` } : {}),
-  };
+  });
 };
 
 const fetchDeliveryRates = async (): Promise<DeliveryRate[]> => {

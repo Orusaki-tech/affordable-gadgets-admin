@@ -3,6 +3,47 @@ import { OpenAPI } from './core/OpenAPI';
 export const isNgrokOrigin = (url: string): boolean =>
   /^https?:\/\/[^/]*ngrok[^/]*\.(app|io|dev)(\/|$)/i.test(url);
 
+/**
+ * Ensure all manual fetch() requests include ngrok bypass header when targeting ngrok.
+ * This prevents HTML interstitial responses that break JSON parsing in the admin app.
+ */
+const patchGlobalFetchForNgrok = () => {
+  if (typeof window === 'undefined' || typeof window.fetch !== 'function') {
+    return;
+  }
+
+  const globalWithFlag = window as Window & { __ngrokFetchPatched?: boolean };
+  if (globalWithFlag.__ngrokFetchPatched) {
+    return;
+  }
+
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const requestUrl =
+      typeof input === 'string'
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as Request).url;
+
+    if (!isNgrokOrigin(requestUrl)) {
+      return originalFetch(input, init);
+    }
+
+    const headers = new Headers(init?.headers);
+    if (!headers.has('ngrok-skip-browser-warning')) {
+      headers.set('ngrok-skip-browser-warning', 'true');
+    }
+
+    return originalFetch(input, {
+      ...init,
+      headers,
+    });
+  };
+
+  globalWithFlag.__ngrokFetchPatched = true;
+};
+
 // Configure base URL from environment variable or auto-detect from current hostname
 const getApiBaseUrl = () => {
   // If environment variable is set, use it
@@ -64,6 +105,7 @@ const getOpenApiHeaders = (): Record<string, string> => {
 };
 OpenAPI.HEADERS = async () => getOpenApiHeaders();
 console.log(`✅ Initial API base URL set to: ${OpenAPI.BASE}`);
+patchGlobalFetchForNgrok();
 
 // Update base URL dynamically when window becomes available (if needed)
 if (typeof window !== 'undefined') {
