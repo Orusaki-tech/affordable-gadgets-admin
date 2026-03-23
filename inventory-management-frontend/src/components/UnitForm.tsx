@@ -149,6 +149,36 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       .map(item => item.product);
   }, [productsData, productSearchTerm, recentProducts]);
 
+  const getProductDisplayText = (product: ProductTemplate) =>
+    `${product.product_name}${product.brand ? ` - ${product.brand}` : ''}${product.model_series ? ` (${product.model_series})` : ''}`;
+
+  const clearSelectedProduct = () => {
+    setProductSearchTerm('');
+    setSelectedProductDisplay('');
+    setSelectedProductType('');
+    setFormData(prev => ({ ...prev, product_template_id: undefined }));
+    setShowProductSuggestions(false);
+    setHighlightedIndex(-1);
+  };
+
+  const selectProductTemplate = (product: ProductTemplate) => {
+    setFormData(prev => ({
+      ...prev,
+      product_template_id: product.id,
+    }));
+    setProductSearchTerm('');
+    setSelectedProductDisplay(getProductDisplayText(product));
+    setSelectedProductType(product.product_type || '');
+    setShowProductSuggestions(false);
+    setHighlightedIndex(-1);
+
+    // Add to recent products (max 5)
+    setRecentProducts(prev => {
+      const filtered = prev.filter(p => p.id !== product.id);
+      return [product, ...filtered].slice(0, 5);
+    });
+  };
+
   // Update display text when product is selected and add to recent
   useEffect(() => {
     if (formData.product_template_id && productsData?.results) {
@@ -156,16 +186,13 @@ export const UnitForm: React.FC<UnitFormProps> = ({
         (p: ProductTemplate) => p.id === formData.product_template_id
       );
       if (selected) {
-        const display = `${selected.product_name}${selected.brand ? ` - ${selected.brand}` : ''}${selected.model_series ? ` (${selected.model_series})` : ''}`;
-        setSelectedProductDisplay(display);
+        setSelectedProductDisplay(getProductDisplayText(selected));
         
         // Add to recent products (max 5)
         setRecentProducts(prev => {
           const filtered = prev.filter(p => p.id !== selected.id);
           return [selected, ...filtered].slice(0, 5);
         });
-      } else {
-        setSelectedProductDisplay('');
       }
     } else {
       setSelectedProductDisplay('');
@@ -360,8 +387,10 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       const product = productsData?.results?.find(
         (p) => p.id === formData.product_template_id
       );
-      const newProductType = product?.product_type || '';
-      setSelectedProductType(newProductType);
+      const newProductType = product?.product_type;
+      if (newProductType) {
+        setSelectedProductType(newProductType);
+      }
       
       // Auto-set quantity to 1 for non-accessories (unique items)
       if (newProductType && newProductType !== 'AC') {
@@ -1052,16 +1081,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                               }
                               
                               if (product) {
-                                const displayText = `${product.product_name}${product.brand ? ` - ${product.brand}` : ''}${product.model_series ? ` (${product.model_series})` : ''}`;
-                                const productId = product.id; // Store in const for type narrowing
-                                setFormData(prev => ({
-                                  ...prev,
-                                  product_template_id: productId,
-                                }));
-                                setProductSearchTerm('');
-                                setSelectedProductDisplay(displayText);
-                                setShowProductSuggestions(false);
-                                setHighlightedIndex(-1);
+                                selectProductTemplate(product);
                               }
                             }
                             break;
@@ -1088,11 +1108,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          setProductSearchTerm('');
-                          setSelectedProductDisplay('');
-                          setFormData(prev => ({ ...prev, product_template_id: undefined }));
-                          setShowProductSuggestions(false);
-                          setHighlightedIndex(-1);
+                          clearSelectedProduct();
                           searchInputRef.current?.focus();
                         }}
                         style={{
@@ -1136,11 +1152,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            setProductSearchTerm('');
-                            setSelectedProductDisplay('');
-                            setFormData(prev => ({ ...prev, product_template_id: undefined }));
-                            setShowProductSuggestions(false);
-                            setHighlightedIndex(-1);
+                            clearSelectedProduct();
                             searchInputRef.current?.focus();
                           }}
                           style={{
@@ -1198,7 +1210,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                             Recent Selections
                           </div>
                           {recentProducts.map((product: ProductTemplate, index) => {
-                        const displayText = `${product.product_name}${product.brand ? ` - ${product.brand}` : ''}${product.model_series ? ` (${product.model_series})` : ''}`;
                         const isSelected = formData.product_template_id === product.id;
                             const isHighlighted = highlightedIndex === index;
                             const typeColors: Record<string, string> = {
@@ -1212,14 +1223,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                           <div
                             key={product.id}
                             onClick={() => {
-                              setFormData(prev => ({
-                                ...prev,
-                                product_template_id: product.id,
-                              }));
-                              setProductSearchTerm('');
-                              setSelectedProductDisplay(displayText);
-                              setShowProductSuggestions(false);
-                                  setHighlightedIndex(-1);
+                              selectProductTemplate(product);
                             }}
                                 onMouseDown={(e) => e.preventDefault()}
                                 onMouseEnter={() => setHighlightedIndex(index)}
@@ -1331,7 +1335,6 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                           : filteredProducts;
                         
                         return productsToShow.map((product: ProductTemplate, index) => {
-                          const displayText = `${product.product_name}${product.brand ? ` - ${product.brand}` : ''}${product.model_series ? ` (${product.model_series})` : ''}`;
                           const isSelected = formData.product_template_id === product.id;
                           const actualIndex = !searchTerm && recentProducts.length > 0 
                             ? recentProducts.length + index 
@@ -1350,14 +1353,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                           <div
                             key={product.id}
                             onClick={() => {
-                              setFormData(prev => ({
-                                ...prev,
-                                product_template_id: product.id,
-                              }));
-                              setProductSearchTerm('');
-                              setSelectedProductDisplay(displayText);
-                              setShowProductSuggestions(false);
-                              setHighlightedIndex(-1);
+                              selectProductTemplate(product);
                             }}
                             onMouseDown={(e) => e.preventDefault()}
                             onMouseEnter={() => setHighlightedIndex(actualIndex)}
