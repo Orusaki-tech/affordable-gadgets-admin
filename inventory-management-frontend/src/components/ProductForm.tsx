@@ -1391,7 +1391,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               placeholder="https://youtube.com/watch?v=... or https://drive.google.com/..."
             />
             <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
-              Link to product video (YouTube, Vimeo, Google Drive, etc.).
+              YouTube watch, Shorts, youtu.be, or Vimeo links play in the storefront. For the homepage
+              product-video carousel, also add the <strong>Video</strong> tag to this product.
             </small>
           </div>
 
