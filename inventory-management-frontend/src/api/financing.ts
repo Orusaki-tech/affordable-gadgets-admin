@@ -38,6 +38,11 @@ type Paginated<T> = {
   results?: T[];
 };
 
+function unwrapResults<T>(data: Paginated<T> | T[]): T[] {
+  if (Array.isArray(data)) return data;
+  return (data.results ?? []) as T[];
+}
+
 function getToken(): string | null {
   try {
     return localStorage.getItem('auth_token');
@@ -77,7 +82,10 @@ export const FinancingApi = {
     if (params?.search) qs.set('search', params.search);
     if (params?.ordering) qs.set('ordering', params.ordering);
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
-    return requestJson<FinancingProvider[]>(`/financing-providers/${suffix}`);
+    const data = await requestJson<Paginated<FinancingProvider> | FinancingProvider[]>(
+      `/financing-providers/${suffix}`
+    );
+    return unwrapResults<FinancingProvider>(data);
   },
 
   async createProvider(body: Partial<FinancingProvider> & { name: string; slug?: string; is_active?: boolean }) {
