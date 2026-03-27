@@ -339,6 +339,23 @@ export const AdminLayout: React.FC = () => {
                 Tags
               </Link>
 
+              {/* Financing (BNPL) */}
+              <div className="nav-section-header">Financing</div>
+              <Link
+                to="/financing/providers"
+                className={isActive('/financing/providers')}
+                onClick={() => setSidebarOpen(false)}
+              >
+                Financing brands
+              </Link>
+              <Link
+                to="/financing/offers"
+                className={isActive('/financing/offers')}
+                onClick={() => setSidebarOpen(false)}
+              >
+                Financing offers
+              </Link>
+
               {/* Reports & Analytics */}
               <div className="nav-section-header">Reports & Analytics</div>
               <Link to="/reports" className={isActive('/reports')} onClick={() => setSidebarOpen(false)}>
@@ -534,6 +551,23 @@ export const AdminLayout: React.FC = () => {
               </Link>
               <Link to="/tags" className={isActive('/tags')} onClick={() => setSidebarOpen(false)}>
                 Tags
+              </Link>
+
+              {/* Financing (BNPL) */}
+              <div className="nav-section-header">Financing</div>
+              <Link
+                to="/financing/providers"
+                className={isActive('/financing/providers')}
+                onClick={() => setSidebarOpen(false)}
+              >
+                Financing brands
+              </Link>
+              <Link
+                to="/financing/offers"
+                className={isActive('/financing/offers')}
+                onClick={() => setSidebarOpen(false)}
+              >
+                Financing offers
               </Link>
 
               {/* Reports & Analytics */}
