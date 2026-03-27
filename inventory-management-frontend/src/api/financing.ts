@@ -54,12 +54,21 @@ function getToken(): string | null {
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   const base = getInventoryBaseUrl();
   const token = getToken();
+  const headers = new Headers({
+    Accept: 'application/json',
+    ...getDefaultApiHeaders(token),
+    ...(init?.headers || {}),
+  });
+
+  // If we send a JSON string body, ensure the server sees it as JSON.
+  // Without this, fetch() defaults to text/plain;charset=UTF-8 and DRF returns 415.
+  if (init?.body != null && typeof init.body === 'string' && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const res = await fetch(`${base}${path}`, {
     ...init,
-    headers: {
-      ...getDefaultApiHeaders(token),
-      ...(init?.headers || {}),
-    },
+    headers,
   });
   if (!res.ok) {
     let body: any = null;
