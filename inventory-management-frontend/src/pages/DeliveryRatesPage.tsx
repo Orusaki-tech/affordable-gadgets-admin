@@ -35,6 +35,32 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 
+const isWardAllowedCounty = (county: string | undefined | null) => {
+  const normalized = (county || '').trim().toLowerCase();
+  return normalized === 'nairobi' || normalized === 'kiambu';
+};
+
+const extractApiErrorMessage = async (response: Response): Promise<string> => {
+  const fallback = `${response.status} ${response.statusText}`.trim() || 'Request failed';
+  const body = await response.json().catch(() => null);
+  if (!body || typeof body !== 'object') return fallback;
+
+  const anyBody = body as any;
+  if (typeof anyBody.detail === 'string' && anyBody.detail.trim()) return anyBody.detail.trim();
+
+  // DRF ValidationError commonly returns: { field: ["msg"] } or { non_field_errors: ["msg"] }
+  const messages: string[] = [];
+  for (const [key, value] of Object.entries(anyBody)) {
+    if (typeof value === 'string') {
+      messages.push(`${key}: ${value}`);
+    } else if (Array.isArray(value)) {
+      const joined = value.filter((v) => typeof v === 'string').join(', ');
+      if (joined) messages.push(`${key}: ${joined}`);
+    }
+  }
+  return messages.length ? messages.join(' | ') : fallback;
+};
+
 type DeliveryRate = {
   id?: number;
   county?: string;
@@ -79,6 +105,7 @@ export const DeliveryRatesPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<DeliveryRate | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeliveryRate | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['delivery-rates'],
@@ -105,8 +132,7 @@ export const DeliveryRatesPage: React.FC = () => {
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody?.detail || 'Failed to create rate');
+        throw new Error(await extractApiErrorMessage(response));
       }
       return response.json();
     },
@@ -114,7 +140,9 @@ export const DeliveryRatesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-rates'] });
       setShowModal(false);
       setEditing(null);
+      setModalError(null);
     },
+    onError: (err) => setModalError((err as Error).message || 'Failed to create rate'),
   });
 
   const updateMutation = useMutation({
@@ -126,8 +154,7 @@ export const DeliveryRatesPage: React.FC = () => {
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody?.detail || 'Failed to update rate');
+        throw new Error(await extractApiErrorMessage(response));
       }
       return response.json();
     },
@@ -135,7 +162,9 @@ export const DeliveryRatesPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-rates'] });
       setShowModal(false);
       setEditing(null);
+      setModalError(null);
     },
+    onError: (err) => setModalError((err as Error).message || 'Failed to update rate'),
   });
 
   const deleteMutation = useMutation({
@@ -157,11 +186,13 @@ export const DeliveryRatesPage: React.FC = () => {
   const handleEdit = (rate: DeliveryRate) => {
     setEditing(rate);
     setShowModal(true);
+    setModalError(null);
   };
 
   const handleCreate = () => {
     setEditing(null);
     setShowModal(true);
+    setModalError(null);
   };
 
   if (isLoading) {
@@ -252,9 +283,11 @@ export const DeliveryRatesPage: React.FC = () => {
       {showModal && (
         <DeliveryRateModal
           rate={editing}
+          errorMessage={modalError}
           onClose={() => {
             setShowModal(false);
             setEditing(null);
+            setModalError(null);
           }}
           onSubmit={(payload) => {
             if (payload.id) {
@@ -288,12 +321,19 @@ export const DeliveryRatesPage: React.FC = () => {
 
 interface DeliveryRateModalProps {
   rate: DeliveryRate | null;
+  errorMessage: string | null;
   onClose: () => void;
   onSubmit: (payload: DeliveryRate) => void;
   isLoading: boolean;
 }
 
-const DeliveryRateModal: React.FC<DeliveryRateModalProps> = ({ rate, onClose, onSubmit, isLoading }) => {
+const DeliveryRateModal: React.FC<DeliveryRateModalProps> = ({
+  rate,
+  errorMessage,
+  onClose,
+  onSubmit,
+  isLoading,
+}) => {
   const [formData, setFormData] = useState<DeliveryRate>({
     id: rate?.id,
     county: rate?.county || '',
@@ -311,19 +351,31 @@ const DeliveryRateModal: React.FC<DeliveryRateModalProps> = ({ rate, onClose, on
     onSubmit({
       ...formData,
       county: formData.county?.trim(),
-      ward: formData.ward?.trim() || null,
+      ward: isWardAllowedCounty(formData.county) ? formData.ward?.trim() || null : null,
     });
   };
+
+  const wardAllowed = isWardAllowedCounty(formData.county);
 
   return (
     <Dialog open onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>{rate ? 'Edit Delivery Rate' : 'Create Delivery Rate'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} mt={1}>
+          {errorMessage && <Alert severity="error">{errorMessage}</Alert>}
           <TextField
             label="County"
             value={formData.county || ''}
-            onChange={(e) => setFormData({ ...formData, county: e.target.value })}
+            onChange={(e) => {
+              const nextCounty = e.target.value;
+              const nextWardAllowed = isWardAllowedCounty(nextCounty);
+              setFormData((prev) => ({
+                ...prev,
+                county: nextCounty,
+                // Enforce policy in UI: wards only for Nairobi/Kiambu
+                ward: nextWardAllowed ? prev.ward : '',
+              }));
+            }}
             required
             disabled={isLoading}
           />
@@ -331,7 +383,10 @@ const DeliveryRateModal: React.FC<DeliveryRateModalProps> = ({ rate, onClose, on
             label="Ward (optional)"
             value={formData.ward || ''}
             onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
-            disabled={isLoading}
+            disabled={isLoading || !wardAllowed}
+            helperText={
+              wardAllowed ? 'Only use ward for Nairobi or Kiambu.' : 'Ward pricing only allowed for Nairobi/Kiambu.'
+            }
           />
           <TextField
             label="Price (KES)"

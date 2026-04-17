@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
-import './Login.css';
+import '../styles/pages/Login/base.css';
 
 type ProfileForRedirect = { user?: { is_superuser?: boolean }; roles?: Array<{ name?: string; role_code?: string }> };
 

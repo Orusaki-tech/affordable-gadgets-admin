@@ -7,7 +7,7 @@ import { queryKeys } from '../hooks/queryKeys';
 import { StockAlertsService, StockAlertsResponse, type Brand, type AdminProfileResponse as BaseAdminProfileResponse } from '../api/index';
 import { NotificationBell } from './NotificationBell';
 import { ThemeToggleButton } from './ThemeSwitcher';
-import './AdminLayout.css';
+import '../styles/components/AdminLayout/base.css';
 
 // Extend AdminProfileResponse to include brands and is_global_admin
 // Note: brands in Admin is string, but we parse it as Brand[] when needed
