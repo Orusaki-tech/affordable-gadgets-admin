@@ -86,17 +86,28 @@ const getAuthHeaders = () => {
 };
 
 const fetchDeliveryRates = async (): Promise<DeliveryRate[]> => {
-  const response = await fetch(`${OpenAPI.BASE}/delivery-rates/`, {
-    headers: getAuthHeaders(),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to load delivery rates');
+  // Backend uses DRF PageNumberPagination (default PAGE_SIZE=25), so fetch all pages
+  // to support client-side searching across all counties/wards.
+  const collected: DeliveryRate[] = [];
+  let url: string | null = `${OpenAPI.BASE}/delivery-rates/`;
+
+  while (url) {
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      throw new Error('Failed to load delivery rates');
+    }
+
+    const data: DeliveryRate[] | DeliveryRatesResponse = await response.json();
+    if (Array.isArray(data)) {
+      collected.push(...data);
+      break;
+    }
+
+    collected.push(...(data.results || []));
+    url = data.next || null;
   }
-  const data: DeliveryRate[] | DeliveryRatesResponse = await response.json();
-  if (Array.isArray(data)) {
-    return data;
-  }
-  return data.results || [];
+
+  return collected;
 };
 
 export const DeliveryRatesPage: React.FC = () => {
