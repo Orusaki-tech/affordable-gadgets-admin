@@ -92,7 +92,7 @@ const fetchDeliveryRates = async (): Promise<DeliveryRate[]> => {
   let url: string | null = `${OpenAPI.BASE}/delivery-rates/`;
 
   while (url) {
-    const response = await fetch(url, { headers: getAuthHeaders() });
+    const response: Response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) {
       throw new Error('Failed to load delivery rates');
     }
