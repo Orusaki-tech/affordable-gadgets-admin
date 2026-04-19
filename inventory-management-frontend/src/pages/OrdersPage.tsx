@@ -4,6 +4,7 @@ import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import {
+  ApiError,
   OrdersService,
   OrderStatusEnum,
   type InitiatePaymentRequestRequest,
@@ -12,6 +13,32 @@ import {
 import { getInventoryBaseUrl } from '../api/config';
 import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 import { ModalLoader } from '../components/PageLoader';
+
+/** OpenAPI client throws ApiError with server JSON in .body; axios uses .response.data */
+function getMutationErrorPayload(err: unknown): unknown {
+  if (err instanceof ApiError) return err.body;
+  return (err as { response?: { data?: unknown } })?.response?.data;
+}
+
+function formatBackendError(err: unknown, fallback: string): string {
+  const d = getMutationErrorPayload(err);
+  if (d == null) return (err as Error)?.message || fallback;
+  if (typeof d === 'string') return d;
+  if (typeof d === 'object') {
+    const o = d as Record<string, unknown>;
+    if (typeof o.error === 'string') return o.error;
+    if (typeof o.detail === 'string') return o.detail;
+    if (Array.isArray(o.detail)) {
+      return o.detail.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ');
+    }
+    try {
+      return JSON.stringify(d);
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
 
 const OrderDetailsModal = lazy(() => import('../components/OrderDetailsModal').then((m) => ({ default: m.OrderDetailsModal })));
 
@@ -283,9 +310,8 @@ export const OrdersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['approved-reservation-requests-for-order'] });
       alert(data.message || 'Payment confirmed successfully!');
     },
-    onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to confirm payment.';
-      alert(`Error: ${errorMessage}`);
+    onError: (err: unknown) => {
+      alert(`Error: ${formatBackendError(err, 'Failed to confirm payment.')}`);
     },
   });
 
@@ -318,22 +344,8 @@ export const OrdersPage: React.FC = () => {
       }
       alert('Payment initiated, but no redirect URL was returned.');
     },
-    onError: (err: any) => {
-      const d = err?.response?.data;
-      let errorMessage =
-        (typeof d?.error === 'string' && d.error) ||
-        (typeof d?.detail === 'string' && d.detail) ||
-        '';
-      if (!errorMessage && d && typeof d === 'object') {
-        errorMessage =
-          (typeof (d as any).error === 'string' && (d as any).error) ||
-          (Array.isArray((d as any).detail) ? (d as any).detail.join(' ') : '') ||
-          JSON.stringify(d);
-      }
-      if (!errorMessage) {
-        errorMessage = err?.message || 'Failed to initiate payment.';
-      }
-      alert(`Error: ${errorMessage}`);
+    onError: (err: unknown) => {
+      alert(`Error: ${formatBackendError(err, 'Failed to initiate payment.')}`);
     },
   });
 
