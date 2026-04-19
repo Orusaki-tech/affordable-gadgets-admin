@@ -18,6 +18,361 @@ import { useDebounce } from '../hooks/useDebounce';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- used via useProductsList() result
 import { useProductsList } from '../hooks/useProductsList';
 
+/** Searchable color picker (replaces long native select), styled like product template search. */
+const ColorSearchCombobox: React.FC<{
+  id?: string;
+  colors: Color[];
+  value: number | undefined;
+  onChange: (id: number | undefined) => void;
+  disabled?: boolean;
+  compact?: boolean;
+  showAddButton?: boolean;
+  onAddClick?: () => void;
+  addButtonDisabled?: boolean;
+}> = ({
+  id = 'product_color_search',
+  colors,
+  value,
+  onChange,
+  disabled = false,
+  compact = false,
+  showAddButton = false,
+  onAddClick,
+  addButtonDisabled = false,
+}) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [open, setOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const selectedColor = useMemo(
+    () => (value != null ? colors.find((c) => c.id === value) : undefined),
+    [colors, value]
+  );
+
+  const filteredColors = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase();
+    const sorted = [...colors].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+    if (!q) return sorted.slice(0, 100);
+    return sorted.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 100);
+  }, [colors, searchTerm]);
+
+  const clearSelection = () => {
+    onChange(undefined);
+    setSearchTerm('');
+    setOpen(false);
+    setHighlightedIndex(-1);
+    inputRef.current?.focus();
+  };
+
+  const pickColor = (c: Color) => {
+    if (c.id == null) return;
+    onChange(c.id);
+    setSearchTerm('');
+    setOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open || filteredColors.length === 0) {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setHighlightedIndex(-1);
+      }
+      return;
+    }
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex((prev) =>
+          prev < filteredColors.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0 && filteredColors[highlightedIndex]) {
+          pickColor(filteredColors[highlightedIndex]);
+        }
+        break;
+      case 'Escape':
+        setOpen(false);
+        setHighlightedIndex(-1);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const pad = compact ? '0.5rem 0.6rem 0.5rem 2rem' : '0.75rem 0.75rem 0.75rem 2.5rem';
+  const iconLeft = compact ? '0.5rem' : '0.75rem';
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: '0.5rem',
+        alignItems: 'flex-start',
+        flex: 1,
+        minWidth: 0,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ position: 'relative', overflow: 'visible' }}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <span
+              style={{
+                position: 'absolute',
+                left: iconLeft,
+                color: '#6c757d',
+                pointerEvents: 'none',
+                zIndex: 1,
+                fontSize: '1rem',
+              }}
+              aria-hidden
+            >
+              🔍
+            </span>
+            <input
+              ref={inputRef}
+              id={id}
+              type="text"
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setOpen(true);
+                setHighlightedIndex(-1);
+              }}
+              onFocus={() => setOpen(true)}
+              onBlur={() => {
+                setTimeout(() => {
+                  setOpen(false);
+                  setHighlightedIndex(-1);
+                }, 200);
+              }}
+              onKeyDown={onKeyDown}
+              placeholder={
+                compact ? 'Search colors…' : 'Type to search colors by name…'
+              }
+              disabled={disabled}
+              autoComplete="off"
+              style={{
+                width: '100%',
+                padding: pad,
+                border: compact
+                  ? '1px solid var(--md-outline-variant)'
+                  : '1px solid #ced4da',
+                borderRadius: compact ? 6 : 4,
+                fontSize: compact ? '0.875rem' : '1rem',
+                height: compact ? 52 : undefined,
+                boxSizing: 'border-box',
+                backgroundColor: compact ? 'var(--md-surface-container-low)' : undefined,
+                color: compact ? 'var(--md-on-surface)' : undefined,
+              }}
+            />
+            {(searchTerm || selectedColor) && (
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={clearSelection}
+                style={{
+                  position: 'absolute',
+                  right: '0.5rem',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  color: '#6c757d',
+                  fontSize: '1.2rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  zIndex: 1,
+                }}
+                title="Clear selection"
+                aria-label="Clear color selection"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {open && filteredColors.length > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                minWidth: compact ? 200 : 280,
+                zIndex: 10000,
+                backgroundColor: compact ? 'var(--md-surface-container-high)' : 'white',
+                border: compact
+                  ? '1px solid var(--md-outline-variant)'
+                  : '2px solid #667eea',
+                borderRadius: compact ? 6 : '0 0 8px 8px',
+                maxHeight: 280,
+                overflowY: 'auto',
+                boxShadow: compact
+                  ? 'var(--shadow-lg)'
+                  : '0 8px 24px rgba(0, 0, 0, 0.2)',
+                marginTop: 2,
+              }}
+              onMouseDown={(e) => e.preventDefault()}
+            >
+              {filteredColors.map((c, index) => {
+                const isHi = highlightedIndex === index;
+                const isSel = c.id === value;
+                return (
+                  <div
+                    key={c.id ?? c.name}
+                    onClick={() => pickColor(c)}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    style={{
+                      padding: '0.65rem 0.85rem',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid #f0f0f0',
+                      backgroundColor:
+                        isSel || isHi
+                          ? compact
+                            ? 'var(--md-surface-container)'
+                            : '#e7f3ff'
+                          : compact
+                            ? 'transparent'
+                            : 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      fontSize: compact ? '0.875rem' : '0.95rem',
+                      color: compact ? 'var(--md-on-surface)' : '#212529',
+                    }}
+                  >
+                    {c.hex_code ? (
+                      <span
+                        style={{
+                          width: 14,
+                          height: 14,
+                          borderRadius: 3,
+                          background: c.hex_code,
+                          border: '1px solid #ccc',
+                          flexShrink: 0,
+                        }}
+                        aria-hidden
+                      />
+                    ) : null}
+                    <span style={{ flex: 1 }}>{c.name}</span>
+                    {isSel && <span style={{ color: '#28a745' }}>✓</span>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {open && searchTerm.trim() && filteredColors.length === 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                zIndex: 10000,
+                backgroundColor: 'white',
+                border: '1px solid #ced4da',
+                borderRadius: 4,
+                padding: '1rem',
+                marginTop: 2,
+                fontSize: '0.875rem',
+                color: '#6c757d',
+              }}
+            >
+              No colors match &quot;{searchTerm}&quot;.
+            </div>
+          )}
+        </div>
+
+        {selectedColor && !compact && (
+          <div style={{ marginTop: '0.5rem' }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: '#e7f3ff',
+                color: '#0b5ed7',
+                border: '1px solid #b6d4fe',
+                borderRadius: '999px',
+                padding: '0.3rem 0.7rem',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+              }}
+            >
+              Selected: {selectedColor.name}
+              <button
+                type="button"
+                onClick={clearSelection}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#0b5ed7',
+                  cursor: 'pointer',
+                  fontSize: '1rem',
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+                title="Remove selected color"
+                aria-label="Remove selected color"
+              >
+                ×
+              </button>
+            </span>
+          </div>
+        )}
+
+        {selectedColor && compact && !searchTerm.trim() && (
+          <div
+            style={{
+              fontSize: '0.7rem',
+              marginTop: 4,
+              color: 'var(--md-on-surface-variant)',
+              paddingLeft: 2,
+            }}
+          >
+            Selected: {selectedColor.name}
+          </div>
+        )}
+      </div>
+
+      {showAddButton && (
+        <button
+          type="button"
+          onClick={onAddClick}
+          disabled={disabled || addButtonDisabled}
+          style={{
+            padding: compact ? '0.5rem 0.85rem' : '0.5rem 1rem',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: compact ? 6 : 4,
+            cursor: disabled || addButtonDisabled ? 'not-allowed' : 'pointer',
+            fontSize: '0.875rem',
+            whiteSpace: 'nowrap',
+            alignSelf: compact ? 'stretch' : 'flex-start',
+            height: compact ? 52 : undefined,
+            boxSizing: 'border-box',
+          }}
+          title="Add new color"
+        >
+          + Add
+        </button>
+      )}
+    </div>
+  );
+};
+
 interface UnitFormProps {
   unit: InventoryUnitRW | null;
   onClose: () => void;
@@ -230,10 +585,23 @@ export const UnitForm: React.FC<UnitFormProps> = ({
     }
   }, [recentProducts]);
 
-  // Fetch colors for dropdown
+  // Fetch all colors (paginated API) for searchable picker
   const { data: colorsData } = useQuery({
     queryKey: ['colors-all'],
-    queryFn: () => ColorsService.colorsList(1),
+    queryFn: async () => {
+      const results: Color[] = [];
+      let page = 1;
+      for (;;) {
+        const res = await ColorsService.colorsList(page);
+        if (res.results?.length) {
+          results.push(...res.results);
+        }
+        if (!res.next) break;
+        page += 1;
+        if (page > 200) break;
+      }
+      return { results };
+    },
   });
 
   // Mutation to create a new color
@@ -1484,44 +1852,30 @@ export const UnitForm: React.FC<UnitFormProps> = ({
 
               {!isAccessory && (
                 <div className="form-group">
-                  <label htmlFor="product_color_id">Color</label>
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-                    <select
-                      id="product_color_id"
-                      value={formData.product_color_id || ''}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        product_color_id: e.target.value ? parseInt(e.target.value) : undefined,
-                      })}
-                      disabled={isLoading || showColorForm}
-                      style={{ flex: 1 }}
-                    >
-                      <option value="">Select color</option>
-                      {colorsData?.results?.map((color) => (
-                        <option key={color.id} value={color.id}>
-                          {color.name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => setShowColorForm(true)}
-                      disabled={isLoading || showColorForm}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        backgroundColor: '#28a745',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                        whiteSpace: 'nowrap',
-                      }}
-                      title="Add new color"
-                    >
-                      + Add
-                    </button>
-                  </div>
+                  <label htmlFor="product_color_search">Color</label>
+                  <ColorSearchCombobox
+                    id="product_color_search"
+                    colors={colorsData?.results ?? []}
+                    value={formData.product_color_id}
+                    onChange={(id) =>
+                      setFormData((prev) => ({ ...prev, product_color_id: id }))
+                    }
+                    disabled={isLoading || showColorForm}
+                    showAddButton
+                    onAddClick={() => setShowColorForm(true)}
+                    addButtonDisabled={isLoading || showColorForm}
+                  />
+                  <small
+                    style={{
+                      color: '#666',
+                      fontSize: '0.875rem',
+                      marginTop: '0.25rem',
+                      display: 'block',
+                    }}
+                  >
+                    Search by color name. Use arrow keys to navigate, Enter to select, Esc to
+                    close.
+                  </small>
                   {showColorForm && (
                     <div style={{
                       marginTop: '1rem',
@@ -1786,35 +2140,16 @@ export const UnitForm: React.FC<UnitFormProps> = ({
                         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(100px,1fr) minmax(180px,2fr) minmax(90px,110px) minmax(100px,120px) 36px', gap: '1rem', alignItems: 'start' }} className="variant-row-grid">
                           <div className="variant-cell variant-cell-color">
                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Color</label>
-                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'stretch' }}>
-                              <select
-                                value={row.colorId ?? ''}
-                                onChange={(e) => updateVariantRow(row.id, { colorId: e.target.value ? parseInt(e.target.value, 10) : undefined })}
-                                disabled={isLoading}
-                                style={{
-                                  flex: 1,
-                                  height: 52,
-                                  minHeight: 52,
-                                  boxSizing: 'border-box',
-                                  WebkitAppearance: 'none',
-                                  MozAppearance: 'none',
-                                  appearance: 'none',
-                                  padding: '0.5rem 0.6rem',
-                                  border: '1px solid var(--md-outline-variant)',
-                                  borderRadius: 6,
-                                  fontSize: '0.875rem',
-                                  lineHeight: 1.2,
-                                  backgroundColor: 'var(--md-surface-container-low)',
-                                  color: 'var(--md-on-surface)',
-                                  minWidth: 0,
-                                }}
-                              >
-                                <option value="">Select</option>
-                                {colorsData?.results?.map((c) => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                              </select>
-                            </div>
+                            <ColorSearchCombobox
+                              id={`variant_color_${row.id}`}
+                              colors={colorsData?.results ?? []}
+                              value={row.colorId}
+                              onChange={(id) =>
+                                updateVariantRow(row.id, { colorId: id })
+                              }
+                              disabled={isLoading}
+                              compact
+                            />
                           </div>
                           <div className="variant-cell variant-cell-devices" style={{ position: 'relative', minWidth: 0 }}>
                             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#495057', marginBottom: '0.35rem' }}>Compatible devices</label>
