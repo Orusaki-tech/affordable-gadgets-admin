@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { OrdersService, OrderStatusEnum, type OrderResponse, OpenAPI } from '../api/index';
 
@@ -7,7 +7,8 @@ interface OrderDetailsModalProps {
   isSalesperson?: boolean;
   isOrderManager?: boolean;
   onConfirmCash?: (orderId: string) => void;
-  onInitiatePayment?: (orderId: string) => void;
+  /** Optional customer payload for walk-in M-Pesa (phone required by API when order has no phone on file). */
+  onInitiatePayment?: (orderId: string, customer?: { phone_number?: string; email?: string }) => void;
   onToggleDelivered?: (orderId: string, nextStatus: OrderStatusEnum) => void;
   onClose: () => void;
 }
@@ -72,7 +73,15 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const isPending = data?.status?.toLowerCase().includes('pending') || 
                     data?.status_display?.toLowerCase().includes('pending');
   const customerEmail = (data as any)?.customer_email || '';
+  const [walkInMpesaPhone, setWalkInMpesaPhone] = useState('');
   const isWalkIn = data?.order_source === 'WALK_IN';
+
+  useEffect(() => {
+    const p = (data as any)?.customer_phone;
+    if (typeof p === 'string' && p.trim()) {
+      setWalkInMpesaPhone(p.trim());
+    }
+  }, [data?.order_id, (data as any)?.customer_phone]);
   const isOnline = data?.order_source === 'ONLINE';
   const canShowPaymentActions = isSalesperson && isPending && isWalkIn;
   const canToggleDelivered =
@@ -396,11 +405,35 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
               {/* Payment Actions for walk-in pending orders */}
               {canShowPaymentActions && (
                 <div className="order-actions-section" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color, #e0e0e0)' }}>
+                  <div style={{ marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary, #666)' }}>
+                    M-Pesa / Pesapal needs the customer&apos;s phone. If it&apos;s missing below, enter it before checkout.
+                  </div>
+                  <label className="info-row" style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginBottom: '0.75rem' }}>
+                    <span>M-Pesa phone</span>
+                    <input
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder="2547… or 07…"
+                      value={walkInMpesaPhone}
+                      onChange={(e) => setWalkInMpesaPhone(e.target.value)}
+                      style={{
+                        padding: '0.5rem 0.65rem',
+                        borderRadius: 6,
+                        border: '1px solid var(--border-color, #ccc)',
+                        fontSize: '1rem',
+                      }}
+                    />
+                  </label>
                   {onInitiatePayment && (
                     <button
                       onClick={() => {
+                        const phone = walkInMpesaPhone.trim();
+                        if (!phone) {
+                          alert('Enter the customer M-Pesa phone number before proceeding to checkout.');
+                          return;
+                        }
                         if (window.confirm('Proceed to Pesapal checkout for this order?')) {
-                          onInitiatePayment(orderId);
+                          onInitiatePayment(orderId, { phone_number: phone });
                         }
                       }}
                       className="btn-action btn-primary"

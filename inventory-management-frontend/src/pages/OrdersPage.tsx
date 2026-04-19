@@ -3,7 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
-import { OrdersService, OrderStatusEnum, type OrderResponse } from '../api/index';
+import {
+  OrdersService,
+  OrderStatusEnum,
+  type InitiatePaymentRequestRequest,
+  type OrderResponse,
+} from '../api/index';
 import { getInventoryBaseUrl } from '../api/config';
 import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 import { ModalLoader } from '../components/PageLoader';
@@ -285,19 +290,28 @@ export const OrdersPage: React.FC = () => {
   });
 
   const initiatePaymentMutation = useMutation({
-    mutationFn: async (orderId: string) => {
+    mutationFn: async (
+      payload: string | { orderId: string; customer?: InitiatePaymentRequestRequest['customer'] }
+    ) => {
+      const orderId = typeof payload === 'string' ? payload : payload.orderId;
+      const customerOverride = typeof payload === 'object' ? payload.customer : undefined;
       const callbackUrl =
         process.env.REACT_APP_PESAPAL_CALLBACK_URL ||
         `${window.location.origin}/orders?orderId=${orderId}&payment_return=1`;
-      const result = await OrdersService.ordersInitiatePaymentCreate(orderId, {
+      const body: InitiatePaymentRequestRequest = {
         callback_url: callbackUrl,
-      });
+      };
+      if (customerOverride && typeof customerOverride === 'object') {
+        body.customer = customerOverride;
+      }
+      const result = await OrdersService.ordersInitiatePaymentCreate(orderId, body);
       return result;
     },
-    onSuccess: (data: any, orderId: string) => {
+    onSuccess: (data: any, variables: string | { orderId: string; customer?: unknown }) => {
+      const orderIdForSession = typeof variables === 'string' ? variables : variables?.orderId;
       if (data?.redirect_url) {
-        if (orderId) {
-          sessionStorage.setItem(pendingPaymentKey, orderId);
+        if (orderIdForSession) {
+          sessionStorage.setItem(pendingPaymentKey, orderIdForSession);
         }
         window.location.href = data.redirect_url;
         return;
@@ -305,7 +319,20 @@ export const OrdersPage: React.FC = () => {
       alert('Payment initiated, but no redirect URL was returned.');
     },
     onError: (err: any) => {
-      const errorMessage = err?.response?.data?.error || err?.message || 'Failed to initiate payment.';
+      const d = err?.response?.data;
+      let errorMessage =
+        (typeof d?.error === 'string' && d.error) ||
+        (typeof d?.detail === 'string' && d.detail) ||
+        '';
+      if (!errorMessage && d && typeof d === 'object') {
+        errorMessage =
+          (typeof (d as any).error === 'string' && (d as any).error) ||
+          (Array.isArray((d as any).detail) ? (d as any).detail.join(' ') : '') ||
+          JSON.stringify(d);
+      }
+      if (!errorMessage) {
+        errorMessage = err?.message || 'Failed to initiate payment.';
+      }
       alert(`Error: ${errorMessage}`);
     },
   });
@@ -641,9 +668,13 @@ export const OrdersPage: React.FC = () => {
                   confirmPaymentMutation.mutate({ orderId, paymentMethod: 'CASH' });
                 }
               } : undefined}
-              onInitiatePayment={isSalesperson && order.status === 'Pending' ? (orderId) => {
+              onInitiatePayment={isSalesperson && order.status === 'Pending' ? (orderId, customer) => {
                 if (window.confirm('Proceed to Pesapal checkout for this order?')) {
-                  initiatePaymentMutation.mutate(orderId);
+                  if (customer) {
+                    initiatePaymentMutation.mutate({ orderId, customer });
+                  } else {
+                    initiatePaymentMutation.mutate(orderId);
+                  }
                 }
               } : undefined}
               onMarkDelivered={isOrderManager && order.status === 'Paid' && order.order_source === 'ONLINE' ? (orderId) => {
@@ -704,7 +735,9 @@ export const OrdersPage: React.FC = () => {
           isSalesperson={isSalesperson}
           isOrderManager={isOrderManager}
           onConfirmCash={(orderId) => confirmPaymentMutation.mutate({ orderId, paymentMethod: 'CASH' })}
-          onInitiatePayment={(orderId) => initiatePaymentMutation.mutate(orderId)}
+          onInitiatePayment={(orderId, customer) =>
+            initiatePaymentMutation.mutate(customer ? { orderId, customer } : orderId)
+          }
           onToggleDelivered={(orderId, nextStatus) => toggleDeliveredMutation.mutate({ orderId, nextStatus })}
           onClose={() => {
             setSelectedOrderId(null);
@@ -751,7 +784,7 @@ interface OrderCardProps {
   getStatusBadgeClass: (status?: string) => string;
   onViewDetails: (orderId: string | null) => void;
   onConfirmPayment?: (orderId: string) => void;
-  onInitiatePayment?: (orderId: string) => void;
+  onInitiatePayment?: (orderId: string, customer?: { phone_number?: string; email?: string }) => void;
   onMarkDelivered?: (orderId: string) => void;
   isSalesperson?: boolean;
   isOrderManager?: boolean;
@@ -861,7 +894,15 @@ const OrderCard: React.FC<OrderCardProps> = ({
             className="btn-action btn-primary"
             onClick={(e) => {
               e.stopPropagation();
-              onInitiatePayment(order.order_id);
+              let phone = (order as any).customer_phone?.trim?.() || '';
+              if (!phone) {
+                phone = (window.prompt('Customer M-Pesa phone (2547… or 07…) — required for walk-in checkout:', '') || '').trim();
+              }
+              if (!phone) {
+                alert('M-Pesa phone is required to start Pesapal checkout for walk-in orders.');
+                return;
+              }
+              onInitiatePayment(order.order_id, { phone_number: phone });
             }}
             style={{ width: '100%', maxWidth: '220px' }}
           >
