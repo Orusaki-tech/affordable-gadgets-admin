@@ -158,7 +158,12 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
   }, [request]);
 
   // Fetch brand details if we have a brand ID
-  const { data: brandForOrder } = useQuery<Brand>({
+  const {
+    data: brandForOrder,
+    isPending: isBrandQueryPending,
+    isError: isBrandQueryError,
+    error: brandQueryError,
+  } = useQuery<Brand>({
     queryKey: ['brand', brandIdForOrder],
     queryFn: () => BrandsService.brandsRetrieve(brandIdForOrder!),
     enabled: !!brandIdForOrder,
@@ -264,6 +269,34 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
       alert(`Error: ${errorMessage}`);
     },
   });
+
+  const createOrderDisabledReason = useMemo(() => {
+    if (createOrderMutation.isPending) return null;
+    if (brandIdForOrder && isBrandQueryPending) return 'Loading brand for this order…';
+    if (brandIdForOrder && isBrandQueryError) {
+      const msg = (brandQueryError as Error)?.message || 'Request failed';
+      return `Could not load brand: ${msg}`;
+    }
+    if (!brandForOrder?.id) {
+      return 'No brand is available for this reservation. Ask an administrator to assign at least one brand to your account.';
+    }
+    if (!customerName.trim()) {
+      return 'Customer name is required (scroll up if you do not see the field).';
+    }
+    if (!customerPhone.trim()) {
+      return 'Customer phone is required (scroll up if you do not see the field).';
+    }
+    return null;
+  }, [
+    createOrderMutation.isPending,
+    brandIdForOrder,
+    isBrandQueryPending,
+    isBrandQueryError,
+    brandQueryError,
+    brandForOrder?.id,
+    customerName,
+    customerPhone,
+  ]);
 
   const handleCreateOrder = (unit: InventoryUnitRW) => {
     // Check if unit is reserved
@@ -796,6 +829,11 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
                 )}
               </div>
             </div>
+            {createOrderDisabledReason && (
+              <div className="create-order-disabled-hint" role="status">
+                {createOrderDisabledReason}
+              </div>
+            )}
             <div className="modal-actions">
               <button
                 className="btn-secondary"
@@ -813,6 +851,7 @@ export const ReservationRequestDetailsModal: React.FC<ReservationRequestDetailsM
                 className="btn-primary"
                 onClick={handleSubmitOrder}
                 disabled={createOrderMutation.isPending || !customerName.trim() || !customerPhone.trim() || !brandForOrder}
+                title={createOrderDisabledReason || 'Submit and create order'}
               >
                 {createOrderMutation.isPending ? 'Creating Order...' : 'Create Order'}
               </button>

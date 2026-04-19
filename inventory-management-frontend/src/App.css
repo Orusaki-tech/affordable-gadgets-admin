@@ -7452,6 +7452,17 @@ p, body {
   margin-top: var(--spacing-sm);
 }
 
+.create-order-disabled-hint {
+  margin: 0 var(--spacing-lg) var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-12);
+  line-height: 1.45;
+  color: var(--md-on-error-container);
+  background-color: var(--md-error-container);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-error);
+}
+
 .required-asterisk {
   color: var(--md-error);
   font-weight: var(--font-weight-semibold);
