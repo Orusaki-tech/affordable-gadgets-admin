@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LeadsService, ProfilesService, type LeadAdmin } from '../api/index';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 import { ModalLoader } from '../components/PageLoader';
 
 const LeadDetailsModal = lazy(() => import('../components/LeadDetailsModal').then((m) => ({ default: m.LeadDetailsModal })));
@@ -45,11 +46,6 @@ export const LeadsPage: React.FC = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Reset page to 1 when status filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter]);
-
   useEffect(() => {
     const leadIdParam = searchParams.get('leadId');
     if (leadIdParam) {
@@ -64,77 +60,69 @@ export const LeadsPage: React.FC = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Fetch leads - event-driven only (no polling)
-  // Status filtering is done client-side (API does not accept a status param)
-  const { data: leadsData, isLoading, refetch: refetchLeads } = useQuery({
-    queryKey: ['leads', page, statusFilter],
-    queryFn: async () => {
-      const response = await LeadsService.leadsList(page);
-      return response;
-    },
-    // Event-driven only - no automatic polling
-    refetchOnWindowFocus: true,  // Refetch when user returns to tab
-    refetchOnReconnect: true,    // Refetch when internet reconnects
-    refetchOnMount: true,        // Refetch when component mounts
-    staleTime: 0,                // Always consider data stale (refetch on focus)
-    // NO refetchInterval - no automatic polling
-  });
-
-  useEffect(() => {
-    if (!leadIdToOpen || !leadsData?.results) return;
-    const matchedLead = leadsData.results.find((lead) => lead.id === leadIdToOpen);
-    if (matchedLead) {
-      setSelectedLead(matchedLead);
-      setShowDetailsModal(true);
-      setLeadIdToOpen(null);
-    }
-  }, [leadIdToOpen, leadsData]);
-
-  // Fetch all leads for accurate stats calculation (without status filter)
-  const { data: allLeadsDataForStats } = useQuery({
-    queryKey: ['leads', 'all', 'stats'],
-    queryFn: async () => {
-      const response = await LeadsService.leadsList(1);
-      return response;
-    },
+  const { data: allLeads = [], isLoading, refetch: refetchLeads } = useQuery({
+    queryKey: ['leads'],
+    queryFn: () => fetchAllDrfPages<LeadAdmin>('/leads/'),
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     refetchOnMount: true,
     staleTime: 0,
   });
 
-  // Filter by assigned status and search client-side (not supported by API)
-  const filteredLeads = useMemo(() => {
-    if (!leadsData?.results) return [];
-    let filtered = leadsData.results;
+  useEffect(() => {
+    if (!leadIdToOpen || !allLeads.length) return;
+    const matchedLead = allLeads.find((lead) => lead.id === leadIdToOpen);
+    if (matchedLead) {
+      setSelectedLead(matchedLead);
+      setShowDetailsModal(true);
+      setLeadIdToOpen(null);
+    }
+  }, [leadIdToOpen, allLeads]);
 
-    // Filter by status
+  const filteredLeads = useMemo(() => {
+    let filtered = allLeads;
+
     if (statusFilter !== 'all') {
       filtered = filtered.filter((lead) => lead.status === statusFilter);
     }
-    
-    // Filter by assigned status
+
     if (assignedFilter === 'my' && currentAdminId) {
       filtered = filtered.filter((lead) => lead.assigned_salesperson === currentAdminId);
     } else if (assignedFilter === 'unclaimed') {
       filtered = filtered.filter((lead) => !lead.assigned_salesperson);
     }
-    
-    // Filter by search
+
     if (search.trim()) {
-      const searchLower = search.toLowerCase();
+      const searchLower = search.trim().toLowerCase();
       filtered = filtered.filter((lead) => {
         const customerName = (lead.customer_name || '').toLowerCase();
         const customerPhone = (lead.customer_phone || '').toLowerCase();
         const leadRef = (lead.lead_reference || '').toLowerCase();
-        return customerName.includes(searchLower) || 
-               customerPhone.includes(searchLower) || 
-               leadRef.includes(searchLower);
+        return (
+          customerName.includes(searchLower) ||
+          customerPhone.includes(searchLower) ||
+          leadRef.includes(searchLower)
+        );
       });
     }
-    
+
     return filtered;
-  }, [leadsData, assignedFilter, search, currentAdminId, statusFilter]);
+  }, [allLeads, assignedFilter, search, currentAdminId, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLeads.length / pageSize));
+
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, assignedFilter, search]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedLeads = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredLeads.slice(start, start + pageSize);
+  }, [filteredLeads, page, pageSize]);
 
   // Assign lead mutation
   const assignMutation = useMutation({
@@ -292,26 +280,24 @@ export const LeadsPage: React.FC = () => {
     }
   };
 
-  // Calculate statistics from all leads (not filtered by status)
   const stats = useMemo(() => {
-    const allLeads = allLeadsDataForStats?.results || [];
     return {
-      total: allLeadsDataForStats?.count || allLeads.length,
-      new: allLeads.filter(l => l.status === 'NEW').length,
-      contacted: allLeads.filter(l => l.status === 'CONTACTED').length,
-      converted: allLeads.filter(l => l.status === 'CONVERTED').length,
-      closed: allLeads.filter(l => l.status === 'CLOSED').length,
-      expired: allLeads.filter(l => l.status === 'EXPIRED').length,
-      unclaimed: allLeads.filter(l => !l.assigned_salesperson).length,
+      total: allLeads.length,
+      new: allLeads.filter((l) => l.status === 'NEW').length,
+      contacted: allLeads.filter((l) => l.status === 'CONTACTED').length,
+      converted: allLeads.filter((l) => l.status === 'CONVERTED').length,
+      closed: allLeads.filter((l) => l.status === 'CLOSED').length,
+      expired: allLeads.filter((l) => l.status === 'EXPIRED').length,
+      unclaimed: allLeads.filter((l) => !l.assigned_salesperson).length,
     };
-  }, [allLeadsDataForStats]);
+  }, [allLeads]);
 
   const myLeadsCount = useMemo(() => {
-    if (!isSalesperson || !allLeadsDataForStats?.results) {
+    if (!isSalesperson) {
       return 0;
     }
-    return allLeadsDataForStats.results.filter(l => l.assigned_salesperson === currentAdminId).length;
-  }, [isSalesperson, allLeadsDataForStats, currentAdminId]);
+    return allLeads.filter((l) => l.assigned_salesperson === currentAdminId).length;
+  }, [isSalesperson, allLeads, currentAdminId]);
 
   // Check if user has access (salesperson only, superusers can access everything)
   const hasAccess = isSalesperson || isSuperuser;
@@ -372,7 +358,7 @@ export const LeadsPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics Cards */}
-      {leadsData && (
+      {allLeads.length > 0 && (
         <div className="summary-stats">
           <button
             type="button"
@@ -491,7 +477,7 @@ export const LeadsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          filteredLeads.map((lead) => {
+          paginatedLeads.map((lead) => {
             const isUnclaimed = !lead.assigned_salesperson;
             const isMyLead = lead.assigned_salesperson === currentAdminId;
             // Salespersons can claim unclaimed leads or reclaim leads assigned to others
@@ -608,22 +594,22 @@ export const LeadsPage: React.FC = () => {
       </div>
 
       {/* Pagination */}
-      {leadsData && leadsData.count && leadsData.count > pageSize && (
+      {filteredLeads.length > 0 && (
         <div className="pagination">
           <button
             className="btn-secondary"
             onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1 || !leadsData.previous}
+            disabled={page <= 1}
           >
             Previous
           </button>
           <span className="page-info">
-            Page {page} of {Math.ceil(leadsData.count / pageSize)}
+            Page {page} of {totalPages} ({filteredLeads.length} matching)
           </span>
           <button
             className="btn-secondary"
-            onClick={() => setPage(p => p + 1)}
-            disabled={!leadsData.next}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
           >
             Next
           </button>
