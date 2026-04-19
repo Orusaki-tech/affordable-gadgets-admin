@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   SourcesService,
   SourceTypeEnum,
   AcquisitionSource,
 } from '../api/index';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 
 export const AcquisitionSourcesPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -16,24 +17,21 @@ export const AcquisitionSourcesPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['sources', page, pageSize],
-    queryFn: () => SourcesService.sourcesList(page),
+  const { data: allSources = [], isLoading, error } = useQuery({
+    queryKey: ['sources'],
+    queryFn: () => fetchAllDrfPages<AcquisitionSource>('/sources/'),
   });
 
   // Client-side filtering
   const filteredSources = useMemo(() => {
-    if (!data?.results) return [];
-    let filtered = data.results;
-    
-    // Source type filter
+    let filtered = allSources;
+
     if (sourceTypeFilter !== 'all') {
       filtered = filtered.filter((source) => source.source_type === sourceTypeFilter);
     }
-    
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
+
+    if (search.trim()) {
+      const searchLower = search.trim().toLowerCase();
       filtered = filtered.filter((source) => {
         const nameMatch = source.name?.toLowerCase().includes(searchLower);
         const phoneMatch = source.phone_number?.toLowerCase().includes(searchLower);
@@ -41,22 +39,36 @@ export const AcquisitionSourcesPage: React.FC = () => {
         return nameMatch || phoneMatch || typeMatch;
       });
     }
-    
+
     return filtered;
-  }, [data, sourceTypeFilter, search]);
+  }, [allSources, sourceTypeFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredSources.length / pageSize));
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, sourceTypeFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedSources = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredSources.slice(start, start + pageSize);
+  }, [filteredSources, page, pageSize]);
 
   // Calculate statistics
   const stats = useMemo(() => {
-    if (!data?.results) {
+    if (!allSources.length) {
       return { total: 0, supplier: 0, importPartner: 0 };
     }
-    const results = data.results;
     return {
-      total: results.length,
-      supplier: results.filter((source) => source.source_type === 'SU').length,
-      importPartner: results.filter((source) => source.source_type === 'IM').length,
+      total: allSources.length,
+      supplier: allSources.filter((source) => source.source_type === 'SU').length,
+      importPartner: allSources.filter((source) => source.source_type === 'IM').length,
     };
-  }, [data]);
+  }, [allSources]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => SourcesService.sourcesDestroy(id),
@@ -134,7 +146,7 @@ export const AcquisitionSourcesPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics Cards */}
-      {data && (
+      {allSources.length > 0 && (
         <div className="summary-stats">
           <button
             type="button"
@@ -227,7 +239,7 @@ export const AcquisitionSourcesPage: React.FC = () => {
       </div>
 
       {/* Sources Cards Grid */}
-      {filteredSources.length === 0 ? (
+      {paginatedSources.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📭</div>
           <h3>
@@ -248,7 +260,7 @@ export const AcquisitionSourcesPage: React.FC = () => {
         </div>
       ) : (
         <div className="sources-grid">
-          {filteredSources.map((source) => (
+          {paginatedSources.map((source) => (
             <AcquisitionSourceCard
               key={source.id}
               source={source}
@@ -261,22 +273,25 @@ export const AcquisitionSourcesPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {data && data.count && data.count > 0 ? (
+      {filteredSources.length > 0 ? (
         <div className="pagination">
           <div className="pagination-controls">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={!data?.previous || page === 1}
+              disabled={page <= 1}
               className="btn-secondary"
             >
               Previous
             </button>
             <span className="page-info">
-              Page {page} of {Math.ceil((data.count || 0) / pageSize)} ({data.count || 0} total)
+              Page {page} of {totalPages} ({filteredSources.length} matching
+              {search.trim() || sourceTypeFilter !== 'all'
+                ? ` of ${allSources.length} total`
+                : ''})
             </span>
             <button
-              onClick={() => setPage(p => p + 1)}
-              disabled={!data?.next}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
               className="btn-secondary"
             >
               Next

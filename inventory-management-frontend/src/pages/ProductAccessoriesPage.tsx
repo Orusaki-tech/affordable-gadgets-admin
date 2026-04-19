@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   AccessoriesLinkService,
   ProductAccessoryLink,
 } from '../api/index';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars -- productsData from useProductsList() is used below
 import { useProductsList } from '../hooks/useProductsList';
 import {
@@ -56,40 +57,45 @@ export const ProductAccessoriesPage: React.FC = () => {
   const [deleteConfirmLink, setDeleteConfirmLink] = useState<ProductAccessoryLink | null>(null);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['product-accessories', page, pageSize],
-    queryFn: () => AccessoriesLinkService.accessoriesLinkList(undefined, undefined, page, pageSize),
+  const { data: allLinks = [], isLoading, error } = useQuery({
+    queryKey: ['product-accessories'],
+    queryFn: () => fetchAllDrfPages<ProductAccessoryLink>('/accessories-link/'),
   });
 
   const { data: productsData } = useProductsList();
 
   // Client-side filtering
   const filteredLinks = useMemo(() => {
-    if (!data?.results) return [];
-    let filtered = data.results;
-    
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter((link) => {
-        const mainProductMatch = link.main_product_name?.toLowerCase().includes(searchLower);
-        const accessoryMatch = link.accessory_name?.toLowerCase().includes(searchLower);
-        return mainProductMatch || accessoryMatch;
-      });
-    }
-    
-    return filtered;
-  }, [data, search]);
+    if (!search.trim()) return allLinks;
+    const searchLower = search.trim().toLowerCase();
+    return allLinks.filter((link) => {
+      const mainProductMatch = link.main_product_name?.toLowerCase().includes(searchLower);
+      const accessoryMatch = link.accessory_name?.toLowerCase().includes(searchLower);
+      return mainProductMatch || accessoryMatch;
+    });
+  }, [allLinks, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLinks.length / pageSize));
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedLinks = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredLinks.slice(start, start + pageSize);
+  }, [filteredLinks, page, pageSize]);
 
   // Calculate statistics
   const stats = useMemo(() => {
-    if (!data?.results) {
-      return { total: 0 };
-    }
     return {
-      total: filteredLinks.length,
+      total: allLinks.length,
     };
-  }, [data, filteredLinks]);
+  }, [allLinks]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => AccessoriesLinkService.accessoriesLinkDestroy(id),
@@ -195,7 +201,7 @@ export const ProductAccessoriesPage: React.FC = () => {
       </Box>
 
       {/* Summary Statistics */}
-      {data && (
+      {allLinks.length > 0 && (
         <Box mb={3}>
           <Chip
             icon={<LinkIcon />}
@@ -271,7 +277,7 @@ export const ProductAccessoriesPage: React.FC = () => {
       </Paper>
 
       {/* Links Table */}
-      {filteredLinks.length === 0 ? (
+      {paginatedLinks.length === 0 ? (
         <Paper elevation={1} sx={{ p: 6, textAlign: 'center' }}>
           <Typography variant="h5" gutterBottom color="text.secondary">
             {search ? 'No matching links found' : 'No product accessory links'}
@@ -310,7 +316,7 @@ export const ProductAccessoriesPage: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-          {filteredLinks.map((link) => (
+          {paginatedLinks.map((link) => (
                 <TableRow
               key={link.id}
                   hover
@@ -372,23 +378,24 @@ export const ProductAccessoriesPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {data && data.count && data.count > 0 && (
+      {filteredLinks.length > 0 && (
         <Box mt={3} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
           <Stack direction="row" spacing={2} alignItems="center">
             <Button
               variant="outlined"
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={!data?.previous || page === 1}
+              disabled={page <= 1}
             >
               Previous
             </Button>
             <Typography variant="body2" color="text.secondary">
-              Page {page} of {Math.ceil((data.count || 0) / pageSize)} ({data.count || 0} total)
+              Page {page} of {totalPages} ({filteredLinks.length} matching
+              {search.trim() ? ` of ${allLinks.length} total` : ''})
             </Typography>
             <Button
               variant="outlined"
-              onClick={() => setPage(p => p + 1)}
-              disabled={!data?.next}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
             >
               Next
             </Button>

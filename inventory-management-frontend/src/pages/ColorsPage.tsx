@@ -1,56 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  ColorsService,
-  Color,
-  OpenAPI,
-} from '../api/index';
-import { getDefaultApiHeaders } from '../api/config';
+import { ColorsService, Color } from '../api/index';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 
-type PaginatedColorsResponse = {
-  results?: Color[];
-  count?: number;
-  next?: string | null;
-  previous?: string | null;
-};
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('auth_token');
-  return getDefaultApiHeaders(token, {
-    'Content-Type': 'application/json',
-  });
-};
-
-const resolveColorsUrl = (nextUrl: string) => {
-  if (nextUrl.startsWith('http://') || nextUrl.startsWith('https://')) {
-    return nextUrl;
-  }
-  return new URL(nextUrl, `${OpenAPI.BASE}/`).toString();
-};
-
-/** DRF paginates colors; load every page so search matches all rows (same issue as delivery rates). */
-const fetchAllColors = async (): Promise<Color[]> => {
-  const collected: Color[] = [];
-  let url: string | null = `${OpenAPI.BASE}/colors/`;
-
-  while (url) {
-    const response: Response = await fetch(url, { headers: getAuthHeaders() });
-    if (!response.ok) {
-      throw new Error('Failed to load colors');
-    }
-
-    const data: Color[] | PaginatedColorsResponse = await response.json();
-    if (Array.isArray(data)) {
-      collected.push(...data);
-      break;
-    }
-
-    collected.push(...(data.results || []));
-    url = data.next ? resolveColorsUrl(data.next) : null;
-  }
-
-  return collected;
-};
+const fetchAllColors = () => fetchAllDrfPages<Color>('/colors/');
 
 export const ColorsPage: React.FC = () => {
   const [page, setPage] = useState(1);

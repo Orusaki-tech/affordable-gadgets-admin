@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { OpenAPI } from '../api/index';
 import { getDefaultApiHeaders } from '../api/config';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 import {
   Box,
   Card,
@@ -71,13 +72,6 @@ type DeliveryRate = {
   updated_at?: string;
 };
 
-type DeliveryRatesResponse = {
-  results?: DeliveryRate[];
-  count?: number;
-  next?: string | null;
-  previous?: string | null;
-};
-
 const getAuthHeaders = () => {
   const token = localStorage.getItem('auth_token');
   return getDefaultApiHeaders(token, {
@@ -85,30 +79,7 @@ const getAuthHeaders = () => {
   });
 };
 
-const fetchDeliveryRates = async (): Promise<DeliveryRate[]> => {
-  // Backend uses DRF PageNumberPagination (default PAGE_SIZE=25), so fetch all pages
-  // to support client-side searching across all counties/wards.
-  const collected: DeliveryRate[] = [];
-  let url: string | null = `${OpenAPI.BASE}/delivery-rates/`;
-
-  while (url) {
-    const response: Response = await fetch(url, { headers: getAuthHeaders() });
-    if (!response.ok) {
-      throw new Error('Failed to load delivery rates');
-    }
-
-    const data: DeliveryRate[] | DeliveryRatesResponse = await response.json();
-    if (Array.isArray(data)) {
-      collected.push(...data);
-      break;
-    }
-
-    collected.push(...(data.results || []));
-    url = data.next || null;
-  }
-
-  return collected;
-};
+const fetchDeliveryRates = () => fetchAllDrfPages<DeliveryRate>('/delivery-rates/');
 
 export const DeliveryRatesPage: React.FC = () => {
   const queryClient = useQueryClient();

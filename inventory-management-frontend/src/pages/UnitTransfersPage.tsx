@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useSearchParams } from 'react-router-dom';
-import { UnitTransfersService, ProfilesService } from '../api/index';
+import { UnitTransfersService, ProfilesService, type UnitTransfer } from '../api/index';
 import { getInventoryBaseUrl } from '../api/config';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 
 export const UnitTransfersPage: React.FC = () => {
   const [page, setPage] = useState(1);
+  const [pageSize] = useState(25);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTransferIds, setSelectedTransferIds] = useState<Set<number>>(new Set());
@@ -45,13 +47,9 @@ export const UnitTransfersPage: React.FC = () => {
     }
   }, [searchParams, setSearchParams]);
 
-  // Fetch unit transfers
-  const { data: transfersData, isLoading } = useQuery({
-    queryKey: ['unit-transfers', page, statusFilter],
-    queryFn: async () => {
-      const response = await UnitTransfersService.unitTransfersList(page);
-      return response;
-    },
+  const { data: allTransfers = [], isLoading } = useQuery({
+    queryKey: ['unit-transfers'],
+    queryFn: () => fetchAllDrfPages<UnitTransfer>('/unit-transfers/'),
   });
 
   // Fetch reserved units for creating transfer
@@ -178,19 +176,15 @@ export const UnitTransfersPage: React.FC = () => {
     });
   };
 
-  // Filter by status and search client-side
-  const filteredTransfers = React.useMemo(() => {
-    if (!transfersData?.results) return [];
-    let filtered = transfersData.results;
-    
-    // Status filter
+  const filteredTransfers = useMemo(() => {
+    let filtered = allTransfers;
+
     if (statusFilter !== 'all') {
       filtered = filtered.filter((transfer) => transfer.status === statusFilter);
     }
-    
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
+
+    if (search.trim()) {
+      const searchLower = search.trim().toLowerCase();
       filtered = filtered.filter((transfer) => {
         const idMatch = transfer.id?.toString().includes(searchLower);
         const unitMatch = transfer.inventory_unit_name?.toLowerCase().includes(searchLower);
@@ -199,23 +193,36 @@ export const UnitTransfersPage: React.FC = () => {
         return idMatch || unitMatch || fromMatch || toMatch;
       });
     }
-    
-    return filtered;
-  }, [transfersData, statusFilter, search]);
 
-  // Calculate statistics
-  const stats = React.useMemo(() => {
-    if (!transfersData?.results) {
+    return filtered;
+  }, [allTransfers, statusFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransfers.length / pageSize));
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedTransfers = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredTransfers.slice(start, start + pageSize);
+  }, [filteredTransfers, page, pageSize]);
+
+  const stats = useMemo(() => {
+    if (!allTransfers.length) {
       return { total: 0, pending: 0, approved: 0, rejected: 0 };
     }
-    const results = transfersData.results;
     return {
-      total: results.length,
-      pending: results.filter((transfer) => transfer.status === 'PE').length,
-      approved: results.filter((transfer) => transfer.status === 'AP').length,
-      rejected: results.filter((transfer) => transfer.status === 'RE').length,
+      total: allTransfers.length,
+      pending: allTransfers.filter((transfer) => transfer.status === 'PE').length,
+      approved: allTransfers.filter((transfer) => transfer.status === 'AP').length,
+      rejected: allTransfers.filter((transfer) => transfer.status === 'RE').length,
     };
-  }, [transfersData]);
+  }, [allTransfers]);
 
   const handleBulkApprove = () => {
     if (selectedTransferIds.size === 0) {
@@ -286,7 +293,7 @@ export const UnitTransfersPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics Cards */}
-      {transfersData && (
+      {allTransfers.length > 0 && (
         <div className="summary-stats">
           <button
             type="button"
@@ -426,7 +433,7 @@ export const UnitTransfersPage: React.FC = () => {
       </div>
 
       {/* Transfers Cards Grid */}
-      {filteredTransfers.length === 0 ? (
+      {paginatedTransfers.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📭</div>
           <h3>
@@ -449,7 +456,7 @@ export const UnitTransfersPage: React.FC = () => {
         </div>
       ) : (
         <div className="requests-grid">
-          {filteredTransfers.map((transfer) => (
+          {paginatedTransfers.map((transfer) => (
             <UnitTransferCard
               key={transfer.id}
               transfer={transfer}
@@ -474,21 +481,21 @@ export const UnitTransfersPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {transfersData && transfersData.count && transfersData.count > 25 ? (
+      {filteredTransfers.length > 0 ? (
         <div className="pagination">
           <button
             onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={!transfersData?.previous || page === 1}
+            disabled={page <= 1}
             className="btn-secondary"
           >
             Previous
           </button>
           <span className="page-info">
-            Page {page} of {Math.ceil((transfersData.count || 0) / 25)} ({transfersData.count || 0} total)
+            Page {page} of {totalPages} ({filteredTransfers.length} matching)
           </span>
           <button
-            onClick={() => setPage(p => p + 1)}
-            disabled={!transfersData?.next}
+            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
             className="btn-secondary"
           >
             Next

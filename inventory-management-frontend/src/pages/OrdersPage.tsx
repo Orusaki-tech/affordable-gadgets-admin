@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { OrdersService, OrderStatusEnum, type OrderResponse } from '../api/index';
 import { getInventoryBaseUrl } from '../api/config';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 import { ModalLoader } from '../components/PageLoader';
 
 const OrderDetailsModal = lazy(() => import('../components/OrderDetailsModal').then((m) => ({ default: m.OrderDetailsModal })));
@@ -24,10 +25,18 @@ export const OrdersPage: React.FC = () => {
   
   const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
 
-  const { data, isLoading, error } = useQuery<{ results: OrderResponse[]; count: number; next?: string; previous?: string }>({
-    queryKey: ['orders', page, pageSize],
-    queryFn: () => OrdersService.ordersList(page) as Promise<{ results: OrderResponse[]; count: number; next?: string; previous?: string }>,
-    enabled: !!user?.is_staff || !!user, // Enable for staff users or authenticated users
+  const { data: ordersListData, isLoading, error } = useQuery({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      const results = await fetchAllDrfPages<OrderResponse>('/orders/');
+      return {
+        results,
+        count: results.length,
+        next: null as string | null,
+        previous: null as string | null,
+      };
+    },
+    enabled: !!user?.is_staff || !!user,
   });
 
   useEffect(() => {
@@ -172,17 +181,15 @@ export const OrdersPage: React.FC = () => {
 
   // Client-side filtering
   const filteredOrders = useMemo(() => {
-    if (!data?.results) return [];
-    let filtered = data.results;
-    
-    // Status filter
+    if (!ordersListData?.results) return [];
+    let filtered = ordersListData.results;
+
     if (statusFilter !== 'all') {
       filtered = filtered.filter((order) => order.status === statusFilter);
     }
-    
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
+
+    if (search.trim()) {
+      const searchLower = search.trim().toLowerCase();
       filtered = filtered.filter((order) => {
         const idMatch = order.order_id?.toString().toLowerCase().includes(searchLower);
         const customerMatch = order.customer_username?.toLowerCase().includes(searchLower);
@@ -190,16 +197,31 @@ export const OrdersPage: React.FC = () => {
         return idMatch || customerMatch || statusMatch;
       });
     }
-    
+
     return filtered;
-  }, [data, statusFilter, search]);
+  }, [ordersListData, statusFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredOrders.slice(start, start + pageSize);
+  }, [filteredOrders, page, pageSize]);
 
   // Calculate statistics
   const stats = useMemo(() => {
-    if (!data?.results) {
+    if (!ordersListData?.results) {
       return { total: 0, pending: 0, paid: 0, delivered: 0, canceled: 0 };
     }
-    const results = data.results;
+    const results = ordersListData.results;
     return {
       total: results.length,
       pending: results.filter((order) => order.status === 'Pending').length,
@@ -207,7 +229,7 @@ export const OrdersPage: React.FC = () => {
       delivered: results.filter((order) => order.status === 'Delivered').length,
       canceled: results.filter((order) => order.status === 'Canceled').length,
     };
-  }, [data]);
+  }, [ordersListData]);
 
   const getStatusBadgeClass = (status?: string) => {
     if (!status) return '';
@@ -462,7 +484,7 @@ export const OrdersPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics Cards */}
-      {data && (
+      {ordersListData && (
         <div className="summary-stats">
           <button
             type="button"
@@ -587,7 +609,7 @@ export const OrdersPage: React.FC = () => {
       </div>
 
       {/* Orders Cards Grid */}
-      {filteredOrders.length === 0 ? (
+      {paginatedOrders.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📭</div>
           <h3>
@@ -608,7 +630,7 @@ export const OrdersPage: React.FC = () => {
         </div>
       ) : (
         <div className="orders-grid">
-          {filteredOrders.map((order) => (
+          {paginatedOrders.map((order) => (
             <OrderCard
               key={order.order_id}
               order={order}
@@ -637,22 +659,22 @@ export const OrdersPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {data && data.count && data.count > 0 ? (
+      {filteredOrders.length > 0 ? (
       <div className="pagination">
           <div className="pagination-controls">
         <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={!data?.previous || page === 1}
+          disabled={page <= 1}
           className="btn-secondary"
         >
           Previous
         </button>
         <span className="page-info">
-              Page {page} of {Math.ceil((data.count || 0) / pageSize)} ({data.count || 0} total)
+              Page {page} of {totalPages} ({filteredOrders.length} matching)
         </span>
         <button
-              onClick={() => setPage(p => p + 1)}
-          disabled={!data?.next}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+          disabled={page >= totalPages}
           className="btn-secondary"
         >
           Next

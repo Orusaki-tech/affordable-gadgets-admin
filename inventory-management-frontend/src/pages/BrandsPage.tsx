@@ -6,6 +6,7 @@ import {
   BrandRequest,
 } from '../api/index';
 import { getInventoryBaseUrl } from '../api/config';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 
 interface AdminRole {
   id?: number;
@@ -492,9 +493,9 @@ export const BrandsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'list' | 'stats'>('list');
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['brands', page, pageSize],
-    queryFn: () => BrandsService.brandsList(page),
+  const { data: allBrands = [], isLoading, error } = useQuery({
+    queryKey: ['brands'],
+    queryFn: () => fetchAllDrfPages<Brand>('/brands/'),
   });
 
   // Fetch all admins for assignment and statistics (always fetch)
@@ -515,52 +516,61 @@ export const BrandsPage: React.FC = () => {
 
   // Calculate admin count per brand
   const adminCountsByBrand = useMemo(() => {
-    if (!adminsData?.results || !data?.results) return new Map<number, number>();
+    if (!adminsData?.results || !allBrands.length) return new Map<number, number>();
     const counts = new Map<number, number>();
-    
-    data.results.forEach((brand) => {
+
+    allBrands.forEach((brand) => {
       if (brand.id) {
-        const count = adminsData.results.filter((admin: AdminProfile) => 
-          admin.is_global_admin || admin.brands?.some((b: Brand) => b.id === brand.id)
+        const count = adminsData.results.filter(
+          (admin: AdminProfile) =>
+            admin.is_global_admin || admin.brands?.some((b: Brand) => b.id === brand.id)
         ).length;
         counts.set(brand.id, count);
       }
     });
-    
+
     return counts;
-  }, [adminsData, data]);
+  }, [adminsData, allBrands]);
 
   // Client-side filtering
   const filteredBrands = useMemo(() => {
-    if (!data?.results) return [];
-    let filtered = data.results;
-    
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter((brand) => {
-        const nameMatch = brand.name?.toLowerCase().includes(searchLower);
-        const codeMatch = brand.code?.toLowerCase().includes(searchLower);
-        const domainMatch = brand.ecommerce_domain?.toLowerCase().includes(searchLower);
-        return nameMatch || codeMatch || domainMatch;
-      });
-    }
-    
-    return filtered;
-  }, [data, search]);
+    if (!search.trim()) return allBrands;
+    const searchLower = search.trim().toLowerCase();
+    return allBrands.filter((brand) => {
+      const nameMatch = brand.name?.toLowerCase().includes(searchLower);
+      const codeMatch = brand.code?.toLowerCase().includes(searchLower);
+      const domainMatch = brand.ecommerce_domain?.toLowerCase().includes(searchLower);
+      return nameMatch || codeMatch || domainMatch;
+    });
+  }, [allBrands, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredBrands.length / pageSize));
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedBrands = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredBrands.slice(start, start + pageSize);
+  }, [filteredBrands, page, pageSize]);
 
   // Calculate statistics
   const stats = useMemo(() => {
-    if (!data?.results) {
+    if (!allBrands.length) {
       return { total: 0, active: 0, inactive: 0, withDomain: 0 };
     }
     return {
-      total: data.results.length,
-      active: data.results.filter(b => b.is_active !== false).length,
-      inactive: data.results.filter(b => b.is_active === false).length,
-      withDomain: data.results.filter(b => b.ecommerce_domain).length,
+      total: allBrands.length,
+      active: allBrands.filter((b) => b.is_active !== false).length,
+      inactive: allBrands.filter((b) => b.is_active === false).length,
+      withDomain: allBrands.filter((b) => b.ecommerce_domain).length,
     };
-  }, [data]);
+  }, [allBrands]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => BrandsService.brandsDestroy(id),
@@ -641,7 +651,7 @@ export const BrandsPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics Cards */}
-      {data && (
+      {allBrands.length > 0 && (
         <div className="summary-stats summary-stats--brands">
           <button
             type="button"
@@ -718,7 +728,7 @@ export const BrandsPage: React.FC = () => {
       </div>
 
       {/* Brands Cards Grid */}
-      {filteredBrands.length === 0 ? (
+      {paginatedBrands.length === 0 ? (
         <div className="empty-state">
           <h3>
             {search
@@ -743,7 +753,7 @@ export const BrandsPage: React.FC = () => {
           gap: '24px',
           padding: '20px 0'
         }}>
-          {filteredBrands.map((brand) => {
+          {paginatedBrands.map((brand) => {
             const adminCount = brand.id ? adminCountsByBrand.get(brand.id) || 0 : 0;
             return (
               <BrandCard
@@ -761,22 +771,23 @@ export const BrandsPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {data && data.count && data.count > 0 ? (
+      {filteredBrands.length > 0 ? (
         <div className="pagination">
           <div className="pagination-controls">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={!data?.previous || page === 1}
+              disabled={page <= 1}
               className="btn-secondary"
             >
               Previous
             </button>
             <span className="page-info">
-              Page {page} of {Math.ceil((data.count || 0) / pageSize)} ({data.count || 0} total)
+              Page {page} of {totalPages} ({filteredBrands.length} matching
+              {search.trim() ? ` of ${allBrands.length} total` : ''})
             </span>
             <button
-              onClick={() => setPage(p => p + 1)}
-              disabled={!data?.next}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
               className="btn-secondary"
             >
               Next

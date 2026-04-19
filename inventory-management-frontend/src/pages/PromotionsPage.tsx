@@ -6,6 +6,7 @@ import {
   PromotionsService,
   ProfilesService,
 } from '../api/index';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 import { getDefaultApiHeaders, getInventoryBaseUrl } from '../api/config';
 import { useAuth } from '../contexts/AuthContext';
 import { ModalLoader } from '../components/PageLoader';
@@ -101,10 +102,10 @@ export const PromotionsPage: React.FC = () => {
     return brands.filter((b: Brand) => b.id !== undefined);
   }, [adminProfile]);
 
-  // Reset page to 1 when is_active filter changes
+  // Reset page to 1 when filters or search change
   useEffect(() => {
     setPage(1);
-  }, [filters.is_active]);
+  }, [filters.is_active, filters.brand, search]);
 
   // Fetch promotion types
   const { data: promotionTypesData } = useQuery({
@@ -134,59 +135,57 @@ export const PromotionsPage: React.FC = () => {
     },
   });
 
-  // Fetch promotions - is_active filtering is done client-side (API has no filter param)
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['promotions', page, filters.is_active],
-    queryFn: () => PromotionsService.promotionsList(page),
-  });
-
-  // Fetch all promotions for stats (without is_active filter)
-  const { data: allPromotionsDataForStats } = useQuery({
-    queryKey: ['promotions', 'all', 'stats'],
-    queryFn: () => PromotionsService.promotionsList(1),
+  const { data: allPromotions = [], isLoading, error } = useQuery({
+    queryKey: ['promotions'],
+    queryFn: () => fetchAllDrfPages<Promotion>('/promotions/'),
   });
 
   // Client-side filtering by search, brand, and is_active (not supported by API)
   const filteredPromotions = useMemo(() => {
-    if (!data?.results) return [];
-    let filtered = data.results;
+    let filtered = allPromotions;
 
-    // Filter by active status
     if (filters.is_active !== '') {
       const isActive = filters.is_active === 'true';
       filtered = filtered.filter((promo) => Boolean(promo.is_currently_active) === isActive);
     }
 
-    // Filter by brand
     if (filters.brand) {
-      const brandId = parseInt(filters.brand);
+      const brandId = parseInt(filters.brand, 10);
       filtered = filtered.filter((promo) => promo.brand === brandId);
     }
-    
-    // Filter by search
-    if (search) {
-      const searchLower = search.toLowerCase();
+
+    if (search.trim()) {
+      const searchLower = search.trim().toLowerCase();
       filtered = filtered.filter((promo) => {
         const titleMatch = promo.title?.toLowerCase().includes(searchLower);
         const descMatch = promo.description?.toLowerCase().includes(searchLower);
         return titleMatch || descMatch;
       });
     }
-    
-    return filtered;
-  }, [data, search, filters.brand, filters.is_active]);
 
-  // Calculate statistics from all promotions (not filtered by is_active)
+    return filtered;
+  }, [allPromotions, search, filters.brand, filters.is_active]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPromotions.length / pageSize));
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedPromotions = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredPromotions.slice(start, start + pageSize);
+  }, [filteredPromotions, page, pageSize]);
+
   const stats = useMemo(() => {
-    const allPromotions = allPromotionsDataForStats?.results || [];
     const active = allPromotions.filter((p) => p.is_currently_active).length;
     const inactive = allPromotions.length - active;
     return {
-      total: allPromotionsDataForStats?.count || allPromotions.length,
+      total: allPromotions.length,
       active,
       inactive,
     };
-  }, [allPromotionsDataForStats]);
+  }, [allPromotions]);
 
   const [deleteConfirmPromotion, setDeleteConfirmPromotion] = useState<Promotion | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({
@@ -351,7 +350,7 @@ export const PromotionsPage: React.FC = () => {
       </Box>
 
       {/* Summary Statistics Cards */}
-      {data && (
+      {allPromotions.length > 0 && (
         <Stack direction="row" spacing={2} mb={3} flexWrap="wrap">
           <Button
             variant={filters.is_active === '' ? 'contained' : 'outlined'}
@@ -525,7 +524,7 @@ export const PromotionsPage: React.FC = () => {
         </Paper>
       ) : (
         <Grid container spacing={2}>
-          {filteredPromotions.map((promotion) => {
+          {paginatedPromotions.map((promotion) => {
             // Superusers, Global Admins, and Marketing Managers can edit/delete all promotions (full access)
             const canEdit = isSuperuser || isGlobalAdmin || isMarketingManager;
             return (
@@ -687,23 +686,23 @@ export const PromotionsPage: React.FC = () => {
         )}
 
       {/* Pagination */}
-      {data && (data.next || data.previous) && (
+      {filteredPromotions.length > 0 && (
         <Box mt={3} display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
           <Stack direction="row" spacing={2} alignItems="center">
             <Button
               variant="outlined"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={!data.previous || page === 1}
+              disabled={page <= 1}
           >
             Previous
             </Button>
             <Typography variant="body2" color="text.secondary">
-              Page {page} of {Math.ceil((data.count || 0) / pageSize)} ({(data.count || 0).toLocaleString()} total)
+              Page {page} of {totalPages} ({filteredPromotions.length} matching)
             </Typography>
             <Button
               variant="outlined"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={!data.next}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
           >
             Next
             </Button>

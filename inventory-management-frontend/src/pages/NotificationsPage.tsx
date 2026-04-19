@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { NotificationsService, Notification } from '../api/index';
 import { getInventoryBaseUrl } from '../api/config';
+import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 
 export const NotificationsPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -13,13 +14,9 @@ export const NotificationsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  // Fetch notifications
-  const { data: notificationsData, isLoading } = useQuery({
-    queryKey: ['notifications', page, pageSize],
-    queryFn: async () => {
-      const response = await NotificationsService.notificationsList(page);
-      return response;
-    },
+  const { data: allNotifications = [], isLoading } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => fetchAllDrfPages<Notification>('/notifications/'),
   });
 
   // Fetch unread count
@@ -53,7 +50,7 @@ export const NotificationsPage: React.FC = () => {
     mutationFn: async () => {
       const token = localStorage.getItem('auth_token');
       const baseUrl = getInventoryBaseUrl();
-      const unread = notificationsData?.results?.filter((n: Notification) => !n.is_read) || [];
+      const unread = allNotifications.filter((n: Notification) => !n.is_read);
       await Promise.all(
         unread
           .filter((n: Notification) => n.id)
@@ -121,21 +118,17 @@ export const NotificationsPage: React.FC = () => {
     navigate(route);
   };
 
-  // Client-side filtering
   const filteredNotifications = useMemo(() => {
-    if (!notificationsData?.results) return [];
-    let filtered = notificationsData.results;
-    
-    // Status filter
+    let filtered = allNotifications;
+
     if (filter === 'unread') {
       filtered = filtered.filter((n) => !n.is_read);
     } else if (filter === 'read') {
       filtered = filtered.filter((n) => n.is_read);
     }
-    
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
+
+    if (search.trim()) {
+      const searchLower = search.trim().toLowerCase();
       filtered = filtered.filter((notification) => {
         const titleMatch = notification.title?.toLowerCase().includes(searchLower);
         const messageMatch = notification.message?.toLowerCase().includes(searchLower);
@@ -144,22 +137,35 @@ export const NotificationsPage: React.FC = () => {
         return titleMatch || messageMatch || typeMatch || typeDisplayMatch;
       });
     }
-    
-    return filtered;
-  }, [notificationsData, filter, search]);
 
-  // Calculate statistics
+    return filtered;
+  }, [allNotifications, filter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredNotifications.length / pageSize));
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, filter]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const paginatedNotifications = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredNotifications.slice(start, start + pageSize);
+  }, [filteredNotifications, page, pageSize]);
+
   const stats = useMemo(() => {
-    if (!notificationsData?.results) {
+    if (!allNotifications.length) {
       return { total: 0, unread: 0, read: 0 };
     }
-    const results = notificationsData.results;
     return {
-      total: results.length,
-      unread: results.filter((n) => !n.is_read).length,
-      read: results.filter((n) => n.is_read).length,
+      total: allNotifications.length,
+      unread: allNotifications.filter((n) => !n.is_read).length,
+      read: allNotifications.filter((n) => n.is_read).length,
     };
-  }, [notificationsData]);
+  }, [allNotifications]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
@@ -269,7 +275,7 @@ export const NotificationsPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics Cards */}
-      {notificationsData && (
+      {allNotifications.length > 0 && (
         <div className="summary-stats">
           <button
             type="button"
@@ -383,7 +389,7 @@ export const NotificationsPage: React.FC = () => {
           </div>
         ) : (
         <div className="notifications-list-container">
-          {filteredNotifications.map((notification) => (
+          {paginatedNotifications.map((notification) => (
             <NotificationCard
               key={notification.id}
               notification={notification}
@@ -398,22 +404,22 @@ export const NotificationsPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {notificationsData && notificationsData.count && notificationsData.count > 0 ? (
+      {filteredNotifications.length > 0 ? (
         <div className="pagination-section">
           <div className="pagination">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={!notificationsData?.previous || page === 1}
+              disabled={page <= 1}
               className="btn-secondary"
             >
               Previous
             </button>
             <span className="page-info">
-              Page {page} of {Math.ceil((notificationsData.count || 0) / pageSize)} ({notificationsData.count || 0} total)
+              Page {page} of {totalPages} ({filteredNotifications.length} matching)
             </span>
             <button
-              onClick={() => setPage(p => p + 1)}
-              disabled={!notificationsData?.next}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
               className="btn-secondary"
             >
               Next
