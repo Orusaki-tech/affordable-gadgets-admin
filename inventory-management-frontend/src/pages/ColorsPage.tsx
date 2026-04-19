@@ -1,9 +1,56 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ColorsService,
   Color,
+  OpenAPI,
 } from '../api/index';
+import { getDefaultApiHeaders } from '../api/config';
+
+type PaginatedColorsResponse = {
+  results?: Color[];
+  count?: number;
+  next?: string | null;
+  previous?: string | null;
+};
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('auth_token');
+  return getDefaultApiHeaders(token, {
+    'Content-Type': 'application/json',
+  });
+};
+
+const resolveColorsUrl = (nextUrl: string) => {
+  if (nextUrl.startsWith('http://') || nextUrl.startsWith('https://')) {
+    return nextUrl;
+  }
+  return new URL(nextUrl, `${OpenAPI.BASE}/`).toString();
+};
+
+/** DRF paginates colors; load every page so search matches all rows (same issue as delivery rates). */
+const fetchAllColors = async (): Promise<Color[]> => {
+  const collected: Color[] = [];
+  let url: string | null = `${OpenAPI.BASE}/colors/`;
+
+  while (url) {
+    const response: Response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) {
+      throw new Error('Failed to load colors');
+    }
+
+    const data: Color[] | PaginatedColorsResponse = await response.json();
+    if (Array.isArray(data)) {
+      collected.push(...data);
+      break;
+    }
+
+    collected.push(...(data.results || []));
+    url = data.next ? resolveColorsUrl(data.next) : null;
+  }
+
+  return collected;
+};
 
 export const ColorsPage: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -14,38 +61,45 @@ export const ColorsPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['colors', page, pageSize],
-    queryFn: () => ColorsService.colorsList(page),
+  const { data: allColors = [], isLoading, error } = useQuery({
+    queryKey: ['colors'],
+    queryFn: fetchAllColors,
   });
 
-  // Client-side filtering
+  // Client-side filtering across full dataset
   const filteredColors = useMemo(() => {
-    if (!data?.results) return [];
-    let filtered = data.results;
-    
-    // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter((color) => {
-        const nameMatch = color.name?.toLowerCase().includes(searchLower);
-        const hexMatch = color.hex_code?.toLowerCase().includes(searchLower);
-        return nameMatch || hexMatch;
-      });
+    if (!search.trim()) return allColors;
+    const searchLower = search.trim().toLowerCase();
+    return allColors.filter((color) => {
+      const nameMatch = color.name?.toLowerCase().includes(searchLower);
+      const hexMatch = color.hex_code?.toLowerCase().includes(searchLower);
+      return nameMatch || hexMatch;
+    });
+  }, [allColors, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredColors.length / pageSize));
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
     }
-    
-    return filtered;
-  }, [data, search]);
+  }, [page, totalPages]);
+
+  const paginatedColors = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredColors.slice(start, start + pageSize);
+  }, [filteredColors, page, pageSize]);
 
   // Calculate statistics
   const stats = useMemo(() => {
-    if (!data?.results) {
-      return { total: 0 };
-    }
     return {
-      total: data.results.length,
+      total: allColors.length,
     };
-  }, [data]);
+  }, [allColors]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => ColorsService.colorsDestroy(id),
@@ -121,7 +175,7 @@ export const ColorsPage: React.FC = () => {
       </div>
 
       {/* Summary Statistics Cards */}
-      {data && (
+      {allColors.length > 0 && (
         <div className="summary-stats">
           <button
             type="button"
@@ -173,7 +227,7 @@ export const ColorsPage: React.FC = () => {
       </div>
 
       {/* Colors Table */}
-      {filteredColors.length === 0 ? (
+      {paginatedColors.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">📭</div>
           <h3>
@@ -205,7 +259,7 @@ export const ColorsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredColors.map((color) => (
+              {paginatedColors.map((color) => (
                 <tr key={color.id}>
                   <td className="color-id-cell">#{color.id}</td>
                   <td className="color-name-cell">{color.name || '-'}</td>
@@ -250,22 +304,23 @@ export const ColorsPage: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {data && data.count && data.count > 0 ? (
+      {filteredColors.length > 0 ? (
         <div className="pagination">
           <div className="pagination-controls">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={!data?.previous || page === 1}
+              disabled={page <= 1}
               className="btn-secondary"
             >
               Previous
             </button>
             <span className="page-info">
-              Page {page} of {Math.ceil((data.count || 0) / pageSize)} ({data.count || 0} total)
+              Page {page} of {totalPages} ({filteredColors.length} matching
+              {search.trim() ? ` of ${allColors.length} total` : ''})
             </span>
             <button
-              onClick={() => setPage(p => p + 1)}
-              disabled={!data?.next}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
               className="btn-secondary"
             >
               Next
