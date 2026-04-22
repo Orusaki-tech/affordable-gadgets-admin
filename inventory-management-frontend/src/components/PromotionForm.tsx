@@ -166,12 +166,6 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     [selectedIdsArray, productCache]
   );
 
-  const selectedBrandId = useMemo(() => {
-    if (!formData.brand) return undefined;
-    const id = typeof formData.brand === 'number' ? formData.brand : parseInt(formData.brand, 10);
-    return Number.isFinite(id) ? id : undefined;
-  }, [formData.brand]);
-
   // Server-side product search for the suggestions dropdown.
   const normalizedSuggestionSearch = (debouncedProductSearch || productSearch).trim();
   const {
@@ -182,7 +176,6 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     queryKey: [
       'promotion-product-suggestions',
       normalizedSuggestionSearch,
-      selectedBrandId,
       formData.product_types || '',
     ],
     queryFn: async () => {
@@ -192,7 +185,6 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
           // If no search term, return a sensible default list (page 1)
           search: normalizedSuggestionSearch || undefined,
           product_type: formData.product_types || undefined,
-          brand: selectedBrandId ? String(selectedBrandId) : undefined,
         });
         return res?.results || [];
       } catch (e) {
