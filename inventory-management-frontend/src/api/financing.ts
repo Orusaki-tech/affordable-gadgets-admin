@@ -21,9 +21,9 @@ export type FinancingOffer = {
   product_name?: string;
   deposit_amount: string;
   retail_amount: string;
-  daily_payment: string;
-  weekly_payment: string;
-  monthly_payment: string;
+  daily_payment: string | null;
+  weekly_payment: string | null;
+  monthly_payment: string | null;
   ram_gb?: number | null;
   rom_gb?: number | null;
   is_active: boolean;
