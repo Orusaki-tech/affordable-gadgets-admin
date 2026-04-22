@@ -2,12 +2,13 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   PromotionsService,
+  ProductsService,
   Promotion,
   Brand,
+  ProductTemplate,
 } from '../api/index';
 import { getDefaultApiHeaders, getInventoryBaseUrl } from '../api/config';
 import { useDebounce } from '../hooks/useDebounce';
-import { usePaginatedProducts } from '../hooks/usePaginatedProducts';
 
 interface PromotionFormProps {
   promotion?: Promotion | null;
@@ -124,17 +125,88 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     },
   });
 
-  // Fetch products with pagination for selection
-  const { products: allProducts } = usePaginatedProducts();
-  
-  // Create productsData array compatible with existing code
-  const productsData = useMemo(() => allProducts, [allProducts]);
+  // Keep a local cache of products we’ve seen/fetched so selected tags render reliably.
+  const [productCache, setProductCache] = useState<Record<number, ProductTemplate>>({});
+
+  // Fetch missing selected products by ID (covers edit mode + selections beyond first page).
+  const selectedIdsArray = useMemo(() => Array.from(selectedProductIds), [selectedProductIds]);
+  useQuery({
+    queryKey: ['promotion-selected-products', selectedIdsArray],
+    queryFn: async () => {
+      const missing = selectedIdsArray.filter((id) => !productCache[id]);
+      if (missing.length === 0) return null;
+
+      const fetched = await Promise.all(
+        missing.map(async (id) => {
+          try {
+            return await ProductsService.productsRetrieve(id);
+          } catch {
+            return null;
+          }
+        })
+      );
+
+      const next: Record<number, ProductTemplate> = {};
+      fetched.filter(Boolean).forEach((p: any) => {
+        if (p?.id) next[p.id] = p;
+      });
+      if (Object.keys(next).length > 0) {
+        setProductCache((prev) => ({ ...prev, ...next }));
+      }
+      return null;
+    },
+    enabled: selectedIdsArray.length > 0,
+  });
+
   const selectedProducts = useMemo(
-    () => Array.from(selectedProductIds)
-      .map((productId) => productsData?.find((p) => p.id === productId))
-      .filter(Boolean),
-    [productsData, selectedProductIds]
+    () =>
+      selectedIdsArray
+        .map((id) => productCache[id])
+        .filter(Boolean),
+    [selectedIdsArray, productCache]
   );
+
+  const selectedBrandId = useMemo(() => {
+    if (!formData.brand) return undefined;
+    const id = typeof formData.brand === 'number' ? formData.brand : parseInt(formData.brand, 10);
+    return Number.isFinite(id) ? id : undefined;
+  }, [formData.brand]);
+
+  // Server-side product search for the suggestions dropdown.
+  const normalizedSuggestionSearch = (debouncedProductSearch || productSearch).trim();
+  const { data: productSuggestionsData } = useQuery({
+    queryKey: [
+      'promotion-product-suggestions',
+      normalizedSuggestionSearch,
+      selectedBrandId,
+      formData.product_types || '',
+    ],
+    queryFn: async () => {
+      if (!normalizedSuggestionSearch) return [];
+      const res = await ProductsService.productsList({
+        page: 1,
+        search: normalizedSuggestionSearch,
+        product_type: formData.product_types || undefined,
+        brand: selectedBrandId ? String(selectedBrandId) : undefined,
+      });
+      return res?.results || [];
+    },
+    enabled: showProductSuggestions && normalizedSuggestionSearch.length > 0,
+    staleTime: 10_000,
+  });
+
+  // Cache suggestion results so selecting a product always has its name available.
+  useEffect(() => {
+    const results = (productSuggestionsData || []) as ProductTemplate[];
+    if (!results.length) return;
+    const next: Record<number, ProductTemplate> = {};
+    results.forEach((p) => {
+      if (p?.id) next[p.id] = p;
+    });
+    if (Object.keys(next).length > 0) {
+      setProductCache((prev) => ({ ...prev, ...next }));
+    }
+  }, [productSuggestionsData]);
 
   useEffect(() => {
     if (selectedProductIds.size === 0) {
@@ -155,61 +227,10 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     setFormData((prev) => ({ ...prev, featured_product: firstSelected }));
   }, [formData.featured_product, selectedProductIds]);
 
-  // Filter products by search, brand, and product type
   const filteredProducts = useMemo(() => {
-    if (!productsData) return [];
-    
-    let filtered = productsData;
-    
-    // Filter by selected brand (if brand is selected)
-    if (formData.brand && formData.brand !== '') {
-      const brandId = typeof formData.brand === 'number' ? formData.brand : parseInt(formData.brand);
-      if (!isNaN(brandId)) {
-      filtered = filtered.filter((p) => {
-        // Check if product is associated with the selected brand
-          // Products can have brands array (array of objects with id property) or be global
-        const productBrands = (p as any).brands || [];
-          
-          // If product has no brands assigned, it's available to all brands
-          if (!Array.isArray(productBrands) || productBrands.length === 0) {
-            return true;
-          }
-          
-          // Check if product is global (available to all brands)
-          if ((p as any).is_global === true) {
-            return true;
-          }
-          
-          // Check if any brand in the product's brands array matches the selected brand
-          const hasBrand = productBrands.some((b: any) => {
-            const brandObjId = typeof b === 'object' ? b.id : b;
-            return brandObjId === brandId;
-          });
-          
-          return hasBrand;
-        });
-      }
-    }
-    
-    // Filter by product type if selected
-    if (formData.product_types) {
-      filtered = filtered.filter((p) => {
-        return p.product_type === formData.product_types;
-      });
-    }
-    
-    // Filter by search (use debounced search for dropdown, but immediate for display)
-    const searchTerm = debouncedProductSearch || productSearch;
-    if (searchTerm && searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter((p) => {
-        return p.product_name?.toLowerCase().includes(searchLower);
-      });
-    }
-    
-    // Limit results for dropdown (show top 20 matches)
-    return filtered.slice(0, 20);
-  }, [productsData, formData.brand, formData.product_types, productSearch, debouncedProductSearch]);
+    const results = (productSuggestionsData || []) as ProductTemplate[];
+    return results.slice(0, 20);
+  }, [productSuggestionsData]);
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -1346,7 +1367,7 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
               {selectedProductIds.size > 0 && (
                 <div className="selected-products">
                   {Array.from(selectedProductIds).map((productId) => {
-                    const product = productsData?.find(p => p.id === productId);
+                    const product = productCache[productId];
                     if (!product) return null;
                     return (
                       <span key={productId} className="selected-product-tag">
