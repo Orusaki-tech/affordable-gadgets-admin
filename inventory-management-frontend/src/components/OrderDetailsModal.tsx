@@ -76,12 +76,12 @@ export const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({
   const [walkInMpesaPhone, setWalkInMpesaPhone] = useState('');
   const isWalkIn = data?.order_source === 'WALK_IN';
 
+  const customerPhone = (data as any)?.customer_phone;
   useEffect(() => {
-    const p = (data as any)?.customer_phone;
-    if (typeof p === 'string' && p.trim()) {
-      setWalkInMpesaPhone(p.trim());
+    if (typeof customerPhone === 'string' && customerPhone.trim()) {
+      setWalkInMpesaPhone(customerPhone.trim());
     }
-  }, [data?.order_id, (data as any)?.customer_phone]);
+  }, [customerPhone]);
   const isOnline = data?.order_source === 'ONLINE';
   const canShowPaymentActions = isSalesperson && isPending && isWalkIn;
   const canToggleDelivered =
