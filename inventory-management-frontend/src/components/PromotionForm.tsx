@@ -174,7 +174,11 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
 
   // Server-side product search for the suggestions dropdown.
   const normalizedSuggestionSearch = (debouncedProductSearch || productSearch).trim();
-  const { data: productSuggestionsData } = useQuery({
+  const {
+    data: productSuggestionsData,
+    isLoading: isLoadingProductSuggestions,
+    error: productSuggestionsError,
+  } = useQuery({
     queryKey: [
       'promotion-product-suggestions',
       normalizedSuggestionSearch,
@@ -182,16 +186,21 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
       formData.product_types || '',
     ],
     queryFn: async () => {
-      if (!normalizedSuggestionSearch) return [];
-      const res = await ProductsService.productsList({
-        page: 1,
-        search: normalizedSuggestionSearch,
-        product_type: formData.product_types || undefined,
-        brand: selectedBrandId ? String(selectedBrandId) : undefined,
-      });
-      return res?.results || [];
+      try {
+        const res = await ProductsService.productsList({
+          page: 1,
+          // If no search term, return a sensible default list (page 1)
+          search: normalizedSuggestionSearch || undefined,
+          product_type: formData.product_types || undefined,
+          brand: selectedBrandId ? String(selectedBrandId) : undefined,
+        });
+        return res?.results || [];
+      } catch (e) {
+        // Don’t hard-fail the UI; we’ll show a helpful message in the dropdown.
+        return [];
+      }
     },
-    enabled: showProductSuggestions && normalizedSuggestionSearch.length > 0,
+    enabled: showProductSuggestions,
     staleTime: 10_000,
   });
 
@@ -1294,8 +1303,40 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
             </div>
               
               {/* Suggestions Dropdown */}
-              {showProductSuggestions && filteredProducts.length > 0 && (
+              {showProductSuggestions && (
                 <div className="product-suggestions">
+                  {isLoadingProductSuggestions && (
+                    <div className="product-suggestion-item highlighted">
+                      <div className="product-suggestion-content">
+                        <div className="product-suggestion-name">Loading products…</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isLoadingProductSuggestions && productSuggestionsError && (
+                    <div className="product-suggestion-item highlighted">
+                      <div className="product-suggestion-content">
+                        <div className="product-suggestion-name">
+                          Couldn’t load products. Please refresh (or check you’re logged in).
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isLoadingProductSuggestions &&
+                    !productSuggestionsError &&
+                    filteredProducts.length === 0 && (
+                      <div className="product-suggestion-item highlighted">
+                        <div className="product-suggestion-content">
+                          <div className="product-suggestion-name">
+                            {normalizedSuggestionSearch
+                              ? `No products found matching "${normalizedSuggestionSearch}"`
+                              : 'No products found.'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                   {filteredProducts.map((product, index) => {
                   const isSelected = selectedProductIds.has(product.id!);
                     const isHighlighted = highlightedIndex === index;
