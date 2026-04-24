@@ -9,6 +9,8 @@ type OfferFormState = {
   product_name?: string;
   deposit_amount: string;
   retail_amount: string;
+  term_unit: '' | 'day' | 'week' | 'month';
+  term_count: string;
   daily_payment: string;
   weekly_payment: string;
   monthly_payment: string;
@@ -22,6 +24,8 @@ const emptyOffer = (): OfferFormState => ({
   product: '',
   deposit_amount: '',
   retail_amount: '',
+  term_unit: '',
+  term_count: '',
   daily_payment: '',
   weekly_payment: '',
   monthly_payment: '',
@@ -228,6 +232,8 @@ function OfferModal({
       product_name: offer.product_name,
       deposit_amount: offer.deposit_amount ?? '',
       retail_amount: offer.retail_amount ?? '',
+      term_unit: (offer.term_unit as any) ?? '',
+      term_count: offer.term_count == null ? '' : String(offer.term_count),
       daily_payment: offer.daily_payment ?? '',
       weekly_payment: offer.weekly_payment ?? '',
       monthly_payment: offer.monthly_payment ?? '',
@@ -258,6 +264,8 @@ function OfferModal({
         product: form.product,
         deposit_amount: form.deposit_amount,
         retail_amount: form.retail_amount,
+        term_unit: form.term_unit || null,
+        term_count: form.term_count.trim() ? Number(form.term_count) : null,
         daily_payment: form.daily_payment.trim() ? form.daily_payment : null,
         weekly_payment: form.weekly_payment.trim() ? form.weekly_payment : null,
         monthly_payment: form.monthly_payment.trim() ? form.monthly_payment : null,
@@ -375,6 +383,28 @@ function OfferModal({
           <div className="form-group">
             <label>Retail amount</label>
             <input value={form.retail_amount} onChange={(e) => setForm((p) => ({ ...p, retail_amount: e.target.value }))} />
+          </div>
+          <div className="form-group">
+            <label>Term</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <select
+                value={form.term_unit}
+                onChange={(e) => setForm((p) => ({ ...p, term_unit: e.target.value as OfferFormState['term_unit'] }))}
+                disabled={mutation.isPending}
+              >
+                <option value="">(Optional) Unit</option>
+                <option value="day">Days</option>
+                <option value="week">Weeks</option>
+                <option value="month">Months</option>
+              </select>
+              <input
+                value={form.term_count}
+                onChange={(e) => setForm((p) => ({ ...p, term_count: e.target.value }))}
+                disabled={mutation.isPending}
+                placeholder="(Optional) Count e.g. 6"
+                inputMode="numeric"
+              />
+            </div>
           </div>
           <div className="form-group">
             <label>Daily payment</label>

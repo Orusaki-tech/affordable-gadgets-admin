@@ -21,6 +21,8 @@ export type FinancingOffer = {
   product_name?: string;
   deposit_amount: string;
   retail_amount: string;
+  term_unit?: 'day' | 'week' | 'month' | null;
+  term_count?: number | null;
   daily_payment: string | null;
   weekly_payment: string | null;
   monthly_payment: string | null;
