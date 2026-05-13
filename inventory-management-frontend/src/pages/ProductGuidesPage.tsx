@@ -130,6 +130,7 @@ export default function ProductGuidesPage() {
         <Suspense fallback={<PageLoader />}>
           <ProductForm
             product={editingProduct}
+            variant="buyingGuide"
             onClose={() => setEditingProduct(null)}
             onSuccess={() => setEditingProduct(null)}
           />

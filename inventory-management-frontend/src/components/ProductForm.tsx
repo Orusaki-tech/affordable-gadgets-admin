@@ -17,12 +17,15 @@ interface ProductFormProps {
   product: ProductTemplate | null;
   onClose: () => void;
   onSuccess: () => void;
+  /** When set from Product guides hub: only article fields + save article only */
+  variant?: 'full' | 'buyingGuide';
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   product,
   onClose,
   onSuccess,
+  variant = 'full',
 }) => {
   useAuth(); // useAdminProfile uses auth internally
   const [formData, setFormData] = useState({
@@ -104,7 +107,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const { data: allImagesData, refetch: refetchImages } = useQuery({
     queryKey: ['product-images-all'],
     queryFn: () => ImagesService.imagesList(1),
-    enabled: !!product?.id,
+    enabled: !!product?.id && variant === 'full',
   });
 
   // Filter images for this product
@@ -377,6 +380,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       return ProductsService.productsPartialUpdate(product.id, data);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       onSuccess();
     },
     onError: (err: any) => {
@@ -537,6 +542,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (variant === 'buyingGuide' && product?.id) {
+      const articlePayload = { article: buildArticleNested() };
+      if (isContentCreator) {
+        ProductsService.productsUpdateContentPartialUpdate(product.id, articlePayload as any)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+            onSuccess();
+          })
+          .catch((err) => {
+            alert(`Failed to save buying guide: ${err.message || 'Unknown error'}`);
+          });
+        return;
+      }
+      if (isInventoryManager || isSuperuser) {
+        updateMutation.mutate(articlePayload as any);
+        return;
+      }
+      alert('You do not have permission to save this buying guide.');
+      return;
+    }
     
     // For Content Creators, only include content fields (not inventory fields)
     if (isContentCreator && product?.id) {
@@ -638,6 +665,179 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <div style={{ padding: '2rem', textAlign: 'center' }}>
             <p>Loading user permissions...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'buyingGuide') {
+    if (!product?.id) {
+      return (
+        <div className="modal-overlay" onClick={onClose}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Buying guide</h2>
+              <button type="button" className="modal-close" onClick={onClose}>
+                ×
+              </button>
+            </div>
+            <p style={{ padding: '1rem' }}>No product selected.</p>
+          </div>
+        </div>
+      );
+    }
+    if (!(isContentCreator || isInventoryManager || isSuperuser)) {
+      return (
+        <div className="modal-overlay" onClick={onClose}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Buying guide</h2>
+              <button type="button" className="modal-close" onClick={onClose}>
+                ×
+              </button>
+            </div>
+            <p style={{ padding: '1rem' }}>You do not have permission to edit buying guides.</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>Edit buying guide</h2>
+            <button type="button" className="modal-close" onClick={onClose}>
+              ×
+            </button>
+          </div>
+          <p style={{ color: '#666', fontSize: '0.9rem', margin: '0.75rem 1rem 0', lineHeight: 1.45 }}>
+            <strong>{product.product_name}</strong>
+            {(product as { slug?: string }).slug ? (
+              <>
+                {' '}
+                · Live at <code>/products/{(product as { slug?: string }).slug}/blog</code>
+              </>
+            ) : null}
+          </p>
+
+          <form onSubmit={handleSubmit} className="form-section">
+            <div className="form-section-divider" id="buying-guide">
+              <h3>Guide content</h3>
+            </div>
+            {(product as { article?: { published_at?: string; updated_at?: string } }).article?.published_at && (
+              <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 1rem 0.5rem' }}>
+                First published:{' '}
+                {new Date(
+                  (product as { article?: { published_at?: string } }).article!.published_at!
+                ).toLocaleString()}
+              </p>
+            )}
+            {(product as { article?: { updated_at?: string } }).article?.updated_at && (
+              <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 1rem 1rem' }}>
+                Last updated:{' '}
+                {new Date(
+                  (product as { article?: { updated_at?: string } }).article!.updated_at!
+                ).toLocaleString()}
+              </p>
+            )}
+
+            <div className="form-group">
+              <label htmlFor="article_headline_bg">Headline (H1)</label>
+              <input
+                id="article_headline_bg"
+                type="text"
+                value={formData.article_headline}
+                onChange={(e) => setFormData({ ...formData, article_headline: e.target.value })}
+                disabled={isLoading}
+                maxLength={255}
+                placeholder="e.g. Galaxy A42 5G in Kenya: who should buy it?"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="article_seo_title_bg">
+                SEO title (page title)
+                <span
+                  className="char-count"
+                  style={{
+                    float: 'right',
+                    fontWeight: 'normal',
+                    color: formData.article_seo_title.length > 60 ? '#dc3545' : '#666',
+                  }}
+                >
+                  {formData.article_seo_title.length}/60
+                </span>
+              </label>
+              <input
+                id="article_seo_title_bg"
+                type="text"
+                maxLength={60}
+                value={formData.article_seo_title}
+                onChange={(e) => setFormData({ ...formData, article_seo_title: e.target.value })}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="article_seo_description_bg">
+                Meta description
+                <span
+                  className="char-count"
+                  style={{
+                    float: 'right',
+                    fontWeight: 'normal',
+                    color: formData.article_seo_description.length > 160 ? '#dc3545' : '#666',
+                  }}
+                >
+                  {formData.article_seo_description.length}/160
+                </span>
+              </label>
+              <textarea
+                id="article_seo_description_bg"
+                maxLength={160}
+                rows={3}
+                value={formData.article_seo_description}
+                onChange={(e) => setFormData({ ...formData, article_seo_description: e.target.value })}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="article_body_bg">Body (Markdown)</label>
+              <textarea
+                id="article_body_bg"
+                rows={12}
+                value={formData.article_body}
+                onChange={(e) => setFormData({ ...formData, article_body: e.target.value })}
+                disabled={isLoading}
+                placeholder="Write in Markdown..."
+              />
+            </div>
+
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData.article_is_published}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, article_is_published: e.target.checked }))
+                  }
+                  disabled={isLoading}
+                />
+                <span>Published on storefront</span>
+              </label>
+            </div>
+
+            <div className="form-actions">
+              <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary" disabled={isLoading}>
+                {isLoading ? 'Saving…' : 'Save buying guide'}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     );
@@ -1545,10 +1745,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           {(isContentCreator || isInventoryManager || isSuperuser) && product && (
             <>
               <div className="form-section-divider" id="buying-guide">
-                <h3>Buying guide (SEO blog)</h3>
+                <h3>Buying guide</h3>
               </div>
               <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                Published guides appear on the storefront at <code>/products/{(product as any).slug || 'your-slug'}/blog</code>.
+                When published, this guide is shown at{' '}
+                <code>/products/{(product as { slug?: string }).slug || '…'}/blog</code> on the storefront.
               </p>
               {(product as any).article?.published_at && (
                 <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '0.75rem' }}>

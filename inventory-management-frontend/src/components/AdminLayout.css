@@ -194,6 +194,18 @@
   overscroll-behavior: contain;
 }
 
+/* Hint for long sidebars (superuser / inventory manager): links extend below the fold */
+.sidebar-scroll-hint {
+  margin: 0 var(--spacing-lg) var(--spacing-sm);
+  padding: 0 0 var(--spacing-sm);
+  font-family: var(--font-body);
+  font-size: var(--font-size-11, 11px);
+  line-height: 1.35;
+  color: var(--md-on-surface-variant);
+  opacity: 0.9;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
 /* Custom scrollbar for sidebar navigation */
 .sidebar-nav::-webkit-scrollbar {
   width: 8px; /* Slightly wider for better visibility */

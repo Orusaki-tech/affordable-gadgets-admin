@@ -226,6 +226,9 @@ export const AdminLayout: React.FC = () => {
           {/* Salesperson Access - Limited to Requests, Products, Orders, and Notifications */}
           {isSalesperson && (
             <>
+              <Link to="/dashboard" className={isActive('/dashboard')} onClick={() => setSidebarOpen(false)}>
+                Dashboard
+              </Link>
               <div className="nav-section-header">Requests</div>
               <Link 
                 to="/reservation-requests" 
@@ -251,6 +254,9 @@ export const AdminLayout: React.FC = () => {
               <div className="nav-section-header">Sales</div>
               <Link to="/leads" className={isActive('/leads')} onClick={() => setSidebarOpen(false)}>
                 Leads
+              </Link>
+              <Link to="/delivery-rates" className={isActive('/delivery-rates')} onClick={() => setSidebarOpen(false)}>
+                Delivery Rates
               </Link>
               <div className="nav-section-header">Management</div>
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
@@ -283,6 +289,9 @@ export const AdminLayout: React.FC = () => {
               >
                 Dashboard
               </Link>
+              <p className="sidebar-scroll-hint" role="note">
+                Scroll the menu for Buying guides, Financing, Reports, and more.
+              </p>
               
               {/* Request Management */}
               <div className="nav-section-header">Requests</div>
@@ -395,6 +404,9 @@ export const AdminLayout: React.FC = () => {
               >
                 Dashboard
               </Link>
+              <p className="sidebar-scroll-hint" role="note">
+                Buying guides lives under Content → below Products.
+              </p>
               
               {/* Content Management */}
               <div className="nav-section-header">Content</div>
@@ -503,6 +515,9 @@ export const AdminLayout: React.FC = () => {
               >
                 Dashboard
               </Link>
+              <p className="sidebar-scroll-hint" role="note">
+                Scroll the menu for Management (Buying guides), Financing, Administration, and more.
+              </p>
               
               {/* Request Management */}
               <div className="nav-section-header">Requests</div>
