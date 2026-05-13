@@ -13,6 +13,8 @@ export type Admin = {
     readonly user?: User;
     readonly username?: string;
     readonly email?: string;
+    readonly is_staff?: boolean;
+    readonly is_superuser?: boolean;
     admin_code: string;
     readonly last_login?: string;
     readonly date_joined?: string;

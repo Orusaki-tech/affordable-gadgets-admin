@@ -14,6 +14,12 @@ export type Lead = {
     customer_phone: string;
     customer_email?: string | null;
     delivery_address?: string;
+    delivery_county?: string;
+    delivery_ward?: string;
+    delivery_fee?: string;
+    delivery_window_start?: string | null;
+    delivery_window_end?: string | null;
+    delivery_notes?: string;
     customer?: number | null;
     brand: number;
     readonly brand_name?: string;

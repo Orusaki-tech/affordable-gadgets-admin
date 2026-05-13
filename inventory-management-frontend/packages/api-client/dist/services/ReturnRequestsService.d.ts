@@ -5,9 +5,7 @@ import type { ReturnRequestRequest } from '../models/ReturnRequestRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 export declare class ReturnRequestsService {
     /**
-     * ViewSet for managing return requests (bulk returns of reserved units).
-     * - Salespersons can create return requests for their reserved units
-     * - Inventory Managers can approve/reject return requests
+     * Override to inject batched net_holdings into context and avoid 3N queries in serializer.
      * @param page A page number within the paginated result set.
      * @returns PaginatedReturnRequestList
      * @throws ApiError

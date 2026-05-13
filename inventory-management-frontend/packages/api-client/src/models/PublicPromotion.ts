@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { BlankEnum } from './BlankEnum';
 import type { ProductTypesEnum } from './ProductTypesEnum';
+import type { PublicPromotionCard } from './PublicPromotionCard';
 /**
  * Public promotion serializer (limited fields).
  */
@@ -35,13 +36,14 @@ export type PublicPromotion = {
      */
     product_types?: (ProductTypesEnum | BlankEnum);
     /**
-     * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales'
+     * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales', 'homepage_hero'
      */
     display_locations?: any;
     /**
-     * Position in stories carousel (1-5). 1 = Large banner, 2-5 = Grid positions
+     * Display order in carousels (e.g. homepage hero). Any positive integer; lower = earlier.
      */
     carousel_position?: number | null;
     readonly products?: Array<number>;
+    readonly promo_card?: PublicPromotionCard | null;
 };
 

@@ -11,7 +11,7 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class PromotionsService {
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param page A page number within the paginated result set.
      * @returns PaginatedPromotionList
      * @throws ApiError
@@ -28,7 +28,7 @@ export class PromotionsService {
         });
     }
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param formData
      * @returns Promotion
      * @throws ApiError
@@ -44,7 +44,7 @@ export class PromotionsService {
         });
     }
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param id A unique integer value identifying this promotion.
      * @returns Promotion
      * @throws ApiError
@@ -61,7 +61,7 @@ export class PromotionsService {
         });
     }
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param id A unique integer value identifying this promotion.
      * @param formData
      * @returns Promotion
@@ -82,7 +82,7 @@ export class PromotionsService {
         });
     }
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param id A unique integer value identifying this promotion.
      * @param formData
      * @returns Promotion
@@ -103,7 +103,7 @@ export class PromotionsService {
         });
     }
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param id A unique integer value identifying this promotion.
      * @returns void
      * @throws ApiError

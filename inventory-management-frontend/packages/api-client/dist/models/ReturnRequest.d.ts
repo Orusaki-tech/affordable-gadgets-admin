@@ -11,7 +11,7 @@ export type ReturnRequest = {
     readonly requesting_salesperson_username?: string;
     readonly inventory_units?: Array<number>;
     /**
-     * Return count of units in this return request.
+     * Return count of units in this return request (uses prefetch cache when available).
      */
     readonly inventory_units_count?: number;
     readonly inventory_units_detail?: Array<Record<string, any>>;

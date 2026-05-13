@@ -8,17 +8,18 @@ export declare class UnitImagesService {
      * CRUD for individual inventory unit images.
      * Only Admins can add/manage images; everyone can view unit images
      * (which are nested in InventoryUnitViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsInventoryManagerOrMarketingManagerReadOnly (write for Inventory Managers).
+     * @param inventoryUnit
      * @param page A page number within the paginated result set.
      * @returns PaginatedInventoryUnitImageList
      * @throws ApiError
      */
-    static unitImagesList(page?: number): CancelablePromise<PaginatedInventoryUnitImageList>;
+    static unitImagesList(inventoryUnit?: number, page?: number): CancelablePromise<PaginatedInventoryUnitImageList>;
     /**
      * CRUD for individual inventory unit images.
      * Only Admins can add/manage images; everyone can view unit images
      * (which are nested in InventoryUnitViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsInventoryManagerOrMarketingManagerReadOnly (write for Inventory Managers).
      * @param formData
      * @returns InventoryUnitImage
      * @throws ApiError
@@ -28,7 +29,7 @@ export declare class UnitImagesService {
      * CRUD for individual inventory unit images.
      * Only Admins can add/manage images; everyone can view unit images
      * (which are nested in InventoryUnitViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsInventoryManagerOrMarketingManagerReadOnly (write for Inventory Managers).
      * @param id A unique integer value identifying this inventory unit image.
      * @returns InventoryUnitImage
      * @throws ApiError
@@ -38,7 +39,7 @@ export declare class UnitImagesService {
      * CRUD for individual inventory unit images.
      * Only Admins can add/manage images; everyone can view unit images
      * (which are nested in InventoryUnitViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsInventoryManagerOrMarketingManagerReadOnly (write for Inventory Managers).
      * @param id A unique integer value identifying this inventory unit image.
      * @param formData
      * @returns InventoryUnitImage
@@ -49,7 +50,7 @@ export declare class UnitImagesService {
      * CRUD for individual inventory unit images.
      * Only Admins can add/manage images; everyone can view unit images
      * (which are nested in InventoryUnitViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsInventoryManagerOrMarketingManagerReadOnly (write for Inventory Managers).
      * @param id A unique integer value identifying this inventory unit image.
      * @param formData
      * @returns InventoryUnitImage
@@ -60,7 +61,7 @@ export declare class UnitImagesService {
      * CRUD for individual inventory unit images.
      * Only Admins can add/manage images; everyone can view unit images
      * (which are nested in InventoryUnitViewSet).
-     * Uses IsAdminOrReadOnly.
+     * Uses IsInventoryManagerOrMarketingManagerReadOnly (write for Inventory Managers).
      * @param id A unique integer value identifying this inventory unit image.
      * @returns void
      * @throws ApiError

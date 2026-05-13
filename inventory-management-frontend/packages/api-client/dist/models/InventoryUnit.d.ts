@@ -31,6 +31,10 @@ export type InventoryUnit = {
     cost_of_unit: string;
     selling_price: string;
     /**
+     * Original/list price used to show discounts (optional)
+     */
+    compare_at_price?: string | null;
+    /**
      * Quantity: 1 for Phones/Laptops/Tablets (unique units). Required and can be > 1 for Accessories (no unique identifier).
      */
     quantity?: number;

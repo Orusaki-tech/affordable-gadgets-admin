@@ -27,6 +27,10 @@ export type ProductRequest = {
      */
     reorder_point?: number | null;
     /**
+     * Shown on the storefront when no online/listable units have a price; used when creating a unit if selling price is omitted.
+     */
+    default_selling_price?: string | null;
+    /**
      * Mark product as discontinued (no longer in catalog)
      */
     is_discontinued?: boolean;

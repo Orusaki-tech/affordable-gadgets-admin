@@ -12,7 +12,17 @@ export type Order = {
     readonly customer_username?: string | null;
     readonly customer_phone?: string;
     readonly customer_email?: string;
+    readonly gcr_eligible?: boolean;
+    readonly gcr_reason?: string;
     readonly delivery_address?: string;
+    delivery_county?: string;
+    delivery_ward?: string | null;
+    readonly delivery_fee?: string;
+    is_items_paid?: boolean;
+    is_delivery_paid?: boolean;
+    delivery_window_start?: string | null;
+    delivery_window_end?: string | null;
+    delivery_notes?: string;
     readonly created_at?: string;
     status?: OrderStatusEnum;
     readonly status_display?: string;

@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Product } from './Product';
-export type PaginatedProductList = {
+import type { PublicDeliveryRate } from './PublicDeliveryRate';
+export type PaginatedPublicDeliveryRateList = {
     count: number;
     next?: string | null;
     previous?: string | null;
-    results: Array<Product>;
+    results: Array<PublicDeliveryRate>;
 };
 

@@ -34,6 +34,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     quantity: undefined as number | undefined,
     min_stock_threshold: undefined as number | undefined,
     reorder_point: undefined as number | undefined,
+    default_selling_price: '' as string,
     is_discontinued: false,
     // SEO Fields
     meta_title: '',
@@ -53,6 +54,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     // Company Brand Assignment (different from product manufacturer brand)
     brand_ids: [] as number[],
     is_global: false,
+    // Buying guide / SEO article (ProductArticle)
+    article_headline: '',
+    article_seo_title: '',
+    article_seo_description: '',
+    article_body: '',
+    article_is_published: false,
   });
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
@@ -131,6 +138,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         quantity: undefined, // Quantity is for InventoryUnit, not ProductTemplate
         min_stock_threshold: (product as any).min_stock_threshold,
         reorder_point: (product as any).reorder_point,
+        default_selling_price:
+          (product as any).default_selling_price != null && (product as any).default_selling_price !== ''
+            ? String((product as any).default_selling_price)
+            : '',
         is_discontinued: (product as any).is_discontinued || false,
         // SEO Fields
         meta_title: (product as any).meta_title || '',
@@ -165,6 +176,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           return [];
         })(),
         is_global: (product as any).is_global || false,
+        article_headline: (product as any).article?.headline || '',
+        article_seo_title: (product as any).article?.seo_title || '',
+        article_seo_description: (product as any).article?.seo_description || '',
+        article_body: (product as any).article?.body || '',
+        article_is_published: !!(product as any).article?.is_published,
       });
       
       // Auto-populate brand_ids if product has no brands and admin has brands
@@ -209,6 +225,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         quantity: undefined,
         min_stock_threshold: undefined,
         reorder_point: undefined,
+        default_selling_price: '',
         is_discontinued: false,
         // SEO Fields
         meta_title: '',
@@ -228,6 +245,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         // Company Brand Assignment
         brand_ids: [],
         is_global: false,
+        article_headline: '',
+        article_seo_title: '',
+        article_seo_description: '',
+        article_body: '',
+        article_is_published: false,
       });
       
       // For new products, auto-populate brand_ids from admin profile
@@ -505,6 +527,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }));
   };
 
+  const buildArticleNested = () => ({
+    headline: formData.article_headline.trim() || undefined,
+    seo_title: formData.article_seo_title.trim() || undefined,
+    seo_description: formData.article_seo_description.trim() || undefined,
+    body: formData.article_body.trim() || undefined,
+    is_published: formData.article_is_published,
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -526,6 +556,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         product_video_url: formData.product_video_url || undefined,
         // Tags
         tag_ids: formData.tag_ids.length > 0 ? formData.tag_ids : undefined,
+        article: buildArticleNested(),
       };
       
       // Use the update_content endpoint for Content Creators
@@ -552,6 +583,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       product_description: formData.product_description || undefined,
       min_stock_threshold: formData.min_stock_threshold,
       reorder_point: formData.reorder_point,
+      default_selling_price: formData.default_selling_price?.trim()
+        ? formData.default_selling_price.trim()
+        : null,
       is_discontinued: formData.is_discontinued,
       // SEO Fields
       meta_title: formData.meta_title || undefined,
@@ -570,6 +604,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       brand_ids: formData.brand_ids.length > 0 ? formData.brand_ids : undefined,
       is_global: formData.is_global,
     };
+
+    if (product?.id && (isInventoryManager || isSuperuser)) {
+      submitData.article = buildArticleNested();
+    }
 
     // Handle OG image upload separately if file is selected
     if (formData.og_image) {
@@ -846,6 +884,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 />
                 <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
                   Recommended stock level for reordering
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="default_selling_price">Default selling price (KES)</label>
+                <input
+                  id="default_selling_price"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.default_selling_price}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      default_selling_price: e.target.value,
+                    })
+                  }
+                  placeholder="e.g., 45000"
+                  disabled={isLoading}
+                />
+                <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                  Shown on the storefront when no listable units have a price; used as unit selling price if omitted when creating a unit.
                 </small>
               </div>
 
@@ -1480,6 +1540,98 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </small>
           </div>
           </>
+          )}
+
+          {(isContentCreator || isInventoryManager || isSuperuser) && product && (
+            <>
+              <div className="form-section-divider" id="buying-guide">
+                <h3>Buying guide (SEO blog)</h3>
+              </div>
+              <p style={{ color: '#666', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                Published guides appear on the storefront at <code>/products/{(product as any).slug || 'your-slug'}/blog</code>.
+              </p>
+              {(product as any).article?.published_at && (
+                <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '0.75rem' }}>
+                  First published: {new Date((product as any).article.published_at).toLocaleString()}
+                </p>
+              )}
+              {(product as any).article?.updated_at && (
+                <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                  Last updated: {new Date((product as any).article.updated_at).toLocaleString()}
+                </p>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="article_headline">Article headline (H1)</label>
+                <input
+                  id="article_headline"
+                  type="text"
+                  value={formData.article_headline}
+                  onChange={(e) => setFormData({ ...formData, article_headline: e.target.value })}
+                  disabled={isLoading}
+                  maxLength={255}
+                  placeholder="e.g. Galaxy A42 5G in Kenya: who should buy it?"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="article_seo_title">
+                  Article SEO title
+                  <span className="char-count" style={{ float: 'right', fontWeight: 'normal', color: formData.article_seo_title.length > 60 ? '#dc3545' : '#666' }}>
+                    {formData.article_seo_title.length}/60
+                  </span>
+                </label>
+                <input
+                  id="article_seo_title"
+                  type="text"
+                  maxLength={60}
+                  value={formData.article_seo_title}
+                  onChange={(e) => setFormData({ ...formData, article_seo_title: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="article_seo_description">
+                  Article meta description
+                  <span className="char-count" style={{ float: 'right', fontWeight: 'normal', color: formData.article_seo_description.length > 160 ? '#dc3545' : '#666' }}>
+                    {formData.article_seo_description.length}/160
+                  </span>
+                </label>
+                <textarea
+                  id="article_seo_description"
+                  maxLength={160}
+                  rows={3}
+                  value={formData.article_seo_description}
+                  onChange={(e) => setFormData({ ...formData, article_seo_description: e.target.value })}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="article_body">Article body (Markdown)</label>
+                <textarea
+                  id="article_body"
+                  rows={12}
+                  value={formData.article_body}
+                  onChange={(e) => setFormData({ ...formData, article_body: e.target.value })}
+                  disabled={isLoading}
+                  placeholder="Write in Markdown..."
+                />
+              </div>
+
+              <div className="form-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.article_is_published}
+                    onChange={(e) => setFormData(prev => ({ ...prev, article_is_published: e.target.checked }))}
+                    disabled={isLoading}
+                  />
+                  <span>Publish buying guide on storefront</span>
+                </label>
+              </div>
+            </>
           )}
 
           <div className="form-actions">

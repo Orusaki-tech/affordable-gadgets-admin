@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ProductArticle } from './ProductArticle';
 import type { ProductTypesEnum } from './ProductTypesEnum';
 import type { Tag } from './Tag';
 /**
@@ -30,6 +31,10 @@ export type Product = {
      */
     reorder_point?: number | null;
     /**
+     * Shown on the storefront when no online/listable units have a price; used when creating a unit if selling price is omitted.
+     */
+    default_selling_price?: string | null;
+    /**
      * Mark product as discontinued (no longer in catalog)
      */
     is_discontinued?: boolean;
@@ -46,9 +51,6 @@ export type Product = {
      * SEO description (150-160 chars recommended)
      */
     meta_description?: string;
-    /**
-     * URL-friendly slug (auto-generated from product_name if not provided)
-     */
     slug?: string;
     /**
      * Comma-separated keywords for SEO
@@ -71,6 +73,7 @@ export type Product = {
      * Whether product is published (visible on e-commerce site)
      */
     is_published?: boolean;
+    article?: ProductArticle | null;
     /**
      * Link to product video (YouTube, Vimeo, etc.)
      */
@@ -90,5 +93,6 @@ export type Product = {
      * Calculate SEO completion score (0-100)
      */
     readonly seo_score?: number;
+    readonly available_stock?: number;
 };
 

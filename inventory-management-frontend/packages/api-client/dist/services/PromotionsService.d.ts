@@ -5,28 +5,28 @@ import type { PromotionRequest } from '../models/PromotionRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 export declare class PromotionsService {
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param page A page number within the paginated result set.
      * @returns PaginatedPromotionList
      * @throws ApiError
      */
     static promotionsList(page?: number): CancelablePromise<PaginatedPromotionList>;
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param formData
      * @returns Promotion
      * @throws ApiError
      */
     static promotionsCreate(formData: PromotionRequest): CancelablePromise<Promotion>;
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param id A unique integer value identifying this promotion.
      * @returns Promotion
      * @throws ApiError
      */
     static promotionsRetrieve(id: number): CancelablePromise<Promotion>;
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param id A unique integer value identifying this promotion.
      * @param formData
      * @returns Promotion
@@ -34,7 +34,7 @@ export declare class PromotionsService {
      */
     static promotionsUpdate(id: number, formData: PromotionRequest): CancelablePromise<Promotion>;
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param id A unique integer value identifying this promotion.
      * @param formData
      * @returns Promotion
@@ -42,7 +42,7 @@ export declare class PromotionsService {
      */
     static promotionsPartialUpdate(id: number, formData?: PatchedPromotionRequest): CancelablePromise<Promotion>;
     /**
-     * Promotion management ViewSet (admin and marketing managers).
+     * Promotion management ViewSet (admin, marketing managers, content creators).
      * @param id A unique integer value identifying this promotion.
      * @returns void
      * @throws ApiError

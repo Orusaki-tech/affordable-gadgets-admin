@@ -34,6 +34,7 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage').then((m) => ({ defa
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage').then((m) => ({ default: m.AuditLogsPage })));
 const ProductAnalyticsPage = lazy(() => import('./pages/ProductAnalyticsPage').then((m) => ({ default: m.ProductAnalyticsPage })));
 const ContentCreatorDashboard = lazy(() => import('./pages/ContentCreatorDashboard').then((m) => ({ default: m.ContentCreatorDashboard })));
+const ProductGuidesPage = lazy(() => import('./pages/ProductGuidesPage'));
 const PromotionsPage = lazy(() => import('./pages/PromotionsPage').then((m) => ({ default: m.PromotionsPage })));
 const BrandsPage = lazy(() => import('./pages/BrandsPage').then((m) => ({ default: m.BrandsPage })));
 const BundlesPage = lazy(() => import('./pages/BundlesPage').then((m) => ({ default: m.BundlesPage })));
@@ -114,6 +115,7 @@ const AppWithMUITheme: React.FC = () => {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="content-creator/dashboard" element={<ContentCreatorDashboard />} />
             <Route path="products" element={<ProductsPage />} />
+            <Route path="product-guides" element={<ProductGuidesPage />} />
             <Route path="products/:productId/units" element={<ProductUnitsPage />} />
             <Route path="units" element={<UnitsPage />} />
             <Route path="orders" element={<OrdersPage />} />

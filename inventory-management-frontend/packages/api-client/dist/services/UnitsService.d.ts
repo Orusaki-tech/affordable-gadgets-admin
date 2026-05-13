@@ -50,11 +50,11 @@ export declare class UnitsService {
      * - Superuser: Full access
      *
      * NEW: Includes filtering and searching capabilities for efficient inventory management.
-     * @param requestBody
+     * @param formData
      * @returns InventoryUnit
      * @throws ApiError
      */
-    static unitsCreate(requestBody: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
+    static unitsCreate(formData: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
     /**
      * CRUD for individual physical Inventory Units.
      * - Inventory Manager: Full access (read/write)
@@ -77,11 +77,11 @@ export declare class UnitsService {
      *
      * NEW: Includes filtering and searching capabilities for efficient inventory management.
      * @param id A unique integer value identifying this inventory unit.
-     * @param requestBody
+     * @param formData
      * @returns InventoryUnit
      * @throws ApiError
      */
-    static unitsUpdate(id: number, requestBody: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
+    static unitsUpdate(id: number, formData: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
     /**
      * CRUD for individual physical Inventory Units.
      * - Inventory Manager: Full access (read/write)
@@ -91,11 +91,11 @@ export declare class UnitsService {
      *
      * NEW: Includes filtering and searching capabilities for efficient inventory management.
      * @param id A unique integer value identifying this inventory unit.
-     * @param requestBody
+     * @param formData
      * @returns InventoryUnit
      * @throws ApiError
      */
-    static unitsPartialUpdate(id: number, requestBody?: PatchedInventoryUnitRequest): CancelablePromise<InventoryUnit>;
+    static unitsPartialUpdate(id: number, formData?: PatchedInventoryUnitRequest): CancelablePromise<InventoryUnit>;
     /**
      * CRUD for individual physical Inventory Units.
      * - Inventory Manager: Full access (read/write)
@@ -116,19 +116,19 @@ export declare class UnitsService {
      * Note: If a pending ReturnRequest exists for this unit, it should be approved via
      * the ReturnRequestViewSet instead to maintain proper workflow.
      * @param id A unique integer value identifying this inventory unit.
-     * @param requestBody
+     * @param formData
      * @returns InventoryUnit
      * @throws ApiError
      */
-    static unitsApproveBuybackCreate(id: number, requestBody: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
+    static unitsApproveBuybackCreate(id: number, formData: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
     /**
      * Create an order from a RESERVED unit - transitions to PENDING_PAYMENT.
      * @param id A unique integer value identifying this inventory unit.
-     * @param requestBody
+     * @param formData
      * @returns InventoryUnit
      * @throws ApiError
      */
-    static unitsCreateOrderCreate(id: number, requestBody: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
+    static unitsCreateOrderCreate(id: number, formData: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
     /**
      * Public: Browse all available units (public fields), with optional filters.
      * Intended for storefront discovery pages (shop/browse/search).
@@ -147,22 +147,31 @@ export declare class UnitsService {
          * "operation": "update_price" | "update_status" | "archive",
          * "data": { ... operation-specific data ... }
          * }
-         * @param requestBody
+         * @param formData
          * @returns InventoryUnit
          * @throws ApiError
          */
-    static unitsBulkUpdateCreate(requestBody: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
+    static unitsBulkUpdateCreate(formData: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
     /**
      * Export inventory units to CSV file.
+     *
+     * Always returns at least the header row (column names) so that when there is no data,
+     * the user still receives a valid CSV with column names for use as a template.
      * @returns InventoryUnit
      * @throws ApiError
      */
     static unitsExportCsvRetrieve(): CancelablePromise<InventoryUnit>;
     /**
-     * Import inventory units from CSV file.
-     * @param requestBody
+     * CRUD for individual physical Inventory Units.
+     * - Inventory Manager: Full access (read/write)
+     * - Marketing Manager: Read-only access
+     * - Salesperson: Read-only access
+     * - Superuser: Full access
+     *
+     * NEW: Includes filtering and searching capabilities for efficient inventory management.
+     * @param formData
      * @returns InventoryUnit
      * @throws ApiError
      */
-    static unitsImportCsvCreate(requestBody: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
+    static unitsImportCsvCreate(formData: InventoryUnitRequest): CancelablePromise<InventoryUnit>;
 }

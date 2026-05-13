@@ -11,8 +11,8 @@ import { request as __request } from '../core/request';
 export class TagsService {
     /**
      * ViewSet for managing product tags.
-     * - All authenticated staff users can read
-     * - Content Creators and Inventory Managers can create/edit/delete
+     * - Anyone can read (public read).
+     * - Only Content Creators, Inventory Managers, and Superusers can create/edit/delete.
      * @returns Tag
      * @throws ApiError
      */
@@ -24,8 +24,8 @@ export class TagsService {
     }
     /**
      * ViewSet for managing product tags.
-     * - All authenticated staff users can read
-     * - Content Creators and Inventory Managers can create/edit/delete
+     * - Anyone can read (public read).
+     * - Only Content Creators, Inventory Managers, and Superusers can create/edit/delete.
      * @param requestBody
      * @returns Tag
      * @throws ApiError
@@ -42,8 +42,8 @@ export class TagsService {
     }
     /**
      * ViewSet for managing product tags.
-     * - All authenticated staff users can read
-     * - Content Creators and Inventory Managers can create/edit/delete
+     * - Anyone can read (public read).
+     * - Only Content Creators, Inventory Managers, and Superusers can create/edit/delete.
      * @param id A unique integer value identifying this tag.
      * @returns Tag
      * @throws ApiError
@@ -61,8 +61,8 @@ export class TagsService {
     }
     /**
      * ViewSet for managing product tags.
-     * - All authenticated staff users can read
-     * - Content Creators and Inventory Managers can create/edit/delete
+     * - Anyone can read (public read).
+     * - Only Content Creators, Inventory Managers, and Superusers can create/edit/delete.
      * @param id A unique integer value identifying this tag.
      * @param requestBody
      * @returns Tag
@@ -84,8 +84,8 @@ export class TagsService {
     }
     /**
      * ViewSet for managing product tags.
-     * - All authenticated staff users can read
-     * - Content Creators and Inventory Managers can create/edit/delete
+     * - Anyone can read (public read).
+     * - Only Content Creators, Inventory Managers, and Superusers can create/edit/delete.
      * @param id A unique integer value identifying this tag.
      * @param requestBody
      * @returns Tag
@@ -107,8 +107,8 @@ export class TagsService {
     }
     /**
      * ViewSet for managing product tags.
-     * - All authenticated staff users can read
-     * - Content Creators and Inventory Managers can create/edit/delete
+     * - Anyone can read (public read).
+     * - Only Content Creators, Inventory Managers, and Superusers can create/edit/delete.
      * @param id A unique integer value identifying this tag.
      * @returns void
      * @throws ApiError

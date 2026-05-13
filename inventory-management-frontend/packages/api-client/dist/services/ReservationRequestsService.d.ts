@@ -14,9 +14,7 @@ export declare class ReservationRequestsService {
      */
     static reservationRequestsList(page?: number): CancelablePromise<PaginatedReservationRequestList>;
     /**
-     * ViewSet for managing reservation requests.
-     * - Salespersons can create requests and view their own
-     * - Inventory Managers can approve/reject and view all pending requests
+     * Override create to provide clearer validation errors.
      * @param requestBody
      * @returns ReservationRequest
      * @throws ApiError
