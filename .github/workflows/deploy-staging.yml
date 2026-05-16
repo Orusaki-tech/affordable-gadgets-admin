@@ -1,0 +1,61 @@
+name: Deploy admin staging
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+env:
+  REGION: us-central1
+  REPOSITORY: ag-admin
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: inventory-management-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REACT_APP_API_BASE_URL: ${{ vars.STAGING_ADMIN_API_URL || 'https://api-staging.affordable-gadgetske.com/api/inventory' }}
+        run: |
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.REPOSITORY }}/ag-admin"
+          docker build \
+            --build-arg REACT_APP_API_BASE_URL="${REACT_APP_API_BASE_URL}" \
+            -t "${IMAGE}:${{ github.sha }}" -t "${IMAGE}:staging-latest" .
+          docker push "${IMAGE}:${{ github.sha }}"
+          docker push "${IMAGE}:staging-latest"
+
+  rolling-update:
+    needs: build-push
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - name: Rolling update admin MIG
+        env:
+          MIG_NAME: ${{ secrets.STAGING_ADMIN_MIG_NAME }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          if [[ -z "${MIG_NAME}" ]]; then echo "skip"; exit 0; fi
+          gcloud compute instance-groups managed rolling-action replace "${MIG_NAME}" \
+            --region=${{ env.REGION }} --project="${PROJECT_ID}" --max-unavailable=0 --max-surge=1

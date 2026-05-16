@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: inventory-management-frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: inventory-management-frontend/package-lock.json
+
+      - name: Build
+        env:
+          REACT_APP_API_BASE_URL: https://api-staging.affordable-gadgetske.com/api/inventory
+        run: |
+          npm ci
+          npm run build
+
+      - name: Docker build
+        run: docker build -t ag-admin:ci .
+        working-directory: inventory-management-frontend

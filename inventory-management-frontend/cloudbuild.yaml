@@ -1,0 +1,12 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - build
+    - '--build-arg'
+    - 'REACT_APP_API_BASE_URL=https://api.affordable-gadgetske.com/api/inventory'
+    - '-t'
+    - 'us-east1-docker.pkg.dev/gmail-486411/ag-admin/ag-admin:production-latest'
+    - '.'
+images:
+- 'us-east1-docker.pkg.dev/gmail-486411/ag-admin/ag-admin:production-latest'
+timeout: 600s

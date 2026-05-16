@@ -1,0 +1,28 @@
+name: Deploy admin production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Git SHA to deploy
+        required: true
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_DEPLOY_SA }}
+
+      - name: Rolling update admin MIG
+        env:
+          MIG_NAME: ${{ secrets.PRODUCTION_ADMIN_MIG_NAME }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          gcloud compute instance-groups managed rolling-action replace "${MIG_NAME}" \
+            --region=us-central1 --project="${PROJECT_ID}" --max-unavailable=0 --max-surge=1
