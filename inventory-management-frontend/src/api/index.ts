@@ -77,6 +77,7 @@ export type { PaginatedNotificationList } from './models/PaginatedNotificationLi
 export type { PaginatedOrderItemList } from './models/PaginatedOrderItemList';
 export type { PaginatedOrderList } from './models/PaginatedOrderList';
 export type { PaginatedProductAccessoryList } from './models/PaginatedProductAccessoryList';
+export type { PaginatedArticleImageList } from './models/PaginatedArticleImageList';
 export type { PaginatedProductImageList } from './models/PaginatedProductImageList';
 export type { PaginatedProductList } from './models/PaginatedProductList';
 export type { PaginatedPromotionList } from './models/PaginatedPromotionList';
@@ -117,6 +118,8 @@ export type { PatchedUnitTransferRequest } from './models/PatchedUnitTransferReq
 export type { Product } from './models/Product';
 export type { ProductAccessory } from './models/ProductAccessory';
 export type { ProductAccessoryRequest } from './models/ProductAccessoryRequest';
+export type { ArticleImage } from './models/ArticleImage';
+export type { ArticleImageRequest } from './models/ArticleImageRequest';
 export type { ProductImage } from './models/ProductImage';
 export type { ProductImageRequest } from './models/ProductImageRequest';
 export type { ProductRequest } from './models/ProductRequest';
@@ -158,6 +161,7 @@ export { AdminService } from './services/AdminService';
 export { AdminRolesService } from './services/AdminRolesService';
 export { AdminsService } from './services/AdminsService';
 export { ApiService } from './services/ApiService';
+export { ArticleImagesService } from './services/ArticleImagesService';
 export { AuditLogsService } from './services/AuditLogsService';
 export { BrandsService } from './services/BrandsService';
 export { BundleItemsService } from './services/BundleItemsService';

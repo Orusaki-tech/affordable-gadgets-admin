@@ -12,6 +12,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useBrandsList } from '../hooks/useBrandsList';
 import { queryKeys } from '../hooks/queryKeys';
+import { RichTextEditor } from './RichTextEditor';
 
 interface ProductFormProps {
   product: ProductTemplate | null;
@@ -804,14 +805,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
 
             <div className="form-group">
-              <label htmlFor="article_body_bg">Body (Markdown)</label>
-              <textarea
-                id="article_body_bg"
-                rows={12}
+              <label htmlFor="article_body_bg">Body</label>
+              <RichTextEditor
                 value={formData.article_body}
-                onChange={(e) => setFormData({ ...formData, article_body: e.target.value })}
+                onChange={(html) => setFormData({ ...formData, article_body: html })}
+                placeholder="Start writing your buying guide…"
                 disabled={isLoading}
-                placeholder="Write in Markdown..."
               />
             </div>
 
@@ -1810,14 +1809,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </div>
 
               <div className="form-group">
-                <label htmlFor="article_body">Article body (Markdown)</label>
-                <textarea
-                  id="article_body"
-                  rows={12}
+                <label htmlFor="article_body">Article body</label>
+                <RichTextEditor
                   value={formData.article_body}
-                  onChange={(e) => setFormData({ ...formData, article_body: e.target.value })}
+                  onChange={(html) => setFormData({ ...formData, article_body: html })}
+                  placeholder="Start writing your buying guide…"
                   disabled={isLoading}
-                  placeholder="Write in Markdown..."
                 />
               </div>
 
