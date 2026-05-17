@@ -1,11 +1,12 @@
-name: Deploy admin production
+name: Deploy admin production (manual fallback)
 
 on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: Git SHA to deploy
-        required: true
+        description: Git SHA already in Artifact Registry (default: production-latest)
+        required: false
+        default: production-latest
 
 jobs:
   promote:
@@ -25,4 +26,4 @@ jobs:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           gcloud compute instance-groups managed rolling-action replace "${MIG_NAME}" \
-            --region=us-central1 --project="${PROJECT_ID}" --max-unavailable=0 --max-surge=1
+            --region=us-east1 --project="${PROJECT_ID}" --max-unavailable=0 --max-surge=1
