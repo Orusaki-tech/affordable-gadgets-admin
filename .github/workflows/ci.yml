@@ -70,5 +70,6 @@ jobs:
           MIG_NAME: ${{ secrets.PRODUCTION_ADMIN_MIG_NAME }}
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
+          # Regional MIG spans 2 zones; fixed surge/unavailable must be 0 or >= zone count.
           gcloud compute instance-groups managed rolling-action replace "${MIG_NAME}" \
-            --region=${{ env.REGION }} --project="${PROJECT_ID}" --max-unavailable=0 --max-surge=1
+            --region=${{ env.REGION }} --project="${PROJECT_ID}" --max-unavailable=0 --max-surge=2
