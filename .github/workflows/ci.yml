@@ -65,11 +65,12 @@ jobs:
           docker push "${IMAGE}:${{ github.sha }}"
           docker push "${IMAGE}:production-latest"
 
-      - name: Rolling update production admin MIG
+      - name: Deploy admin MIG (recreate + pull images)
         env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_REGION: ${{ env.REGION }}
           MIG_NAME: ${{ secrets.PRODUCTION_ADMIN_MIG_NAME }}
-          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-        run: |
-          # Regional MIG spans 2 zones; fixed surge/unavailable must be 0 or >= zone count.
-          gcloud compute instance-groups managed rolling-action replace "${MIG_NAME}" \
-            --region=${{ env.REGION }} --project="${PROJECT_ID}" --max-unavailable=0 --max-surge=2
+          SERVICE: admin
+          DEPLOY_CONFIG_BUCKET: ${{ secrets.DEPLOY_CONFIG_BUCKET }}
+          ENV_NAME: production
+        run: bash scripts/mig-recreate-deploy.sh
