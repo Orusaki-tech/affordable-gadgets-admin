@@ -221,4 +221,38 @@ export class ProductsService {
             mediaType: 'application/json',
         });
     }
+    /**
+     * Upload one or more images for a product (multipart).
+     * @param id Product ID
+     * @param formData.images One or more image files
+     * @param formData.make_primary If true, first uploaded image becomes primary
+     */
+    public static productsImagesUploadCreate(
+        id: number,
+        formData: {
+            images: Blob[];
+            alt_text?: string;
+            image_caption?: string;
+            start_display_order?: number;
+            make_primary?: boolean;
+        },
+    ): CancelablePromise<Array<Record<string, unknown>>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/products/{id}/images/upload/',
+            path: {
+                'id': id,
+            },
+            formData: {
+                images: formData.images,
+                ...(formData.alt_text ? { alt_text: formData.alt_text } : {}),
+                ...(formData.image_caption ? { image_caption: formData.image_caption } : {}),
+                ...(formData.start_display_order != null
+                    ? { start_display_order: formData.start_display_order }
+                    : {}),
+                ...(formData.make_primary ? { make_primary: 'true' } : {}),
+            },
+            mediaType: 'multipart/form-data',
+        });
+    }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ProductTemplate,
@@ -66,7 +66,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     article_is_published: false,
   });
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const selectedImagesRef = useRef<File[]>([]);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const queryClient = useQueryClient();
 
@@ -104,23 +106,31 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
   }, [isContentCreator, product, onClose]);
 
-  // Fetch existing images when editing - fetch all and filter client-side
-  const { data: allImagesData, refetch: refetchImages } = useQuery({
-    queryKey: ['product-images-all'],
-    queryFn: () => ImagesService.imagesList(1),
+  // Keep ref in sync so create onSuccess always sees the latest selected files
+  useEffect(() => {
+    selectedImagesRef.current = selectedImages;
+  }, [selectedImages]);
+
+  // Fetch existing images for this product via product detail (not global /images/ page 1)
+  const { data: productDetail, refetch: refetchImages } = useQuery({
+    queryKey: ['product-detail', product?.id],
+    queryFn: () => ProductsService.productsRetrieve(product!.id),
     enabled: !!product?.id && variant === 'full',
   });
 
-  // Filter images for this product
   const existingImages = useMemo(() => {
-    if (!allImagesData?.results || !product?.id) return null;
-    // Filter by product ID - assuming the API returns product_id in the response
-    // If not, we'll need to check the actual response structure
+    const images = (productDetail as { images?: Array<Record<string, unknown>> } | undefined)?.images;
+    if (!images || !Array.isArray(images)) return null;
     return {
-      results: allImagesData.results.filter((img: any) => img.product === product.id),
-      count: allImagesData.results.filter((img: any) => img.product === product.id).length,
+      results: images.map((img) => ({
+        id: img.id as number,
+        image_url: (img.image_url || img.thumbnail_url) as string,
+        is_primary: Boolean(img.is_primary),
+        alt_text: img.alt_text as string | undefined,
+      })),
+      count: images.length,
     };
-  }, [allImagesData, product?.id]);
+  }, [productDetail]);
 
   // Fetch all tags
   const { data: tagsData } = useQuery({
@@ -332,22 +342,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       queryClient.refetchQueries({ queryKey: queryKeys.productsAll() });
       
       // Upload images if any were selected during creation
-      if (createdProduct?.id && selectedImages.length > 0) {
+      const filesToUpload = selectedImagesRef.current;
+      if (createdProduct?.id && filesToUpload.length > 0) {
         try {
-          for (let i = 0; i < selectedImages.length; i++) {
-            await ImagesService.imagesCreate({
-              product: createdProduct.id,
-              image: selectedImages[i],
-              is_primary: i === 0, // First image is primary
-            });
-          }
+          await ProductsService.productsImagesUploadCreate(createdProduct.id, {
+            images: filesToUpload,
+            make_primary: true,
+          });
           // Clear selected images and previews after successful upload
           previewImages.forEach(url => URL.revokeObjectURL(url));
           setSelectedImages([]);
           setPreviewImages([]);
         } catch (err: any) {
           console.error('Error uploading images:', err);
-          alert(`Product created, but some images failed to upload: ${err.message || 'Unknown error'}`);
+          alert(`Product created, but images failed to upload: ${err.message || 'Unknown error'}`);
         }
       }
       
@@ -406,24 +414,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     },
   });
 
-  // Image upload mutation
-  const uploadImageMutation = useMutation({
-    mutationFn: async (file: File) => {
-      if (!product?.id) throw new Error('Product ID required');
-      return ImagesService.imagesCreate({
-        product: product.id,
-        image: file,
-        is_primary: (existingImages?.results?.length || 0) === 0, // First image is primary
+  const uploadProductImages = async (productId: number, files: File[], makePrimary: boolean) => {
+    setIsUploadingImages(true);
+    try {
+      await ProductsService.productsImagesUploadCreate(productId, {
+        images: files,
+        make_primary: makePrimary,
       });
-    },
-    onSuccess: () => {
-      refetchImages();
+      await refetchImages();
+      previewImages.forEach(url => URL.revokeObjectURL(url));
       setSelectedImages([]);
-    },
-    onError: (err: any) => {
-      alert(`Failed to upload image: ${err.message || 'Unknown error'}`);
-    },
-  });
+      setPreviewImages([]);
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
 
   // Set primary image mutation
   const setPrimaryImageMutation = useMutation({
@@ -472,13 +477,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       alert('Please save the product first before uploading images');
       return;
     }
-    
-    for (const file of selectedImages) {
-      await uploadImageMutation.mutateAsync(file);
+    if (selectedImages.length === 0) {
+      return;
     }
-    // Clear previews after upload
-    previewImages.forEach(url => URL.revokeObjectURL(url));
-    setPreviewImages([]);
+
+    const hasExisting = (existingImages?.results?.length || 0) > 0;
+    try {
+      await uploadProductImages(product.id, selectedImages, !hasExisting);
+    } catch (err: any) {
+      alert(`Failed to upload images: ${err.message || 'Unknown error'}`);
+    }
   };
 
   const handleSetPrimary = (imageId: number) => {
@@ -582,8 +590,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         is_published: formData.is_published,
         // Video Fields
         product_video_url: formData.product_video_url || undefined,
-        // Tags
-        tag_ids: formData.tag_ids.length > 0 ? formData.tag_ids : undefined,
+        // Tags — always send the array so PATCH can clear tags (omitting the field leaves them unchanged)
+        tag_ids: formData.tag_ids,
         article: buildArticleNested(),
       };
       
@@ -626,8 +634,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       is_published: formData.is_published,
       // Video Fields
       product_video_url: formData.product_video_url || undefined,
-      // Tags
-      tag_ids: formData.tag_ids.length > 0 ? formData.tag_ids : undefined,
       // Company Brand Assignment
       brand_ids: formData.brand_ids.length > 0 ? formData.brand_ids : undefined,
       is_global: formData.is_global,
@@ -635,6 +641,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
     if (product?.id && (isInventoryManager || isSuperuser)) {
       submitData.article = buildArticleNested();
+    }
+
+    // Only users who can see the tags UI should send tag_ids (IM cannot edit tags)
+    if (!isInventoryManager) {
+      submitData.tag_ids = formData.tag_ids;
     }
 
     // Handle OG image upload separately if file is selected
@@ -652,7 +663,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  const isLoading = createMutation.isPending || updateMutation.isPending || uploadImageMutation.isPending || isLoadingProfile;
+  const isLoading = createMutation.isPending || updateMutation.isPending || isUploadingImages || isLoadingProfile;
 
   // Show loading state while checking role
   if (isLoadingProfile) {
@@ -1252,7 +1263,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   <button
                     type="button"
                     onClick={handleUploadImages}
-                    disabled={uploadImageMutation.isPending}
+                    disabled={isUploadingImages}
                     style={{ 
                       padding: '0.5rem 1rem', 
                       backgroundColor: '#667eea', 
@@ -1262,7 +1273,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       cursor: 'pointer'
                     }}
                   >
-                    {uploadImageMutation.isPending ? 'Uploading...' : 'Upload Images'}
+                    {isUploadingImages ? 'Uploading...' : 'Upload Images'}
                   </button>
                   <button
                     type="button"
@@ -1271,7 +1282,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       previewImages.forEach(url => URL.revokeObjectURL(url));
                       setPreviewImages([]);
                     }}
-                    disabled={uploadImageMutation.isPending}
+                    disabled={isUploadingImages}
                     style={{ 
                       padding: '0.5rem 1rem', 
                       backgroundColor: '#6c757d', 
@@ -1288,8 +1299,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
             <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.5rem', display: 'block' }}>
               {product?.id 
-                ? 'Upload images for this product. The first image will be set as primary.' 
-                : 'Select images to upload. They will be attached when you create the product. The first image will be set as primary.'}
+                ? 'Select one or more images, then click Upload Images. The first image is set as primary when the product has no images yet.' 
+                : 'Select one or more images. They will be attached when you create the product. The first image will be set as primary.'}
             </small>
           </div>
 
