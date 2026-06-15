@@ -117,8 +117,8 @@ fi
 
 cd "\${COMPOSE_ROOT}"
 # Inject IMAGE_TAG into the compose file so pull uses the correct tag
-if [[ -n "\${IMAGE_TAG}" ]]; then
-  sudo sed -i "s|production-latest|\${IMAGE_TAG}|g" "\${COMPOSE_FILE}"
+if [[ -n "${IMAGE_TAG}" ]]; then
+  sudo sed -i "s|production-latest|${IMAGE_TAG}|g" "${COMPOSE_FILE}"
 fi
 sudo \${DOCKER_COMPOSE} -f "\${COMPOSE_FILE}" pull -q
 sudo \${DOCKER_COMPOSE} -f "\${COMPOSE_FILE}" up -d
