@@ -21,14 +21,23 @@ jobs:
 
       - name: Regenerate API clients
         run: |
-          cd ts-clients
-          npm install
-          npm run generate:all
+          if [ -d ts-clients ]; then
+            cd ts-clients
+            npm install
+            npm run generate:all
+            cd ..
+          else
+            echo "ts-clients/ not found, skipping"
+          fi
 
-          cd ../packages/api-client
-          npm install
-          npm run generate
-          npm run build
+          if [ -d packages/api-client ]; then
+            cd packages/api-client
+            npm install
+            npm run generate
+            npm run build
+          else
+            echo "packages/api-client/ not found, skipping"
+          fi
 
       - name: Ensure generated clients are committed
         run: |

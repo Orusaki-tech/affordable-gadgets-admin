@@ -30,4 +30,5 @@ jobs:
           SERVICE: admin
           DEPLOY_CONFIG_BUCKET: ${{ secrets.DEPLOY_CONFIG_BUCKET }}
           ENV_NAME: production
+          IMAGE_TAG: ${{ inputs.image_tag }}
         run: bash scripts/mig-recreate-deploy.sh

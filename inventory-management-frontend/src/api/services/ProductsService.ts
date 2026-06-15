@@ -250,7 +250,7 @@ export class ProductsService {
                 ...(formData.start_display_order != null
                     ? { start_display_order: formData.start_display_order }
                     : {}),
-                ...(formData.make_primary ? { make_primary: 'true' } : {}),
+                ...(formData.make_primary !== undefined ? { make_primary: String(formData.make_primary) } : {}),
             },
             mediaType: 'multipart/form-data',
         });

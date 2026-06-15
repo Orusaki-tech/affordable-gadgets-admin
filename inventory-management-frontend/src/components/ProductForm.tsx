@@ -69,6 +69,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const selectedImagesRef = useRef<File[]>([]);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const previewImagesRef = useRef<string[]>([]);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const queryClient = useQueryClient();
 
@@ -106,10 +107,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
   }, [isContentCreator, product, onClose]);
 
-  // Keep ref in sync so create onSuccess always sees the latest selected files
+  // Keep refs in sync so callbacks always see the latest values
   useEffect(() => {
     selectedImagesRef.current = selectedImages;
   }, [selectedImages]);
+  useEffect(() => {
+    previewImagesRef.current = previewImages;
+  }, [previewImages]);
 
   const productId = product?.id;
 
@@ -348,14 +352,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       
       // Upload images if any were selected during creation
       const filesToUpload = selectedImagesRef.current;
+      const previewsToClean = previewImagesRef.current;
       if (createdProduct?.id && filesToUpload.length > 0) {
         try {
           await ProductsService.productsImagesUploadCreate(createdProduct.id, {
             images: filesToUpload,
+            alt_text: `${createdProduct.product_name || formData.product_name} product image`,
             make_primary: true,
           });
           // Clear selected images and previews after successful upload
-          previewImages.forEach(url => URL.revokeObjectURL(url));
+          previewsToClean.forEach(url => URL.revokeObjectURL(url));
           setSelectedImages([]);
           setPreviewImages([]);
         } catch (err: any) {
@@ -424,10 +430,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     try {
       await ProductsService.productsImagesUploadCreate(productId, {
         images: files,
+        alt_text: `${formData.product_name || product?.product_name || ''} product image`,
         make_primary: makePrimary,
       });
       await refetchImages();
-      previewImages.forEach(url => URL.revokeObjectURL(url));
+      previewImagesRef.current.forEach(url => URL.revokeObjectURL(url));
       setSelectedImages([]);
       setPreviewImages([]);
     } finally {

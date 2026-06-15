@@ -10,6 +10,7 @@
 #   ENV_NAME=production     (GCS prefix under bucket)
 #   SKIP_IMAGE_PULL=1       (recreate only, no SSH pull)
 #   WAIT_TIMEOUT=900        (seconds per wait-until --stable)
+#   IMAGE_TAG=production-latest  (Docker image tag to deploy)
 set -euo pipefail
 
 PROJECT="${GCP_PROJECT_ID:?GCP_PROJECT_ID required}"
@@ -18,6 +19,7 @@ MIG="${MIG_NAME:?MIG_NAME required}"
 SERVICE="${SERVICE:-shop}"
 ENV_NAME="${ENV_NAME:-production}"
 WAIT_TIMEOUT="${WAIT_TIMEOUT:-900}"
+IMAGE_TAG="${IMAGE_TAG:-production-latest}"
 AR_HOST="${GCP_REGION}-docker.pkg.dev"
 
 case "${SERVICE}" in
@@ -106,11 +108,27 @@ if [[ ! -f "\${COMPOSE_ROOT}/\${COMPOSE_FILE}" ]]; then
   exit 0
 fi
 
+# Detect docker compose v2 vs v1
+if docker compose version >/dev/null 2>&1; then
+  DOCKER_COMPOSE="docker compose"
+else
+  DOCKER_COMPOSE="docker-compose"
+fi
+
 cd "\${COMPOSE_ROOT}"
-sudo docker-compose -f "\${COMPOSE_FILE}" pull -q
-sudo docker-compose -f "\${COMPOSE_FILE}" up -d
+# Inject IMAGE_TAG into the compose file so pull uses the correct tag
+if [[ -n "\${IMAGE_TAG}" ]]; then
+  sudo sed -i "s|production-latest|\${IMAGE_TAG}|g" "\${COMPOSE_FILE}"
+fi
+sudo \${DOCKER_COMPOSE} -f "\${COMPOSE_FILE}" pull -q
+sudo \${DOCKER_COMPOSE} -f "\${COMPOSE_FILE}" up -d
 sleep 10
-curl -sf "http://127.0.0.1:${HEALTH_PORT}/" >/dev/null && echo "\$(hostname)_OK" || echo "\$(hostname)_WARN_health"
+if curl -sf "http://127.0.0.1:${HEALTH_PORT}/" >/dev/null; then
+  echo "\$(hostname)_OK"
+else
+  echo "\$(hostname)_HEALTH_FAIL" >&2
+  exit 1
+fi
 REMOTE
 )" || echo "WARN: image pull failed for ${instance}"
 done
