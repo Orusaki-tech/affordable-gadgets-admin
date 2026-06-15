@@ -111,11 +111,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     selectedImagesRef.current = selectedImages;
   }, [selectedImages]);
 
+  const productId = product?.id;
+
   // Fetch existing images for this product via product detail (not global /images/ page 1)
   const { data: productDetail, refetch: refetchImages } = useQuery({
-    queryKey: ['product-detail', product?.id],
-    queryFn: () => ProductsService.productsRetrieve(product!.id),
-    enabled: !!product?.id && variant === 'full',
+    queryKey: ['product-detail', productId],
+    queryFn: () => {
+      if (productId == null) throw new Error('Product ID required');
+      return ProductsService.productsRetrieve(productId);
+    },
+    enabled: productId != null && variant === 'full',
   });
 
   const existingImages = useMemo(() => {
