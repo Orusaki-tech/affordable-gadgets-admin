@@ -33,7 +33,11 @@ jobs:
           if [ -d packages/api-client ]; then
             cd packages/api-client
             npm install
-            npm run generate
+            if [ -f ../../affordable-gadgets-backend/openapi.yaml ]; then
+              npm run generate
+            else
+              echo "affordable-gadgets-backend/openapi.yaml not found, skipping codegen"
+            fi
             npm run build
           else
             echo "packages/api-client/ not found, skipping"
