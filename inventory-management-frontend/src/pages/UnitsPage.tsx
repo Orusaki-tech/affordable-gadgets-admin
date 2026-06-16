@@ -10,6 +10,7 @@ import {
 } from '../api/index';
 import { getApiRoot, getInventoryBaseUrl } from '../api/config';
 import { ModalLoader } from '../components/PageLoader';
+import { useDebounce } from '../hooks/useDebounce';
 
 const UnitForm = lazy(() => import('../components/UnitForm').then((m) => ({ default: m.UnitForm })));
 const UnitDetailsModal = lazy(() => import('../components/UnitDetailsModal').then((m) => ({ default: m.UnitDetailsModal })));
@@ -17,6 +18,7 @@ const UnitDetailsModal = lazy(() => import('../components/UnitDetailsModal').the
 export const UnitsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [showFilters, setShowFilters] = useState(false);
   const [editingUnit, setEditingUnit] = useState<InventoryUnitRW | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -293,8 +295,8 @@ export const UnitsPage: React.FC = () => {
   // Client-side filtering (can be enhanced to use API filters)
   const filteredUnits = data?.results?.filter((unit) => {
     // Search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
+    if (debouncedSearch) {
+      const searchLower = debouncedSearch.toLowerCase();
       const matchesSearch =
         unit.serial_number?.toLowerCase().includes(searchLower) ||
         unit.imei?.toLowerCase().includes(searchLower) ||

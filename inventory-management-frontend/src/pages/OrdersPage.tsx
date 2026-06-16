@@ -13,6 +13,7 @@ import {
 import { getInventoryBaseUrl } from '../api/config';
 import { fetchAllDrfPages } from '../api/fetchAllDrfPages';
 import { ModalLoader } from '../components/PageLoader';
+import { useDebounce } from '../hooks/useDebounce';
 
 /** OpenAPI client throws ApiError with server JSON in .body; axios uses .response.data */
 function getMutationErrorPayload(err: unknown): unknown {
@@ -48,6 +49,7 @@ export const OrdersPage: React.FC = () => {
   const [pageSize, setPageSize] = useState(25);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -220,8 +222,8 @@ export const OrdersPage: React.FC = () => {
       filtered = filtered.filter((order) => order.status === statusFilter);
     }
 
-    if (search.trim()) {
-      const searchLower = search.trim().toLowerCase();
+    if (debouncedSearch.trim()) {
+      const searchLower = debouncedSearch.trim().toLowerCase();
       filtered = filtered.filter((order) => {
         const idMatch = order.order_id?.toString().toLowerCase().includes(searchLower);
         const customerMatch = order.customer_username?.toLowerCase().includes(searchLower);
@@ -231,13 +233,13 @@ export const OrdersPage: React.FC = () => {
     }
 
     return filtered;
-  }, [ordersListData, statusFilter, search]);
+  }, [ordersListData, statusFilter, debouncedSearch]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / pageSize));
 
   useEffect(() => {
     setPage(1);
-  }, [search, statusFilter]);
+  }, [debouncedSearch, statusFilter]);
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
