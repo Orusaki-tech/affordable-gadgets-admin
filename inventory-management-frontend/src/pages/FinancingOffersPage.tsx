@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProductsService, type Product } from '../api/index';
 import { FinancingApi, type FinancingOffer, type FinancingProvider } from '../api/financing';
+import { useDebounce } from '../hooks/useDebounce';
 
 type OfferFormState = {
   provider: number | '';
@@ -36,6 +37,7 @@ const emptyOffer = (): OfferFormState => ({
 
 export const FinancingOffersPage: React.FC = () => {
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [providerFilter, setProviderFilter] = useState<number | ''>('');
   const [editing, setEditing] = useState<FinancingOffer | null>(null);
   const [open, setOpen] = useState(false);
@@ -47,10 +49,10 @@ export const FinancingOffersPage: React.FC = () => {
   });
 
   const { data: offersRaw, isLoading, error } = useQuery({
-    queryKey: ['financing-offers', { search, providerFilter }],
+    queryKey: ['financing-offers', { search: debouncedSearch, providerFilter }],
     queryFn: () =>
       FinancingApi.listOffers({
-        search: search.trim() || undefined,
+        search: debouncedSearch.trim() || undefined,
         provider: typeof providerFilter === 'number' ? providerFilter : undefined,
         ordering: '-updated_at',
       }),
@@ -244,14 +246,15 @@ function OfferModal({
   });
 
   const [productSearch, setProductSearch] = useState('');
+  const debouncedProductSearch = useDebounce(productSearch, 300);
   const { data: productResults = [], isLoading: productLoading } = useQuery({
-    queryKey: ['financing-product-search', productSearch],
+    queryKey: ['financing-product-search', debouncedProductSearch],
     queryFn: async () => {
-      if (!productSearch.trim()) return [] as Product[];
-      const res = await ProductsService.productsList({ page: 1, search: productSearch.trim() });
+      if (!debouncedProductSearch.trim()) return [] as Product[];
+      const res = await ProductsService.productsList({ page: 1, search: debouncedProductSearch.trim() });
       return (res?.results ?? []) as Product[];
     },
-    enabled: productSearch.trim().length >= 2,
+    enabled: debouncedProductSearch.trim().length >= 2,
   });
 
   const mutation = useMutation({

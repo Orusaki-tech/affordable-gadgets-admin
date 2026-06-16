@@ -10,6 +10,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { AdminLayout } from './components/AdminLayout';
 import { RoleBasedRedirect } from './components/RoleBasedRedirect';
 import { PageLoader } from './components/PageLoader';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Lazy-load pages for smaller initial bundle and faster first load (code splitting)
 const LoginPage = lazy(() => import('./pages/Login').then((m) => ({ default: m.LoginPage })));
@@ -153,7 +154,9 @@ function App() {
     <BrowserRouter>
       <ThemeProvider>
         <AuthProvider>
-          <AppWithMUITheme />
+          <ErrorBoundary>
+            <AppWithMUITheme />
+          </ErrorBoundary>
         </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

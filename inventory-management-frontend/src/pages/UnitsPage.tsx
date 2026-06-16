@@ -80,7 +80,7 @@ export const UnitsPage: React.FC = () => {
   // const isMarketingManager = hasRole('MM') && !isSuperuser; // Unused
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['units', page, filters, search],
+    queryKey: ['units', page, filters],
     queryFn: async () => {
       // Note: The API supports filtering via query params, but we'll do client-side for now
       // You can enhance this to use actual API filtering
