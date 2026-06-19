@@ -1488,7 +1488,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                           />
                         </div>
                         <div className="product-variants-field">
-                          <label htmlFor={`pending-variant-cost-${idx}`}>Cost per Unit (KES)</label>
+                          <label htmlFor={`pending-variant-cost-${idx}`}>Unit Cost (KES)</label>
                           <input
                             id={`pending-variant-cost-${idx}`}
                             type="text"

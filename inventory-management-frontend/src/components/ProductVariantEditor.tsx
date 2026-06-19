@@ -292,7 +292,7 @@ const ProductVariantEditor: React.FC<Props> = ({ productId, productName }) => {
                 />
               </div>
               <div className="product-variants-field">
-                <label htmlFor={`variant-cost-${idx}`}>Cost per Unit (KES)</label>
+                <label htmlFor={`variant-cost-${idx}`}>Unit Cost (KES)</label>
                 <input
                   id={`variant-cost-${idx}`}
                   type="text"

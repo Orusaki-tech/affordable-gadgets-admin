@@ -2831,6 +2831,8 @@ p, body {
   background: var(--md-surface-container);
   border-radius: var(--radius-lg);
   border: 1px solid var(--md-outline);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .product-variants-header {
@@ -2887,13 +2889,17 @@ p, body {
   border: 1px solid var(--md-outline);
   border-radius: var(--radius-md);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--md-on-surface) 6%, transparent);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .product-variants-fields-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(10rem, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.25rem;
   width: 100%;
+  min-width: 0;
 }
 
 .product-variants-field {
@@ -2907,6 +2913,8 @@ p, body {
   color: var(--md-on-surface);
   margin-bottom: 0.45rem;
   letter-spacing: 0.01em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .product-variants-field input.variant-input {
@@ -3018,8 +3026,8 @@ p, body {
 
 @media (min-width: 768px) {
   .product-variants-fields-grid {
-    grid-template-columns: repeat(4, minmax(10rem, 1fr));
-    gap: 1.25rem 1.5rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem 1rem;
   }
 }
 
