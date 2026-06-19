@@ -188,14 +188,21 @@ const ProductVariantEditor: React.FC<Props> = ({ productId }) => {
         <div className="product-variants-rows">
           {variants.map((v, idx) => (
             <div key={v.id ?? `new-${idx}`} className="product-variants-row">
+              <div className="product-variants-fields-grid">
               <div className="product-variants-field">
                 <label htmlFor={`variant-storage-${idx}`}>Storage (GB)</label>
                 <input
                   id={`variant-storage-${idx}`}
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="variant-input"
                   value={v.storage_gb ?? ''}
-                  onChange={(e) => updateVariant(idx, 'storage_gb', e.target.value ? parseInt(e.target.value, 10) : null)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '');
+                    updateVariant(idx, 'storage_gb', digits ? parseInt(digits, 10) : null);
+                  }}
                   placeholder="e.g. 256"
                   disabled={saving}
                 />
@@ -204,10 +211,16 @@ const ProductVariantEditor: React.FC<Props> = ({ productId }) => {
                 <label htmlFor={`variant-ram-${idx}`}>RAM (GB)</label>
                 <input
                   id={`variant-ram-${idx}`}
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="variant-input"
                   value={v.ram_gb ?? ''}
-                  onChange={(e) => updateVariant(idx, 'ram_gb', e.target.value ? parseInt(e.target.value, 10) : null)}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, '');
+                    updateVariant(idx, 'ram_gb', digits ? parseInt(digits, 10) : null);
+                  }}
                   placeholder="e.g. 8"
                   disabled={saving}
                 />
@@ -216,10 +229,13 @@ const ProductVariantEditor: React.FC<Props> = ({ productId }) => {
                 <label htmlFor={`variant-price-${idx}`}>Selling Price (KES)</label>
                 <input
                   id={`variant-price-${idx}`}
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="variant-input"
                   value={v.default_selling_price}
-                  onChange={(e) => updateVariant(idx, 'default_selling_price', e.target.value)}
+                  onChange={(e) => updateVariant(idx, 'default_selling_price', e.target.value.replace(/[^\d.]/g, ''))}
                   placeholder="e.g. 142000"
                   disabled={saving}
                 />
@@ -228,13 +244,17 @@ const ProductVariantEditor: React.FC<Props> = ({ productId }) => {
                 <label htmlFor={`variant-cost-${idx}`}>Cost per Unit (KES)</label>
                 <input
                   id={`variant-cost-${idx}`}
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="variant-input"
                   value={v.default_cost_of_unit}
-                  onChange={(e) => updateVariant(idx, 'default_cost_of_unit', e.target.value)}
+                  onChange={(e) => updateVariant(idx, 'default_cost_of_unit', e.target.value.replace(/[^\d.]/g, ''))}
                   placeholder="e.g. 120000"
                   disabled={saving}
                 />
+              </div>
               </div>
               <div className="product-variants-actions">
                 <label className="product-variants-active-label">

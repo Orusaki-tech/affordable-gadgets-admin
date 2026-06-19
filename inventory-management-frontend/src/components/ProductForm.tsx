@@ -1408,23 +1408,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   <div className="product-variants-rows">
                     {pendingVariants.map((v, idx) => (
                       <div key={idx} className="product-variants-row">
+                        <div className="product-variants-fields-grid">
                         <div className="product-variants-field">
                           <label htmlFor={`pending-variant-storage-${idx}`}>Storage (GB)</label>
                           <input
                             id={`pending-variant-storage-${idx}`}
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            spellCheck={false}
+                            className="variant-input"
                             value={v.storage_gb ?? ''}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const digits = e.target.value.replace(/\D/g, '');
                               setPendingVariants((prev) => {
                                 const n = [...prev];
                                 n[idx] = {
                                   ...n[idx],
-                                  storage_gb: e.target.value ? parseInt(e.target.value, 10) : null,
+                                  storage_gb: digits ? parseInt(digits, 10) : null,
                                 };
                                 return n;
-                              })
-                            }
+                              });
+                            }}
                             placeholder="e.g. 256"
                           />
                         </div>
@@ -1432,19 +1437,23 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                           <label htmlFor={`pending-variant-ram-${idx}`}>RAM (GB)</label>
                           <input
                             id={`pending-variant-ram-${idx}`}
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            spellCheck={false}
+                            className="variant-input"
                             value={v.ram_gb ?? ''}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              const digits = e.target.value.replace(/\D/g, '');
                               setPendingVariants((prev) => {
                                 const n = [...prev];
                                 n[idx] = {
                                   ...n[idx],
-                                  ram_gb: e.target.value ? parseInt(e.target.value, 10) : null,
+                                  ram_gb: digits ? parseInt(digits, 10) : null,
                                 };
                                 return n;
-                              })
-                            }
+                              });
+                            }}
                             placeholder="e.g. 8"
                           />
                         </div>
@@ -1452,13 +1461,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                           <label htmlFor={`pending-variant-price-${idx}`}>Selling Price (KES)</label>
                           <input
                             id={`pending-variant-price-${idx}`}
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
+                            autoComplete="off"
+                            spellCheck={false}
+                            className="variant-input"
                             value={v.default_selling_price}
                             onChange={(e) =>
                               setPendingVariants((prev) => {
                                 const n = [...prev];
-                                n[idx] = { ...n[idx], default_selling_price: e.target.value };
+                                n[idx] = { ...n[idx], default_selling_price: e.target.value.replace(/[^\d.]/g, '') };
                                 return n;
                               })
                             }
@@ -1469,18 +1481,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                           <label htmlFor={`pending-variant-cost-${idx}`}>Cost per Unit (KES)</label>
                           <input
                             id={`pending-variant-cost-${idx}`}
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="decimal"
+                            autoComplete="off"
+                            spellCheck={false}
+                            className="variant-input"
                             value={v.default_cost_of_unit}
                             onChange={(e) =>
                               setPendingVariants((prev) => {
                                 const n = [...prev];
-                                n[idx] = { ...n[idx], default_cost_of_unit: e.target.value };
+                                n[idx] = { ...n[idx], default_cost_of_unit: e.target.value.replace(/[^\d.]/g, '') };
                                 return n;
                               })
                             }
                             placeholder="e.g. 120000"
                           />
+                        </div>
                         </div>
                         <div className="product-variants-actions">
                           <label className="product-variants-active-label">
