@@ -167,7 +167,7 @@ export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptio
     }), {} as Record<string, string>);
 
     if (isStringWithValue(token)) {
-        headers['Authorization'] = `Bearer ${token}`;
+        headers['Authorization'] = `Token ${token}`;
     }
 
     if (isStringWithValue(username) && isStringWithValue(password)) {
