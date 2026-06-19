@@ -1378,45 +1378,137 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             product?.id ? (
               <ProductVariantEditor productId={product.id} />
             ) : (
-              <div className="form-group" style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h4 style={{ margin: 0 }}>Product Variants</h4>
+              <div className="product-variants-panel">
+                <div className="product-variants-header">
+                  <h4>Product Variants</h4>
                   <button
                     type="button"
                     className="btn-small btn-info"
-                    onClick={() => setPendingVariants(prev => [...prev, { storage_gb: null, ram_gb: null, default_selling_price: '', default_cost_of_unit: '', is_active: true }])}
+                    onClick={() =>
+                      setPendingVariants((prev) => [
+                        ...prev,
+                        {
+                          storage_gb: null,
+                          ram_gb: null,
+                          default_selling_price: '',
+                          default_cost_of_unit: '',
+                          is_active: true,
+                        },
+                      ])
+                    }
                   >
                     + Add Variant
                   </button>
                 </div>
-                {pendingVariants.length === 0 && (
-                  <p style={{ color: '#888', fontSize: '0.9rem' }}>
+                {pendingVariants.length === 0 ? (
+                  <p className="product-variants-empty">
                     No variants yet. Add storage/RAM/price combinations for this product.
                   </p>
-                )}
-                {pendingVariants.map((v, idx) => (
-                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', padding: '0.75rem', marginBottom: '0.5rem', background: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0' }}>
-                    <div style={{ flex: '0 0 90px' }}>
-                      <label style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>Storage (GB)</label>
-                      <input type="number" min="0" value={v.storage_gb ?? ''} onChange={(e) => setPendingVariants(prev => { const n = [...prev]; n[idx] = { ...n[idx], storage_gb: e.target.value ? parseInt(e.target.value) : null }; return n; })} placeholder="e.g. 256" style={{ width: '100%', padding: '4px 6px', fontSize: '0.85rem' }} />
-                    </div>
-                    <div style={{ flex: '0 0 80px' }}>
-                      <label style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>RAM (GB)</label>
-                      <input type="number" min="0" value={v.ram_gb ?? ''} onChange={(e) => setPendingVariants(prev => { const n = [...prev]; n[idx] = { ...n[idx], ram_gb: e.target.value ? parseInt(e.target.value) : null }; return n; })} placeholder="e.g. 8" style={{ width: '100%', padding: '4px 6px', fontSize: '0.85rem' }} />
-                    </div>
-                    <div style={{ flex: '1', minWidth: '100px' }}>
-                      <label style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>Selling Price (KES)</label>
-                      <input type="number" min="0" value={v.default_selling_price} onChange={(e) => setPendingVariants(prev => { const n = [...prev]; n[idx] = { ...n[idx], default_selling_price: e.target.value }; return n; })} placeholder="e.g. 142000" style={{ width: '100%', padding: '4px 6px', fontSize: '0.85rem' }} />
-                    </div>
-                    <div style={{ flex: '1', minWidth: '100px' }}>
-                      <label style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>Cost per Unit (KES)</label>
-                      <input type="number" min="0" value={v.default_cost_of_unit} onChange={(e) => setPendingVariants(prev => { const n = [...prev]; n[idx] = { ...n[idx], default_cost_of_unit: e.target.value }; return n; })} placeholder="e.g. 120000" style={{ width: '100%', padding: '4px 6px', fontSize: '0.85rem' }} />
-                    </div>
-                    <div style={{ flex: '0 0 auto', alignSelf: 'flex-end' }}>
-                      <button type="button" className="btn-small btn-danger" onClick={() => setPendingVariants(prev => prev.filter((_, i) => i !== idx))} style={{ padding: '4px 8px', fontSize: '0.8rem' }}>Remove</button>
-                    </div>
+                ) : (
+                  <div className="product-variants-rows">
+                    {pendingVariants.map((v, idx) => (
+                      <div key={idx} className="product-variants-row">
+                        <div className="product-variants-field">
+                          <label htmlFor={`pending-variant-storage-${idx}`}>Storage (GB)</label>
+                          <input
+                            id={`pending-variant-storage-${idx}`}
+                            type="number"
+                            min="0"
+                            value={v.storage_gb ?? ''}
+                            onChange={(e) =>
+                              setPendingVariants((prev) => {
+                                const n = [...prev];
+                                n[idx] = {
+                                  ...n[idx],
+                                  storage_gb: e.target.value ? parseInt(e.target.value, 10) : null,
+                                };
+                                return n;
+                              })
+                            }
+                            placeholder="e.g. 256"
+                          />
+                        </div>
+                        <div className="product-variants-field">
+                          <label htmlFor={`pending-variant-ram-${idx}`}>RAM (GB)</label>
+                          <input
+                            id={`pending-variant-ram-${idx}`}
+                            type="number"
+                            min="0"
+                            value={v.ram_gb ?? ''}
+                            onChange={(e) =>
+                              setPendingVariants((prev) => {
+                                const n = [...prev];
+                                n[idx] = {
+                                  ...n[idx],
+                                  ram_gb: e.target.value ? parseInt(e.target.value, 10) : null,
+                                };
+                                return n;
+                              })
+                            }
+                            placeholder="e.g. 8"
+                          />
+                        </div>
+                        <div className="product-variants-field">
+                          <label htmlFor={`pending-variant-price-${idx}`}>Selling Price (KES)</label>
+                          <input
+                            id={`pending-variant-price-${idx}`}
+                            type="number"
+                            min="0"
+                            value={v.default_selling_price}
+                            onChange={(e) =>
+                              setPendingVariants((prev) => {
+                                const n = [...prev];
+                                n[idx] = { ...n[idx], default_selling_price: e.target.value };
+                                return n;
+                              })
+                            }
+                            placeholder="e.g. 142000"
+                          />
+                        </div>
+                        <div className="product-variants-field">
+                          <label htmlFor={`pending-variant-cost-${idx}`}>Cost per Unit (KES)</label>
+                          <input
+                            id={`pending-variant-cost-${idx}`}
+                            type="number"
+                            min="0"
+                            value={v.default_cost_of_unit}
+                            onChange={(e) =>
+                              setPendingVariants((prev) => {
+                                const n = [...prev];
+                                n[idx] = { ...n[idx], default_cost_of_unit: e.target.value };
+                                return n;
+                              })
+                            }
+                            placeholder="e.g. 120000"
+                          />
+                        </div>
+                        <div className="product-variants-actions">
+                          <label className="product-variants-active-label">
+                            <input
+                              type="checkbox"
+                              checked={v.is_active}
+                              onChange={(e) =>
+                                setPendingVariants((prev) => {
+                                  const n = [...prev];
+                                  n[idx] = { ...n[idx], is_active: e.target.checked };
+                                  return n;
+                                })
+                              }
+                            />
+                            Active
+                          </label>
+                          <button
+                            type="button"
+                            className="btn-small btn-danger"
+                            onClick={() => setPendingVariants((prev) => prev.filter((_, i) => i !== idx))}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )
           )}

@@ -2824,6 +2824,124 @@ p, body {
   margin-top: var(--spacing-xs);
 }
 
+/* Product Variants editor (create + edit product modals) */
+.product-variants-panel {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--md-surface-container-low);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--md-outline-variant);
+}
+
+.product-variants-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.product-variants-header h4 {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--md-on-surface);
+}
+
+.product-variants-empty {
+  margin: 0;
+  color: var(--md-on-surface-variant);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.product-variants-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.product-variants-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1.25fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+  padding: 0.875rem;
+  background: var(--md-surface-container);
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--radius-md);
+}
+
+.product-variants-field {
+  min-width: 0;
+}
+
+.product-variants-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--md-on-surface-variant);
+  margin-bottom: 0.35rem;
+}
+
+.product-variants-field input[type="number"] {
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.5rem 0.625rem;
+  font-size: var(--font-size-14);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--md-outline);
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  box-sizing: border-box;
+}
+
+.product-variants-field input[type="number"]:focus {
+  outline: none;
+  border-color: var(--md-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-primary) 25%, transparent);
+}
+
+.product-variants-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 5.5rem;
+}
+
+.product-variants-active-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.product-variants-footer {
+  margin-top: 0.75rem;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .product-variants-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .product-variants-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 /* Video Toggle Buttons - Material UI */
 .video-input-toggle {
   display: flex;
