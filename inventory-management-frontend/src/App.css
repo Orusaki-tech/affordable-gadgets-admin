@@ -2911,11 +2911,12 @@ p, body {
   line-height: 1.4;
   border-radius: var(--radius-md);
   border: 2px solid var(--md-outline);
-  background-color: var(--md-inverse-surface);
-  color: var(--md-inverse-on-surface);
+  background-color: #faf6ee;
+  color: #2b2418;
+  caret-color: #2b2418;
   box-sizing: border-box;
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
-  -webkit-text-fill-color: var(--md-inverse-on-surface);
+  -webkit-text-fill-color: #2b2418;
 }
 
 .product-variants-field input.variant-input:hover:not(:disabled) {
@@ -2929,22 +2930,34 @@ p, body {
 }
 
 .product-variants-field input.variant-input::placeholder {
-  color: color-mix(in srgb, var(--md-inverse-on-surface) 55%, transparent);
+  color: #6b6356;
   font-weight: var(--font-weight-medium);
-  -webkit-text-fill-color: color-mix(in srgb, var(--md-inverse-on-surface) 55%, transparent);
+  opacity: 1;
+  -webkit-text-fill-color: #6b6356;
+}
+
+.product-variants-field input.variant-input:-webkit-autofill,
+.product-variants-field input.variant-input:-webkit-autofill:hover,
+.product-variants-field input.variant-input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #faf6ee inset;
+  box-shadow: 0 0 0 1000px #faf6ee inset;
+  -webkit-text-fill-color: #2b2418;
+  caret-color: #2b2418;
+  transition: background-color 99999s ease-out 0s;
 }
 
 /* Keep variant inputs readable inside modals (override generic modal input rules) */
 .modal-content .product-variants-field input.variant-input {
-  background-color: var(--md-inverse-surface) !important;
+  background-color: #faf6ee !important;
   border: 2px solid var(--md-outline) !important;
-  color: var(--md-inverse-on-surface) !important;
+  color: #2b2418 !important;
+  caret-color: #2b2418 !important;
   font-size: 1rem !important;
   font-weight: var(--font-weight-semibold) !important;
   line-height: 1.4 !important;
   min-height: 2.75rem !important;
   padding: 0.625rem 0.875rem !important;
-  -webkit-text-fill-color: var(--md-inverse-on-surface) !important;
+  -webkit-text-fill-color: #2b2418 !important;
 }
 
 .product-variants-actions {
