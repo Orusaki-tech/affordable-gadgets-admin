@@ -36,6 +36,10 @@ export type ProductRequest = {
      */
     is_discontinued?: boolean;
     /**
+     * Device launch/release date used for storefront sorting (newest first).
+     */
+    release_date?: string | null;
+    /**
      * SEO title (50-60 chars recommended)
      */
     meta_title?: string;
@@ -82,5 +86,13 @@ export type ProductRequest = {
      * If True, product is available to all brands regardless of brand assignment
      */
     is_global?: boolean;
+    /**
+     * Storage capacity in GB (e.g., 128, 256, 512)
+     */
+    storage_gb?: number | null;
+    /**
+     * RAM in GB (e.g., 8, 12, 16)
+     */
+    ram_gb?: number | null;
 };
 
