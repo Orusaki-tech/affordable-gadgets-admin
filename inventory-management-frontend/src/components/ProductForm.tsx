@@ -1044,7 +1044,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content modal-content-large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{isContentCreator ? 'Edit Product Content' : (product ? 'Edit Product' : 'Create Product')}</h2>
           <button className="modal-close" onClick={onClose}>×</button>

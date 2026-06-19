@@ -2828,9 +2828,9 @@ p, body {
 .product-variants-panel {
   margin-top: 1.5rem;
   padding: 1rem;
-  background: var(--md-surface-container-low);
+  background: var(--md-surface-container);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--md-outline-variant);
+  border: 1px solid var(--md-outline);
 }
 
 .product-variants-header {
@@ -2859,18 +2859,19 @@ p, body {
 .product-variants-rows {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.875rem;
 }
 
 .product-variants-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1.25fr) auto;
-  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.875rem 1rem;
   align-items: end;
-  padding: 0.875rem;
-  background: var(--md-surface-container);
-  border: 1px solid var(--md-outline-variant);
+  padding: 1rem;
+  background: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline);
   border-radius: var(--radius-md);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--md-on-surface) 6%, transparent);
 }
 
 .product-variants-field {
@@ -2879,45 +2880,68 @@ p, body {
 
 .product-variants-field label {
   display: block;
-  font-size: 0.75rem;
-  font-weight: var(--font-weight-medium);
-  color: var(--md-on-surface-variant);
-  margin-bottom: 0.35rem;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--md-on-surface);
+  margin-bottom: 0.4rem;
+  letter-spacing: 0.02em;
 }
 
 .product-variants-field input[type="number"] {
   width: 100%;
-  min-height: 2.25rem;
-  padding: 0.5rem 0.625rem;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.75rem;
   font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
   border-radius: var(--radius-md);
-  border: 1px solid var(--md-outline);
-  background: var(--md-surface);
+  border: 1.5px solid var(--md-outline);
+  background-color: var(--md-surface-container-highest);
   color: var(--md-on-surface);
   box-sizing: border-box;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.product-variants-field input[type="number"]:hover:not(:disabled) {
+  border-color: var(--md-on-surface-variant);
 }
 
 .product-variants-field input[type="number"]:focus {
   outline: none;
   border-color: var(--md-primary);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-primary) 25%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-primary) 30%, transparent);
+}
+
+.product-variants-field input[type="number"]::placeholder {
+  color: var(--md-on-surface-variant);
+  opacity: 0.85;
+}
+
+/* Keep variant inputs readable inside modals (override generic modal input rules) */
+.modal-content .product-variants-field input[type="number"] {
+  background-color: var(--md-surface-container-highest) !important;
+  border: 1.5px solid var(--md-outline) !important;
+  color: var(--md-on-surface) !important;
 }
 
 .product-variants-actions {
+  grid-column: 1 / -1;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  min-width: 5.5rem;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+  margin-top: 0.125rem;
+  border-top: 1px solid var(--md-outline-variant);
 }
 
 .product-variants-active-label {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
-  color: var(--md-on-surface-variant);
+  gap: 0.4rem;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  color: var(--md-on-surface);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -2927,18 +2951,24 @@ p, body {
   text-align: right;
 }
 
-@media (max-width: 720px) {
+@media (min-width: 640px) {
   .product-variants-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .product-variants-actions {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    min-width: 0;
+    justify-content: flex-end;
+    gap: 1rem;
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 639px) {
+  .product-variants-actions {
+    flex-wrap: wrap;
   }
 }
 
