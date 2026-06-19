@@ -7,6 +7,7 @@ import {
   ProductsService,
   ImagesService,
   TagsService,
+  ArticlesService,
 } from '../api/index';
 import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
@@ -20,13 +21,25 @@ interface ProductFormProps {
   onSuccess: () => void;
   /** When set from Product guides hub: only article fields + save article only */
   variant?: 'full' | 'buyingGuide';
+  /** When editing a specific article row (multi-article). Omit for primary / legacy single guide. */
+  editingArticleId?: number | null;
 }
+
+const ARTICLE_CATEGORIES = [
+  { value: 'buying_guide', label: 'Buying Guide' },
+  { value: 'history_guide', label: 'History Guide' },
+  { value: 'informational_guide', label: 'Informational Guide' },
+  { value: 'tech_tip', label: 'Tech Tip' },
+  { value: 'news', label: 'News' },
+  { value: 'general', label: 'General' },
+] as const;
 
 export const ProductForm: React.FC<ProductFormProps> = ({
   product,
   onClose,
   onSuccess,
   variant = 'full',
+  editingArticleId = null,
 }) => {
   useAuth(); // useAdminProfile uses auth internally
   const [formData, setFormData] = useState({
@@ -39,6 +52,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     min_stock_threshold: undefined as number | undefined,
     reorder_point: undefined as number | undefined,
     default_selling_price: '' as string,
+    storage_gb: undefined as number | undefined,
+    ram_gb: undefined as number | undefined,
     is_discontinued: false,
     // SEO Fields
     meta_title: '',
@@ -60,6 +75,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     is_global: false,
     // Buying guide / SEO article (ProductArticle)
     article_headline: '',
+    article_slug: '',
+    article_category: 'buying_guide',
+    article_is_primary: false,
+    article_id: null as number | null,
     article_seo_title: '',
     article_seo_description: '',
     article_body: '',
@@ -124,7 +143,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       if (productId == null) throw new Error('Product ID required');
       return ProductsService.productsRetrieve(productId);
     },
-    enabled: productId != null && variant === 'full',
+    enabled: productId != null && (variant === 'full' || variant === 'buyingGuide'),
   });
 
   const existingImages = useMemo(() => {
@@ -165,6 +184,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           (product as any).default_selling_price != null && (product as any).default_selling_price !== ''
             ? String((product as any).default_selling_price)
             : '',
+        storage_gb: (product as any).storage_gb ?? undefined,
+        ram_gb: (product as any).ram_gb ?? undefined,
         is_discontinued: (product as any).is_discontinued || false,
         // SEO Fields
         meta_title: (product as any).meta_title || '',
@@ -199,11 +220,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           return [];
         })(),
         is_global: (product as any).is_global || false,
-        article_headline: (product as any).article?.headline || '',
-        article_seo_title: (product as any).article?.seo_title || '',
-        article_seo_description: (product as any).article?.seo_description || '',
-        article_body: (product as any).article?.body || '',
-        article_is_published: !!(product as any).article?.is_published,
+        article_headline: '',
+        article_slug: '',
+        article_category: 'buying_guide',
+        article_is_primary: false,
+        article_id: editingArticleId,
+        article_seo_title: '',
+        article_seo_description: '',
+        article_body: '',
+        article_is_published: false,
       });
       
       // Auto-populate brand_ids if product has no brands and admin has brands
@@ -249,6 +274,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         min_stock_threshold: undefined,
         reorder_point: undefined,
         default_selling_price: '',
+        storage_gb: undefined,
+        ram_gb: undefined,
         is_discontinued: false,
         // SEO Fields
         meta_title: '',
@@ -269,6 +296,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         brand_ids: [],
         is_global: false,
         article_headline: '',
+        article_slug: '',
+        article_category: 'buying_guide',
+        article_is_primary: false,
+        article_id: null,
         article_seo_title: '',
         article_seo_description: '',
         article_body: '',
@@ -292,7 +323,34 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       setSelectedImages([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product, adminProfile, isContentCreator]);
+  }, [product, adminProfile, isContentCreator, editingArticleId]);
+
+  useEffect(() => {
+    if (!product || variant !== 'buyingGuide') return;
+    const source = (productDetail as any) ?? product;
+    const articles = (source as { articles?: Array<Record<string, unknown>> }).articles;
+    let article: Record<string, unknown> | null = null;
+    if (editingArticleId && Array.isArray(articles)) {
+      article = articles.find((row) => row.id === editingArticleId) ?? null;
+    } else if ((source as { article?: Record<string, unknown> }).article) {
+      article = (source as { article?: Record<string, unknown> }).article ?? null;
+    } else if (Array.isArray(articles) && articles.length > 0) {
+      article = articles.find((row) => row.is_primary) ?? articles[0];
+    }
+    if (!article) return;
+    setFormData((prev) => ({
+      ...prev,
+      article_id: (article!.id as number) ?? null,
+      article_headline: String(article!.headline || ''),
+      article_slug: String(article!.slug || ''),
+      article_category: String(article!.category || 'buying_guide'),
+      article_is_primary: Boolean(article!.is_primary),
+      article_seo_title: String(article!.seo_title || ''),
+      article_seo_description: String(article!.seo_description || ''),
+      article_body: String(article!.body || ''),
+      article_is_published: Boolean(article!.is_published),
+    }));
+  }, [product, productDetail, variant, editingArticleId]);
 
   // Auto-generate slug from structured fields (brand + model_series + product_type)
   useEffect(() => {
@@ -554,35 +612,59 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   const buildArticleNested = () => ({
+    slug: formData.article_slug.trim() || undefined,
+    category: formData.article_category,
     headline: formData.article_headline.trim() || undefined,
     seo_title: formData.article_seo_title.trim() || undefined,
     seo_description: formData.article_seo_description.trim() || undefined,
     body: formData.article_body.trim() || undefined,
     is_published: formData.article_is_published,
+    is_primary: formData.article_is_primary,
   });
+
+  const saveBuyingGuideArticle = async () => {
+    if (!product?.id) return;
+    const payload = {
+      ...buildArticleNested(),
+      product_id: product.id,
+    };
+    if (formData.article_id) {
+      await ArticlesService.articlesPartialUpdate(formData.article_id, payload as any);
+      return;
+    }
+    await ArticlesService.articlesCreate(payload as any);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (variant === 'buyingGuide' && product?.id) {
-      const articlePayload = { article: buildArticleNested() };
       if (isContentCreator) {
-        ProductsService.productsUpdateContentPartialUpdate(product.id, articlePayload as any)
+        saveBuyingGuideArticle()
           .then(() => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
-            queryClient.invalidateQueries({ queryKey: ['products'] });
+            queryClient.invalidateQueries({ queryKey: queryKeys.products });
             onSuccess();
           })
           .catch((err) => {
-            alert(`Failed to save buying guide: ${err.message || 'Unknown error'}`);
+            console.error(err);
+            alert('Failed to save buying guide.');
           });
         return;
       }
+      const articlePayload = { article: buildArticleNested() };
       if (isInventoryManager || isSuperuser) {
         updateMutation.mutate(articlePayload as any);
         return;
       }
-      alert('You do not have permission to save this buying guide.');
+      saveBuyingGuideArticle()
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: queryKeys.products });
+          onSuccess();
+        })
+        .catch((err) => {
+          console.error(err);
+          alert('Failed to save buying guide.');
+        });
       return;
     }
     
@@ -631,6 +713,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       product_description: formData.product_description || undefined,
       min_stock_threshold: formData.min_stock_threshold,
       reorder_point: formData.reorder_point,
+      storage_gb: formData.storage_gb ?? null,
+      ram_gb: formData.ram_gb ?? null,
       default_selling_price: formData.default_selling_price?.trim()
         ? formData.default_selling_price.trim()
         : null,
@@ -740,7 +824,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             {(product as { slug?: string }).slug ? (
               <>
                 {' '}
-                · Live at <code>/products/{(product as { slug?: string }).slug}/blog</code>
+                · Live at <code>/products/{(product as { slug?: string }).slug}/blog/{formData.article_slug || '&lt;slug&gt;'}</code>
               </>
             ) : null}
           </p>
@@ -748,6 +832,47 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <form onSubmit={handleSubmit} className="form-section">
             <div className="form-section-divider" id="buying-guide">
               <h3>Guide content</h3>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="article_slug_bg">Article slug</label>
+              <input
+                id="article_slug_bg"
+                type="text"
+                value={formData.article_slug}
+                onChange={(e) => setFormData({ ...formData, article_slug: e.target.value })}
+                disabled={isLoading}
+                placeholder="auto-generated from headline if empty"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="article_category_bg">Category</label>
+              <select
+                id="article_category_bg"
+                value={formData.article_category}
+                onChange={(e) => setFormData({ ...formData, article_category: e.target.value })}
+                disabled={isLoading}
+              >
+                {ARTICLE_CATEGORIES.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="article_is_primary_bg">
+                <input
+                  id="article_is_primary_bg"
+                  type="checkbox"
+                  checked={formData.article_is_primary}
+                  onChange={(e) => setFormData({ ...formData, article_is_primary: e.target.checked })}
+                  disabled={isLoading}
+                />{' '}
+                Primary article (default for /blog redirect)
+              </label>
             </div>
             {(product as { article?: { published_at?: string; updated_at?: string } }).article?.published_at && (
               <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 1rem 0.5rem' }}>
@@ -1129,6 +1254,49 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
                   Shown on the storefront when no listable units have a price; used as unit selling price if omitted when creating a unit.
                 </small>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label htmlFor="storage_gb">Storage (GB)</label>
+                  <input
+                    id="storage_gb"
+                    type="number"
+                    min="0"
+                    value={formData.storage_gb ?? ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        storage_gb: e.target.value ? parseInt(e.target.value) : undefined,
+                      })
+                    }
+                    placeholder="e.g., 256"
+                    disabled={isLoading}
+                  />
+                  <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                    Storage capacity (e.g., 128, 256, 512). Use ProductVariants for multiple options.
+                  </small>
+                </div>
+                <div className="form-group" style={{ flex: 1 }}>
+                  <label htmlFor="ram_gb">RAM (GB)</label>
+                  <input
+                    id="ram_gb"
+                    type="number"
+                    min="0"
+                    value={formData.ram_gb ?? ''}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        ram_gb: e.target.value ? parseInt(e.target.value) : undefined,
+                      })
+                    }
+                    placeholder="e.g., 8"
+                    disabled={isLoading}
+                  />
+                  <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
+                    RAM amount (e.g., 8, 12, 16). Use ProductVariants for multiple options.
+                  </small>
+                </div>
               </div>
 
               <div className="form-group">

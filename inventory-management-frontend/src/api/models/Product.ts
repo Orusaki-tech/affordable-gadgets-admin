@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ProductArticle } from './ProductArticle';
 import type { ProductTypesEnum } from './ProductTypesEnum';
 import type { Tag } from './Tag';
 /**
@@ -37,6 +38,10 @@ export type Product = {
      * Mark product as discontinued (no longer in catalog)
      */
     is_discontinued?: boolean;
+    /**
+     * Device launch/release date used for storefront sorting (newest first).
+     */
+    release_date?: string | null;
     readonly created_at?: string;
     readonly updated_at?: string;
     readonly created_by?: number | null;
@@ -50,9 +55,6 @@ export type Product = {
      * SEO description (150-160 chars recommended)
      */
     meta_description?: string;
-    /**
-     * URL-friendly slug (auto-generated from product_name if not provided)
-     */
     slug?: string;
     /**
      * Comma-separated keywords for SEO
@@ -75,6 +77,8 @@ export type Product = {
      * Whether product is published (visible on e-commerce site)
      */
     is_published?: boolean;
+    article?: ProductArticle | null;
+    readonly articles?: Array<ProductArticle>;
     /**
      * Link to product video (YouTube, Vimeo, etc.)
      */
@@ -94,5 +98,15 @@ export type Product = {
      * Calculate SEO completion score (0-100)
      */
     readonly seo_score?: number;
+    readonly available_stock?: number;
+    /**
+     * Storage capacity in GB (e.g., 128, 256, 512)
+     */
+    storage_gb?: number | null;
+    /**
+     * RAM in GB (e.g., 8, 12, 16)
+     */
+    ram_gb?: number | null;
+    readonly variants?: Array<Record<string, any>>;
 };
 
