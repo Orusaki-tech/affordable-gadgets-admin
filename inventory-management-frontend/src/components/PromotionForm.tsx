@@ -180,13 +180,16 @@ export const PromotionForm: React.FC<PromotionFormProps> = ({
     ],
     queryFn: async () => {
       try {
-        const res = await ProductsService.productsList({
-          page: 1,
-          // If no search term, return a sensible default list (page 1)
-          search: normalizedSuggestionSearch || undefined,
-          product_type: formData.product_types || undefined,
-        });
-        return res?.results || [];
+        const res = await ProductsService.productsList(
+          undefined,
+          1,
+          normalizedSuggestionSearch || undefined,
+        );
+        const results = res?.results || [];
+        if (formData.product_types) {
+          return results.filter((p) => p.product_type === formData.product_types);
+        }
+        return results;
       } catch (e) {
         // Don’t hard-fail the UI; we’ll show a helpful message in the dropdown.
         return [];

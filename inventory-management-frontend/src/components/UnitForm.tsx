@@ -781,7 +781,7 @@ export const UnitForm: React.FC<UnitFormProps> = ({
       if (!formData.product_template_id) {
         throw new Error('No accessory product id');
       }
-      return AccessoriesLinkService.accessoriesLinkList(formData.product_template_id, undefined, 1, 200);
+      return AccessoriesLinkService.accessoriesLinkList(formData.product_template_id, undefined, 1);
     },
     enabled: !!formData.product_template_id && isAccessoryProduct,
   });

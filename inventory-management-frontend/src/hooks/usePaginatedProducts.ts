@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ProductsService, ProductTemplate, PaginatedProductList } from '../api/index';
+import { ProductsService, ProductTemplate, PaginatedProductListList } from '../api/index';
 
 interface UsePaginatedProductsOptions {
   enabled?: boolean;
@@ -53,16 +53,14 @@ export const usePaginatedProducts = (
   // Fetch products with pagination - only load current page
   const normalizedSearch = search.trim();
 
-  const { data: pageData, isLoading, error, refetch } = useQuery<PaginatedProductList>({
+  const { data: pageData, isLoading, error, refetch } = useQuery<PaginatedProductListList>({
     queryKey: ['products', currentPage, normalizedSearch, productType, brand, stockStatus],
     queryFn: async () => {
-      return ProductsService.productsList({
-        page: currentPage,
-        search: normalizedSearch || undefined,
-        product_type: productType || undefined,
-        brand: brand || undefined,
-        stock_status: stockStatus || undefined,
-      });
+      return ProductsService.productsList(
+        undefined,
+        currentPage,
+        normalizedSearch || undefined,
+      );
     },
     enabled,
   });

@@ -4,6 +4,7 @@
 import type { Admin } from './models/Admin';
 import type { InventoryUnit } from './models/InventoryUnit';
 import type { Product } from './models/Product';
+import type { ProductList } from './models/ProductList';
 import type { Order } from './models/Order';
 import type { OrderItem } from './models/OrderItem';
 import type { Lead } from './models/Lead';
@@ -14,7 +15,8 @@ import type { CustomerLogin } from './models/CustomerLogin';
 // Backwards-compatible aliases used across the app
 export type AdminProfileResponse = Admin;
 export type InventoryUnitRW = InventoryUnit;
-export type ProductTemplate = Product;
+/** List endpoints return ProductList; retrieve returns full Product. */
+export type ProductTemplate = Product | ProductList;
 export type OrderResponse = Order;
 export type OrderItemResponse = OrderItem;
 export type LeadAdmin = Lead;

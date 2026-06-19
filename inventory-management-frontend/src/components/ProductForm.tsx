@@ -13,8 +13,17 @@ import { useAuth } from '../contexts/AuthContext';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useBrandsList } from '../hooks/useBrandsList';
 import { queryKeys } from '../hooks/queryKeys';
+import { OpenAPI } from '../api/core/OpenAPI';
 import { RichTextEditor } from './RichTextEditor';
 import ProductVariantEditor from './ProductVariantEditor';
+
+interface VariantFormData {
+  storage_gb?: number | null;
+  ram_gb?: number | null;
+  default_selling_price: string;
+  default_cost_of_unit: string;
+  is_active: boolean;
+}
 
 interface ProductFormProps {
   product: ProductTemplate | null;
@@ -91,6 +100,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [isUploadingImages, setIsUploadingImages] = useState(false);
   const previewImagesRef = useRef<string[]>([]);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
+  const [pendingVariants, setPendingVariants] = useState<VariantFormData[]>([]);
   const queryClient = useQueryClient();
 
   const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
@@ -418,7 +428,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             images: filesToUpload,
             alt_text: `${createdProduct.product_name || formData.product_name} product image`,
             make_primary: true,
-          });
+          } as any);
           // Clear selected images and previews after successful upload
           previewsToClean.forEach(url => URL.revokeObjectURL(url));
           setSelectedImages([]);
@@ -426,6 +436,47 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         } catch (err: any) {
           console.error('Error uploading images:', err);
           alert(`Product created, but images failed to upload: ${err.message || 'Unknown error'}`);
+        }
+      }
+      
+      // Save pending variants if any were added during creation
+      if (createdProduct?.id && pendingVariants.length > 0) {
+        try {
+          const token = localStorage.getItem('auth_token');
+          const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = `Token ${token}`;
+          const baseUrl = OpenAPI.BASE || '';
+          const variantErrors: string[] = [];
+          for (let i = 0; i < pendingVariants.length; i++) {
+            const v = pendingVariants[i];
+            if (!v.default_selling_price || parseFloat(v.default_selling_price) <= 0) {
+              variantErrors.push(`Variant ${i + 1}: selling price is required`);
+              continue;
+            }
+            const res = await fetch(`${baseUrl}/variants/`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                product_id: createdProduct.id,
+                storage_gb: v.storage_gb ?? null,
+                ram_gb: v.ram_gb ?? null,
+                default_selling_price: v.default_selling_price,
+                default_cost_of_unit: v.default_cost_of_unit || '0',
+                is_active: v.is_active,
+              }),
+            });
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}));
+              variantErrors.push(`Variant ${i + 1}: ${JSON.stringify(body)}`);
+            }
+          }
+          setPendingVariants([]);
+          if (variantErrors.length > 0) {
+            alert(`Product created, but some variants failed to save:\n${variantErrors.join('\n')}`);
+          }
+        } catch (err: any) {
+          console.error('Error saving variants:', err);
+          alert(`Product created, but variants failed to save: ${err.message || 'Unknown error'}`);
         }
       }
       
@@ -491,7 +542,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         images: files,
         alt_text: `${formData.product_name || product?.product_name || ''} product image`,
         make_primary: makePrimary,
-      });
+      } as any);
       await refetchImages();
       previewImagesRef.current.forEach(url => URL.revokeObjectURL(url));
       setSelectedImages([]);
@@ -643,7 +694,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       if (isContentCreator) {
         saveBuyingGuideArticle()
           .then(() => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.products });
+            queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
             onSuccess();
           })
           .catch((err) => {
@@ -659,7 +710,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       }
       saveBuyingGuideArticle()
         .then(() => {
-          queryClient.invalidateQueries({ queryKey: queryKeys.products });
+          queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
           onSuccess();
         })
         .catch((err) => {
@@ -1324,7 +1375,50 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
           {/* Product Variants: Inventory Managers and Superusers only */}
           {(isInventoryManager || isSuperuser) && (
-            <ProductVariantEditor productId={product?.id ?? null} />
+            product?.id ? (
+              <ProductVariantEditor productId={product.id} />
+            ) : (
+              <div className="form-group" style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h4 style={{ margin: 0 }}>Product Variants</h4>
+                  <button
+                    type="button"
+                    className="btn-small btn-info"
+                    onClick={() => setPendingVariants(prev => [...prev, { storage_gb: null, ram_gb: null, default_selling_price: '', default_cost_of_unit: '', is_active: true }])}
+                  >
+                    + Add Variant
+                  </button>
+                </div>
+                {pendingVariants.length === 0 && (
+                  <p style={{ color: '#888', fontSize: '0.9rem' }}>
+                    No variants yet. Add storage/RAM/price combinations for this product.
+                  </p>
+                )}
+                {pendingVariants.map((v, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', padding: '0.75rem', marginBottom: '0.5rem', background: '#fff', borderRadius: '6px', border: '1px solid #e0e0e0' }}>
+                    <div style={{ flex: '0 0 90px' }}>
+                      <label style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>Storage (GB)</label>
+                      <input type="number" min="0" value={v.storage_gb ?? ''} onChange={(e) => setPendingVariants(prev => { const n = [...prev]; n[idx] = { ...n[idx], storage_gb: e.target.value ? parseInt(e.target.value) : null }; return n; })} placeholder="e.g. 256" style={{ width: '100%', padding: '4px 6px', fontSize: '0.85rem' }} />
+                    </div>
+                    <div style={{ flex: '0 0 80px' }}>
+                      <label style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>RAM (GB)</label>
+                      <input type="number" min="0" value={v.ram_gb ?? ''} onChange={(e) => setPendingVariants(prev => { const n = [...prev]; n[idx] = { ...n[idx], ram_gb: e.target.value ? parseInt(e.target.value) : null }; return n; })} placeholder="e.g. 8" style={{ width: '100%', padding: '4px 6px', fontSize: '0.85rem' }} />
+                    </div>
+                    <div style={{ flex: '1', minWidth: '100px' }}>
+                      <label style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>Selling Price (KES)</label>
+                      <input type="number" min="0" value={v.default_selling_price} onChange={(e) => setPendingVariants(prev => { const n = [...prev]; n[idx] = { ...n[idx], default_selling_price: e.target.value }; return n; })} placeholder="e.g. 142000" style={{ width: '100%', padding: '4px 6px', fontSize: '0.85rem' }} />
+                    </div>
+                    <div style={{ flex: '1', minWidth: '100px' }}>
+                      <label style={{ fontSize: '0.75rem', color: '#666', display: 'block' }}>Cost per Unit (KES)</label>
+                      <input type="number" min="0" value={v.default_cost_of_unit} onChange={(e) => setPendingVariants(prev => { const n = [...prev]; n[idx] = { ...n[idx], default_cost_of_unit: e.target.value }; return n; })} placeholder="e.g. 120000" style={{ width: '100%', padding: '4px 6px', fontSize: '0.85rem' }} />
+                    </div>
+                    <div style={{ flex: '0 0 auto', alignSelf: 'flex-end' }}>
+                      <button type="button" className="btn-small btn-danger" onClick={() => setPendingVariants(prev => prev.filter((_, i) => i !== idx))} style={{ padding: '4px 8px', fontSize: '0.8rem' }}>Remove</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           )}
 
           {/* Product Images: Inventory Managers and Content Creators (and Superusers) can upload */}

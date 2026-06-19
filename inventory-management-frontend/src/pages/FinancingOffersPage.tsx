@@ -251,7 +251,7 @@ function OfferModal({
     queryKey: ['financing-product-search', debouncedProductSearch],
     queryFn: async () => {
       if (!debouncedProductSearch.trim()) return [] as Product[];
-      const res = await ProductsService.productsList({ page: 1, search: debouncedProductSearch.trim() });
+      const res = await ProductsService.productsList(undefined, 1, debouncedProductSearch.trim());
       return (res?.results ?? []) as Product[];
     },
     enabled: debouncedProductSearch.trim().length >= 2,

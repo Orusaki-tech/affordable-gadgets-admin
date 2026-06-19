@@ -1,7 +1,7 @@
 import React, { useMemo, useState, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { Brand, BundlesService, BundleItemsService } from '../api/index';
+import { Brand, BundlesService, OpenAPI } from '../api/index';
 import { useAdminProfile } from '../hooks/useAdminProfile';
 import { ModalLoader } from '../components/PageLoader';
 import {
@@ -99,7 +99,12 @@ export const BundlesPage: React.FC = () => {
     try {
       const fullBundle = await BundlesService.bundlesRetrieve(bundleId);
       if (!fullBundle?.items || fullBundle.items.length === 0) {
-        const bundleItems = await BundleItemsService.bundleItemsList(undefined, bundleId);
+        const token = localStorage.getItem('auth_token');
+        const headers: Record<string, string> = {};
+        if (token) headers['Authorization'] = `Token ${token}`;
+        const res = await fetch(`${OpenAPI.BASE || ''}/bundle-items/?bundle=${bundleId}`, { headers });
+        if (!res.ok) throw new Error(`Failed to fetch bundle items: ${res.status}`);
+        const bundleItems = await res.json();
         const items = bundleItems?.results || [];
         setEditingBundle({ ...fullBundle, items });
       } else {

@@ -35,6 +35,14 @@ export type ProductList = {
      */
     default_selling_price?: string | null;
     /**
+     * Storage capacity in GB (e.g. 128, 256). Use ProductVariants for multiple options.
+     */
+    storage_gb?: number | null;
+    /**
+     * RAM in GB (e.g. 8, 12). Use ProductVariants for multiple options.
+     */
+    ram_gb?: number | null;
+    /**
      * Mark product as discontinued (no longer in catalog)
      */
     is_discontinued?: boolean;

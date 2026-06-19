@@ -21,7 +21,7 @@ export type { ArticleImageRequest } from './models/ArticleImageRequest';
 export type { ArticleImageUpload } from './models/ArticleImageUpload';
 export type { ArticleImageUploadRequest } from './models/ArticleImageUploadRequest';
 export type { AuditLog } from './models/AuditLog';
-export { BlankEnum } from './models/BlankEnum';
+export type { BlankEnum } from './models/BlankEnum';
 export type { Brand } from './models/Brand';
 export type { BrandRequest } from './models/BrandRequest';
 export type { Bundle } from './models/Bundle';
@@ -241,3 +241,19 @@ export { UnitsService } from './services/UnitsService';
 export { UnitTransfersService } from './services/UnitTransfersService';
 export { UtilsService } from './services/UtilsService';
 export { VerifyEmailService } from './services/VerifyEmailService';
+
+// Custom backwards-compatible aliases
+export type {
+  AdminProfileResponse,
+  InventoryUnitRW,
+  ProductTemplate,
+  OrderResponse,
+  OrderItemResponse,
+  LeadAdmin,
+  AcquisitionSource,
+  ProductAccessoryLink,
+  TokenResponse,
+  StockAlert,
+  StockAlertsResponse,
+} from './custom-exports';
+export { StockAlertType } from './custom-exports';

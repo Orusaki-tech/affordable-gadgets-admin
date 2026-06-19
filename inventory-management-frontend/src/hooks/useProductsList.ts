@@ -11,10 +11,7 @@ export function useProductsList(search?: string) {
   return useQuery({
     queryKey: queryKeys.productsAll(normalizedSearch),
     queryFn: () =>
-      ProductsService.productsList({
-        page: 1,
-        ...(normalizedSearch ? { search: normalizedSearch } : {}),
-      }),
+      ProductsService.productsList(undefined, 1, normalizedSearch),
     staleTime: 2 * 60 * 1000,
   });
 }
