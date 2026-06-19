@@ -266,7 +266,7 @@ export const ContentCreatorDashboard: React.FC = () => {
                   <div 
                     key={product.id} 
                     className="product-card" 
-                    onClick={() => navigate(`/products?edit=${product.id}`)}
+                    onClick={() => navigate(`/products/${product.id}/edit`)}
                   >
                     <div className="product-card-header">
                       <div className="product-card-title-section">

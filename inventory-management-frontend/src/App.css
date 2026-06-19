@@ -2855,6 +2855,16 @@ p, body {
   color: var(--md-on-surface);
 }
 
+.product-variants-product-label {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant);
+}
+
+.product-variants-product-label span {
+  opacity: 0.75;
+}
+
 .product-variants-empty {
   margin: 0;
   color: var(--md-on-surface-variant);

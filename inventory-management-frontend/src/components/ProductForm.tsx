@@ -1046,7 +1046,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content modal-content-large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>{isContentCreator ? 'Edit Product Content' : (product ? 'Edit Product' : 'Create Product')}</h2>
+          <h2>
+            {isContentCreator
+              ? 'Edit Product Content'
+              : product
+                ? `Edit Product — ${product.product_name || `Product #${product.id}`}`
+                : 'Create Product'}
+          </h2>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         {isContentCreator && (
@@ -1376,7 +1382,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           {/* Product Variants: Inventory Managers and Superusers only */}
           {(isInventoryManager || isSuperuser) && (
             product?.id ? (
-              <ProductVariantEditor productId={product.id} />
+              <ProductVariantEditor
+                key={product.id}
+                productId={product.id}
+                productName={product.product_name}
+              />
             ) : (
               <div className="product-variants-panel">
                 <div className="product-variants-header">

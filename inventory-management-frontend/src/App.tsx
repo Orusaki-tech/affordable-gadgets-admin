@@ -115,6 +115,8 @@ const AppWithMUITheme: React.FC = () => {
             <Route index element={<RoleBasedRedirect />} />
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="content-creator/dashboard" element={<ContentCreatorDashboard />} />
+            <Route path="products/create" element={<ProductsPage />} />
+            <Route path="products/:productId/edit" element={<ProductsPage />} />
             <Route path="products" element={<ProductsPage />} />
             <Route path="product-guides" element={<ProductGuidesPage />} />
             <Route path="products/:productId/units" element={<ProductUnitsPage />} />

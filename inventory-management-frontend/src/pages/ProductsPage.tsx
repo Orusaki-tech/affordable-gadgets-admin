@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ProductTemplate,
   Promotion,
@@ -24,6 +24,10 @@ const ProductPromotionModal = lazy(() => import('../components/ProductPromotionM
 export const ProductsPage: React.FC = () => {
   useAuth(); // used by useAdminProfile; no need to destructure user here
   const [searchParams, setSearchParams] = useSearchParams();
+  const { productId: routeProductId } = useParams<{ productId?: string }>();
+  const location = useLocation();
+  const isCreateRoute = location.pathname.endsWith('/products/create');
+  const isEditRoute = location.pathname.includes('/products/') && location.pathname.endsWith('/edit');
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({
     product_type: '',
@@ -347,30 +351,88 @@ export const ProductsPage: React.FC = () => {
       alert('Marketing Managers cannot edit products. They can only view products and attach promotions via the Promotions page.');
       return;
     }
-    setEditingProduct(product);
-    setShowCreateModal(true);
+    if (!product.id) return;
+    navigate(`/products/${product.id}/edit`);
   };
 
   const handleFormClose = () => {
     setShowCreateModal(false);
     setEditingProduct(null);
-    // Clear edit parameter from URL
+    if (isEditRoute || isCreateRoute) {
+      navigate('/products', { replace: true });
+    }
     const newSearchParams = new URLSearchParams(searchParams);
     newSearchParams.delete('edit');
-    setSearchParams(newSearchParams, { replace: true });
+    if (newSearchParams.toString() !== searchParams.toString()) {
+      setSearchParams(newSearchParams, { replace: true });
+    }
   };
 
-  // Handle URL params for edit action
+  // Close modal when leaving /products/:id/edit or /products/create routes
+  useEffect(() => {
+    if (!isEditRoute && !isCreateRoute) {
+      setShowCreateModal(false);
+      setEditingProduct(null);
+    }
+  }, [isEditRoute, isCreateRoute]);
+
+  // Open edit modal from /products/:productId/edit (fetch product by id — may not be in paginated list)
+  useEffect(() => {
+    if (!isEditRoute || !routeProductId) return;
+
+    const id = parseInt(routeProductId, 10);
+    if (!Number.isFinite(id)) {
+      navigate('/products', { replace: true });
+      return;
+    }
+
+    if (editingProduct?.id === id && showCreateModal) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const fromList = data?.results?.find((p: ProductTemplate) => p.id === id);
+        const product = fromList ?? (await ProductsService.productsRetrieve(id));
+        if (cancelled) return;
+        if (isMarketingManager) {
+          alert('Marketing Managers cannot edit products.');
+          navigate('/products', { replace: true });
+          return;
+        }
+        setEditingProduct(product);
+        setShowCreateModal(true);
+      } catch {
+        if (!cancelled) {
+          alert('Product not found.');
+          navigate('/products', { replace: true });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditRoute, routeProductId, data?.results, editingProduct?.id, showCreateModal, isMarketingManager, navigate]);
+
+  // Open create modal from /products/create
+  useEffect(() => {
+    if (!isCreateRoute) return;
+    if (!canCreateProducts) {
+      alert('You do not have permission to create products.');
+      navigate('/products', { replace: true });
+      return;
+    }
+    setEditingProduct(null);
+    setShowCreateModal(true);
+  }, [isCreateRoute, canCreateProducts, navigate]);
+
+  // Legacy ?edit=123 links → /products/123/edit
   useEffect(() => {
     const editId = searchParams.get('edit');
-    if (editId && data?.results) {
-      const product = data.results.find((p: ProductTemplate) => p.id === parseInt(editId));
-      if (product) {
-        handleEdit(product);
-      }
+    if (editId) {
+      navigate(`/products/${editId}/edit`, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, data]);
+  }, [searchParams, navigate]);
 
   // Reservation functionality for salespersons
   const toggleProductSelection = (productId: number) => {
@@ -701,28 +763,14 @@ export const ProductsPage: React.FC = () => {
       }
       return;
     }
-    setEditingProduct(null);
-    setShowCreateModal(true);
+    navigate('/products/create');
   };
 
   const handleFormSuccess = () => {
     handleFormClose();
-    // Invalidate and refetch to show the newly created product immediately
     queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
     queryClient.refetchQueries({ queryKey: queryKeys.productsAll() });
   };
-
-  // Handle URL params for edit action
-  useEffect(() => {
-    const editId = searchParams.get('edit');
-    if (editId && data?.results && !editingProduct) {
-      const product = data.results.find((p: ProductTemplate) => p.id === parseInt(editId));
-      if (product) {
-        handleEdit(product);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, data]);
 
   // Get unique brands and product types for filter dropdowns
   const uniqueBrands = useMemo(() => {

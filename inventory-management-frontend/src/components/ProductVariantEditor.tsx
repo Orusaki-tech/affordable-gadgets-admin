@@ -13,6 +13,7 @@ interface VariantData {
 
 interface Props {
   productId: number | null;
+  productName?: string;
 }
 
 const getAuthHeaders = (): Record<string, string> => {
@@ -22,7 +23,7 @@ const getAuthHeaders = (): Record<string, string> => {
   return headers;
 };
 
-const ProductVariantEditor: React.FC<Props> = ({ productId }) => {
+const ProductVariantEditor: React.FC<Props> = ({ productId, productName }) => {
   const [variants, setVariants] = useState<VariantData[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -35,14 +36,21 @@ const ProductVariantEditor: React.FC<Props> = ({ productId }) => {
     if (!productId) return;
     setLoading(true);
     setError(null);
+    setSuccessMsg(null);
+    setVariants([]);
     try {
       const res = await fetch(`${baseUrl}/variants/?product=${productId}`, {
         headers: getAuthHeaders(),
       });
       if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
       const data = await res.json();
-      const rows = data.results ?? data ?? [];
-      setVariants(rows.filter((row: VariantData) => !row.product || row.product === productId));
+      const rows: VariantData[] = data.results ?? data ?? [];
+      const hasProductIds = rows.some((row) => row.product != null);
+      setVariants(
+        hasProductIds
+          ? rows.filter((row) => row.product === productId)
+          : rows
+      );
     } catch (err: any) {
       setError(err.message || 'Failed to load variants');
     } finally {
@@ -51,6 +59,9 @@ const ProductVariantEditor: React.FC<Props> = ({ productId }) => {
   }, [productId, baseUrl]);
 
   useEffect(() => {
+    setVariants([]);
+    setError(null);
+    setSuccessMsg(null);
     fetchVariants();
   }, [fetchVariants]);
 
@@ -195,7 +206,14 @@ const ProductVariantEditor: React.FC<Props> = ({ productId }) => {
   return (
     <div className="product-variants-panel">
       <div className="product-variants-header">
-        <h4>Product Variants</h4>
+        <div>
+          <h4>Product Variants</h4>
+          {productName && (
+            <p className="product-variants-product-label">
+              For: {productName} <span>(#{productId})</span>
+            </p>
+          )}
+        </div>
         <button
           type="button"
           className="btn-small btn-info"
