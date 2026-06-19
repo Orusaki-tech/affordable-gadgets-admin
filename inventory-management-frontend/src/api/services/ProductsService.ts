@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { PaginatedProductList } from '../models/PaginatedProductList';
+import type { PaginatedProductListList } from '../models/PaginatedProductListList';
 import type { PatchedProductRequest } from '../models/PatchedProductRequest';
 import type { Product } from '../models/Product';
 import type { ProductRequest } from '../models/ProductRequest';
@@ -14,33 +14,27 @@ export class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
+     * @param ordering Which field to use when ordering the results.
      * @param page A page number within the paginated result set.
-     * @returns PaginatedProductList
+     * @param search A search term.
+     * @returns PaginatedProductListList
      * @throws ApiError
      */
     public static productsList(
-        params?: {
-            page?: number;
-            search?: string;
-            product_type?: string;
-            brand?: string;
-            stock_status?: string;
-            seo_status?: string;
-        },
-    ): CancelablePromise<PaginatedProductList> {
+        ordering?: string,
+        page?: number,
+        search?: string,
+    ): CancelablePromise<PaginatedProductListList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/products/',
             query: {
-                'page': params?.page,
-                'search': params?.search,
-                'product_type': params?.product_type,
-                'brand': params?.brand,
-                'stock_status': params?.stock_status,
-                'seo_status': params?.seo_status,
+                'ordering': ordering,
+                'page': page,
+                'search': search,
             },
         });
     }
@@ -48,30 +42,25 @@ export class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
-     * @param requestBody
+     * @param formData
      * @returns Product
      * @throws ApiError
      */
     public static productsCreate(
-        requestBody: ProductRequest,
+        formData: ProductRequest,
     ): CancelablePromise<Product> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/products/',
-            body: requestBody,
-            mediaType: 'application/json',
+            formData: formData,
+            mediaType: 'multipart/form-data',
         });
     }
     /**
-     * CRUD for Product Templates.
-     * - Public: Read-only access
-     * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
-     * - Salesperson: Read-only access
-     * - Superuser: Full access
+     * Enforce brand access when using the fast-path queryset for single-product fetch.
      * @param id A unique integer value identifying this product.
      * @returns Product
      * @throws ApiError
@@ -91,17 +80,17 @@ export class ProductsService {
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param id A unique integer value identifying this product.
-     * @param requestBody
+     * @param formData
      * @returns Product
      * @throws ApiError
      */
     public static productsUpdate(
         id: number,
-        requestBody: ProductRequest,
+        formData: ProductRequest,
     ): CancelablePromise<Product> {
         return __request(OpenAPI, {
             method: 'PUT',
@@ -109,25 +98,25 @@ export class ProductsService {
             path: {
                 'id': id,
             },
-            body: requestBody,
-            mediaType: 'application/json',
+            formData: formData,
+            mediaType: 'multipart/form-data',
         });
     }
     /**
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param id A unique integer value identifying this product.
-     * @param requestBody
+     * @param formData
      * @returns Product
      * @throws ApiError
      */
     public static productsPartialUpdate(
         id: number,
-        requestBody?: PatchedProductRequest,
+        formData?: PatchedProductRequest,
     ): CancelablePromise<Product> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -135,15 +124,15 @@ export class ProductsService {
             path: {
                 'id': id,
             },
-            body: requestBody,
-            mediaType: 'application/json',
+            formData: formData,
+            mediaType: 'multipart/form-data',
         });
     }
     /**
      * CRUD for Product Templates.
      * - Public: Read-only access
      * - Inventory Manager: Full CRUD access
-     * - Content Creator: Can edit content fields (descriptions, images, SEO) but NOT inventory fields, and CANNOT delete products
+     * - Content Creator: Can update content via update_content only (no create/delete)
      * - Salesperson: Read-only access
      * - Superuser: Full access
      * @param id A unique integer value identifying this product.
@@ -180,10 +169,87 @@ export class ProductsService {
         });
     }
     /**
+     * Delete one or more product images.
+     *
+     * Body:
+     * - image_ids: list[int]
+     * @param id A unique integer value identifying this product.
+     * @param formData
+     * @returns Product
+     * @throws ApiError
+     */
+    public static productsImagesDeleteCreate(
+        id: number,
+        formData: ProductRequest,
+    ): CancelablePromise<Product> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/products/{id}/images/delete/',
+            path: {
+                'id': id,
+            },
+            formData: formData,
+            mediaType: 'multipart/form-data',
+        });
+    }
+    /**
+     * Set a specific product image as primary.
+     * @param id A unique integer value identifying this product.
+     * @param formData
+     * @returns Product
+     * @throws ApiError
+     */
+    public static productsImagesSetPrimaryCreate(
+        id: number,
+        formData: ProductRequest,
+    ): CancelablePromise<Product> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/products/{id}/images/set-primary/',
+            path: {
+                'id': id,
+            },
+            formData: formData,
+            mediaType: 'multipart/form-data',
+        });
+    }
+    /**
+     * Upload one or more images for a Product.
+     *
+     * This is intended for Inventory Managers to attach product images directly from the product screen,
+     * without needing to call the standalone ProductImage endpoint.
+     *
+     * Expected multipart form-data:
+     * - images: one or more files (recommended field name)
+     * OR image: a single file (backward-compatible convenience)
+     * - alt_text (optional): string applied to all uploaded images
+     * - image_caption (optional): string applied to all uploaded images
+     * - start_display_order (optional): integer; if provided, assigns incremental display_order
+     * - make_primary (optional): boolean; if true, first uploaded image becomes primary (and clears others)
+     * @param id A unique integer value identifying this product.
+     * @param formData
+     * @returns Product
+     * @throws ApiError
+     */
+    public static productsImagesUploadCreate(
+        id: number,
+        formData: ProductRequest,
+    ): CancelablePromise<Product> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/products/{id}/images/upload/',
+            path: {
+                'id': id,
+            },
+            formData: formData,
+            mediaType: 'multipart/form-data',
+        });
+    }
+    /**
      * Custom action to retrieve the available inventory count, min price, and max price
      * for a specific Product (template). Accessible by staff users (read-only).
      *
-     * Example URL: /api/products/{product_id}/stock-summary/
+     * Example URL: /api/inventory/products/{product_id}/stock-summary/
      * @param id A unique integer value identifying this product.
      * @returns Product
      * @throws ApiError
@@ -222,36 +288,24 @@ export class ProductsService {
         });
     }
     /**
-     * Upload one or more images for a product (multipart).
-     * @param id Product ID
-     * @param formData.images One or more image files
-     * @param formData.make_primary If true, first uploaded image becomes primary
+     * Delete products by ID list or delete all product-related data (full reset).
+     *
+     * - To delete specific products (and their units/bundle items): POST with body
+     * {"product_ids": [1, 2, 3]}. Same permission as single-product delete.
+     *
+     * - To delete every product and all dependent data (orders, carts, units, etc.): POST with
+     * {"delete_all": true}. Use only in dev/staging. Requires Inventory Manager or Superuser.
+     * @param formData
+     * @returns Product
+     * @throws ApiError
      */
-    public static productsImagesUploadCreate(
-        id: number,
-        formData: {
-            images: Blob[];
-            alt_text?: string;
-            image_caption?: string;
-            start_display_order?: number;
-            make_primary?: boolean;
-        },
-    ): CancelablePromise<Array<Record<string, unknown>>> {
+    public static productsBulkDestroyCreate(
+        formData: ProductRequest,
+    ): CancelablePromise<Product> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/products/{id}/images/upload/',
-            path: {
-                'id': id,
-            },
-            formData: {
-                images: formData.images,
-                ...(formData.alt_text ? { alt_text: formData.alt_text } : {}),
-                ...(formData.image_caption ? { image_caption: formData.image_caption } : {}),
-                ...(formData.start_display_order != null
-                    ? { start_display_order: formData.start_display_order }
-                    : {}),
-                ...(formData.make_primary !== undefined ? { make_primary: String(formData.make_primary) } : {}),
-            },
+            url: '/products/bulk-destroy/',
+            formData: formData,
             mediaType: 'multipart/form-data',
         });
     }

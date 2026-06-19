@@ -4,6 +4,7 @@
 /* eslint-disable */
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig, AxiosResponse, AxiosInstance } from 'axios';
+import FormData from 'form-data';
 
 import { ApiError } from './ApiError';
 import type { ApiRequestOptions } from './ApiRequestOptions';
@@ -37,14 +38,8 @@ export const isBlob = (value: any): value is Blob => {
     );
 };
 
-const getFormDataConstructor = (): any => {
-    const FormDataCtor = (globalThis as any)?.FormData;
-    return typeof FormDataCtor === 'function' ? FormDataCtor : undefined;
-};
-
-export const isFormData = (value: any): value is any => {
-    const FormDataCtor = getFormDataConstructor();
-    return Boolean(FormDataCtor && value instanceof FormDataCtor);
+export const isFormData = (value: any): value is FormData => {
+    return value instanceof FormData;
 };
 
 export const isSuccess = (status: number): boolean => {
@@ -113,13 +108,9 @@ const getUrl = (config: OpenAPIConfig, options: ApiRequestOptions): string => {
     return url;
 };
 
-export const getFormData = (options: ApiRequestOptions): any | undefined => {
+export const getFormData = (options: ApiRequestOptions): FormData | undefined => {
     if (options.formData) {
-        const FormDataCtor = getFormDataConstructor();
-        if (!FormDataCtor) {
-            throw new Error('FormData is not available in this environment');
-        }
-        const formData = new FormDataCtor();
+        const formData = new FormData();
 
         const process = (key: string, value: any) => {
             if (isString(value) || isBlob(value)) {
@@ -153,7 +144,7 @@ export const resolve = async <T>(options: ApiRequestOptions, resolver?: T | Reso
     return resolver;
 };
 
-export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptions, formData?: any): Promise<Record<string, string>> => {
+export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptions, formData?: FormData): Promise<Record<string, string>> => {
     const [token, username, password, additionalHeaders] = await Promise.all([
         resolve(options, config.TOKEN),
         resolve(options, config.USERNAME),
@@ -161,8 +152,7 @@ export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptio
         resolve(options, config.HEADERS),
     ]);
 
-    const formHeaders =
-        typeof (formData as any)?.getHeaders === 'function' ? (formData as any).getHeaders() : {}
+    const formHeaders = typeof formData?.getHeaders === 'function' && formData?.getHeaders() || {}
 
     const headers = Object.entries({
         Accept: 'application/json',
@@ -177,7 +167,7 @@ export const getHeaders = async (config: OpenAPIConfig, options: ApiRequestOptio
     }), {} as Record<string, string>);
 
     if (isStringWithValue(token)) {
-        headers['Authorization'] = `Token ${token}`;
+        headers['Authorization'] = `Bearer ${token}`;
     }
 
     if (isStringWithValue(username) && isStringWithValue(password)) {
@@ -305,11 +295,6 @@ export const request = <T>(config: OpenAPIConfig, options: ApiRequestOptions, ax
     return new CancelablePromise(async (resolve, reject, onCancel) => {
         try {
             const url = getUrl(config, options);
-            if (typeof window !== 'undefined') {
-                // Log the final resolved URL to help diagnose base URL issues in production
-                // eslint-disable-next-line no-console
-                console.debug('API request URL:', url);
-            }
             const formData = getFormData(options);
             const body = getRequestBody(options);
             const headers = await getHeaders(config, options, formData);

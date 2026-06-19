@@ -1,0 +1,30 @@
+{
+  "model": "inventory.product",
+  "pk": null,
+  "fields": {
+    "product_type": "AC",
+    "product_name": "AirPods 4",
+    "product_description": "Genuine AirPods 4 by Apple. High-quality accessory available at Affordable Gadgets Kenya.",
+    "brand": "Apple",
+    "model_series": "Airpods 4",
+    "min_stock_threshold": 5,
+    "reorder_point": 10,
+    "is_discontinued": false,
+    "meta_title": "AirPods 4 - Apple - Affordable Gadgets",
+    "meta_description": "Shop the AirPods 4 by Apple at Affordable Gadgets. Best prices in Kenya. Fast shipping, genuine products.",
+    "slug": "apple-airpods-4-airpods-4-ac",
+    "keywords": "accessory, affordable gadgets, airpods, apple",
+    "product_highlights": [
+      "Genuine Apple quality",
+      "Premium build and design",
+      "Easy to use and maintain",
+      "Compatible with your devices"
+    ],
+    "long_description": "<h2>About the AirPods 4</h2><p>The AirPods 4 by Apple is a premium accessory designed to complement your devices. Built with quality materials and precision engineering, it delivers reliable performance and durability.</p><h3>Key Features</h3><ul><li>Genuine Apple quality</li><li>Premium design and build</li><li>Designed for everyday use</li><li>Compatible with your devices</li></ul><h3>Why Buy from Affordable Gadgets?</h3><p>At Affordable Gadgets, we offer genuine products at competitive prices with fast delivery across Kenya. Shop with confidence knowing you're getting authentic Apple products.</p>",
+    "is_published": true,
+    "product_video_url": "",
+    "is_global": false,
+    "tags": [],
+    "brands": []
+  }
+}

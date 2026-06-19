@@ -2,7 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type AuthToken = {
-    readonly token?: string;
+export type PublicDeliveryRate = {
+    readonly id?: number;
+    county: string;
+    ward?: string | null;
+    price: string;
 };
 

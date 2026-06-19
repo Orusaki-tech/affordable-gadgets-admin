@@ -5286,6 +5286,18 @@ p, body {
   line-height: 1.5;
 }
 
+.variant-count-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-left: 4px;
+  border-radius: 10px;
+  background: var(--md-primary-container, #e8def8);
+  color: var(--md-on-primary-container, #1d192b);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .seo-score-badge {
   display: inline-block;
   padding: 2px var(--spacing-xs);

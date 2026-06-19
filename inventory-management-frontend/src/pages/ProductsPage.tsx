@@ -1144,6 +1144,13 @@ export const ProductsPage: React.FC = () => {
                       <span className="detail-label">Model:</span>
                       <span className="detail-value">{product.model_series || '-'}</span>
                     </div>
+                    <div className="product-card-detail-item">
+                      <span className="detail-label">Storage/RAM:</span>
+                      <span className="detail-value">
+                        {product.storage_gb != null ? `${product.storage_gb}GB` : '-'}{product.ram_gb != null ? ` / ${product.ram_gb}GB RAM` : ''}
+                        {(product as any).variants?.length > 0 ? <span className="variant-count-badge"> +{(product as any).variants.length}</span> : ''}
+                      </span>
+                    </div>
                   </div>
                   <div className="product-card-actions" onClick={(e) => e.stopPropagation()}>
                     <button

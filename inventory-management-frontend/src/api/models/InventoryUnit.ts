@@ -12,7 +12,7 @@ import type { UnitAcquisitionSource } from './UnitAcquisitionSource';
 /**
  * Serializes physical Inventory Units.
  * - Phones/Laptops/Tablets: Unique units (serial_number/IMEI), quantity=1.
- * - Accessories: Bulk items (quantity >= 1); serial numbers are optional (if provided, quantity must be 1).
+ * - Accessories: Bulk items (no unique identifier), quantity required and can be > 1.
  */
 export type InventoryUnit = {
     readonly id?: number;
@@ -33,13 +33,17 @@ export type InventoryUnit = {
      */
     date_sourced?: string | null;
     cost_of_unit: string;
-    selling_price: string;
+    selling_price?: string | null;
+    /**
+     * Original/list price used to show discounts (optional)
+     */
+    compare_at_price?: string | null;
     /**
      * Quantity: 1 for Phones/Laptops/Tablets (unique units). Required and can be > 1 for Accessories (no unique identifier).
      */
     quantity?: number;
     /**
-     * Required for Phones/Laptops/Tablets. Not used for Accessories.
+     * Required for Phones/Laptops/Tablets. Optional for Accessories.
      */
     serial_number?: string | null;
     /**

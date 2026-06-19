@@ -4,11 +4,21 @@
 /* eslint-disable */
 import type { ArticleImage } from '../models/ArticleImage';
 import type { ArticleImageRequest } from '../models/ArticleImageRequest';
+import type { ArticleImageUpload } from '../models/ArticleImageUpload';
+import type { ArticleImageUploadRequest } from '../models/ArticleImageUploadRequest';
 import type { PaginatedArticleImageList } from '../models/PaginatedArticleImageList';
+import type { PatchedArticleImageRequest } from '../models/PatchedArticleImageRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ArticleImagesService {
+    /**
+     * CRUD for images embedded within a product buying guide / article body.
+     * Only Content Creators and Inventory Managers can add/manage images.
+     * @param page A page number within the paginated result set.
+     * @returns PaginatedArticleImageList
+     * @throws ApiError
+     */
     public static articleImagesList(
         page?: number,
     ): CancelablePromise<PaginatedArticleImageList> {
@@ -20,6 +30,13 @@ export class ArticleImagesService {
             },
         });
     }
+    /**
+     * CRUD for images embedded within a product buying guide / article body.
+     * Only Content Creators and Inventory Managers can add/manage images.
+     * @param formData
+     * @returns ArticleImage
+     * @throws ApiError
+     */
     public static articleImagesCreate(
         formData: ArticleImageRequest,
     ): CancelablePromise<ArticleImage> {
@@ -30,6 +47,13 @@ export class ArticleImagesService {
             mediaType: 'multipart/form-data',
         });
     }
+    /**
+     * CRUD for images embedded within a product buying guide / article body.
+     * Only Content Creators and Inventory Managers can add/manage images.
+     * @param id A unique integer value identifying this article image.
+     * @returns ArticleImage
+     * @throws ApiError
+     */
     public static articleImagesRetrieve(
         id: number,
     ): CancelablePromise<ArticleImage> {
@@ -41,6 +65,14 @@ export class ArticleImagesService {
             },
         });
     }
+    /**
+     * CRUD for images embedded within a product buying guide / article body.
+     * Only Content Creators and Inventory Managers can add/manage images.
+     * @param id A unique integer value identifying this article image.
+     * @param formData
+     * @returns ArticleImage
+     * @throws ApiError
+     */
     public static articleImagesUpdate(
         id: number,
         formData: ArticleImageRequest,
@@ -55,9 +87,17 @@ export class ArticleImagesService {
             mediaType: 'multipart/form-data',
         });
     }
+    /**
+     * CRUD for images embedded within a product buying guide / article body.
+     * Only Content Creators and Inventory Managers can add/manage images.
+     * @param id A unique integer value identifying this article image.
+     * @param formData
+     * @returns ArticleImage
+     * @throws ApiError
+     */
     public static articleImagesPartialUpdate(
         id: number,
-        formData?: ArticleImageRequest,
+        formData?: PatchedArticleImageRequest,
     ): CancelablePromise<ArticleImage> {
         return __request(OpenAPI, {
             method: 'PATCH',
@@ -69,6 +109,13 @@ export class ArticleImagesService {
             mediaType: 'multipart/form-data',
         });
     }
+    /**
+     * CRUD for images embedded within a product buying guide / article body.
+     * Only Content Creators and Inventory Managers can add/manage images.
+     * @param id A unique integer value identifying this article image.
+     * @returns void
+     * @throws ApiError
+     */
     public static articleImagesDestroy(
         id: number,
     ): CancelablePromise<void> {
@@ -78,6 +125,23 @@ export class ArticleImagesService {
             path: {
                 'id': id,
             },
+        });
+    }
+    /**
+     * Upload an image for embedding in a buying guide / article body.
+     * Returns the Cloudinary URL. Does NOT create a persistent ArticleImage record.
+     * @param formData
+     * @returns ArticleImageUpload
+     * @throws ApiError
+     */
+    public static articleImagesUploadCreate(
+        formData: ArticleImageUploadRequest,
+    ): CancelablePromise<ArticleImageUpload> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/article-images/upload/',
+            formData: formData,
+            mediaType: 'multipart/form-data',
         });
     }
 }

@@ -38,6 +38,10 @@ export type ProductList = {
      * Mark product as discontinued (no longer in catalog)
      */
     is_discontinued?: boolean;
+    /**
+     * Device launch/release date used for storefront sorting (newest first).
+     */
+    release_date?: string | null;
     readonly created_at?: string;
     readonly updated_at?: string;
     readonly created_by?: number | null;
@@ -74,6 +78,7 @@ export type ProductList = {
      */
     is_published?: boolean;
     readonly article?: ProductArticleSummary | null;
+    readonly articles?: Array<ProductArticleSummary>;
     /**
      * Link to product video (YouTube, Vimeo, etc.)
      */

@@ -9,3 +9,4 @@ export type PaginatedArticleImageList = {
     previous?: string | null;
     results: Array<ArticleImage>;
 };
+

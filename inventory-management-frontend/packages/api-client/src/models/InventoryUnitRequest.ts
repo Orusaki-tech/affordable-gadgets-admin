@@ -25,7 +25,7 @@ export type InventoryUnitRequest = {
      */
     date_sourced?: string | null;
     cost_of_unit: string;
-    selling_price: string;
+    selling_price?: string | null;
     /**
      * Original/list price used to show discounts (optional)
      */

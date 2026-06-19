@@ -14,6 +14,7 @@ import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useBrandsList } from '../hooks/useBrandsList';
 import { queryKeys } from '../hooks/queryKeys';
 import { RichTextEditor } from './RichTextEditor';
+import ProductVariantEditor from './ProductVariantEditor';
 
 interface ProductFormProps {
   product: ProductTemplate | null;
@@ -1319,6 +1320,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </small>
               </div>
             </div>
+          )}
+
+          {/* Product Variants: Inventory Managers and Superusers only */}
+          {(isInventoryManager || isSuperuser) && (
+            <ProductVariantEditor productId={product?.id ?? null} />
           )}
 
           {/* Product Images: Inventory Managers and Content Creators (and Superusers) can upload */}

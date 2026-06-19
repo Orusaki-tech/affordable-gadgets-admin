@@ -16,17 +16,20 @@ export class ImagesService {
      * (which are nested in ProductViewSet).
      * Uses IsContentCreatorOrInventoryManagerOrReadOnly.
      * @param page A page number within the paginated result set.
+     * @param product
      * @returns PaginatedProductImageList
      * @throws ApiError
      */
     public static imagesList(
         page?: number,
+        product?: number,
     ): CancelablePromise<PaginatedProductImageList> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/images/',
             query: {
                 'page': page,
+                'product': product,
             },
         });
     }

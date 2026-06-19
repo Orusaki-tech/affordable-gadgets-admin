@@ -11,9 +11,7 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ReturnRequestsService {
     /**
-     * ViewSet for managing return requests (bulk returns of reserved units).
-     * - Salespersons can create return requests for their reserved units
-     * - Inventory Managers can approve/reject return requests
+     * Override to inject batched net_holdings into context and avoid 3N queries in serializer.
      * @param page A page number within the paginated result set.
      * @returns PaginatedReturnRequestList
      * @throws ApiError
@@ -30,9 +28,7 @@ export class ReturnRequestsService {
         });
     }
     /**
-     * ViewSet for managing return requests (bulk returns of reserved units).
-     * - Salespersons can create return requests for their reserved units
-     * - Inventory Managers can approve/reject return requests
+     * Override create to provide better error handling.
      * @param requestBody
      * @returns ReturnRequest
      * @throws ApiError

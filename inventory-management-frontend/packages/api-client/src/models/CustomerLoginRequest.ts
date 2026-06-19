@@ -8,5 +8,6 @@
 export type CustomerLoginRequest = {
     username_or_email: string;
     password: string;
+    session_key?: string;
 };
 

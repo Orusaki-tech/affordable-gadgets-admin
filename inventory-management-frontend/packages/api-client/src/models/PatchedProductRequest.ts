@@ -36,6 +36,10 @@ export type PatchedProductRequest = {
      */
     is_discontinued?: boolean;
     /**
+     * Device launch/release date used for storefront sorting (newest first).
+     */
+    release_date?: string | null;
+    /**
      * SEO title (50-60 chars recommended)
      */
     meta_title?: string;

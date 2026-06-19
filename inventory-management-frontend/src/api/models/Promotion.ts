@@ -26,11 +26,11 @@ export type Promotion = {
      */
     promotion_code?: string;
     /**
-     * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales'
+     * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales', 'homepage_hero'
      */
     display_locations?: any;
     /**
-     * Position in stories carousel (1-5). 1 = Large banner, 2-5 = Grid positions
+     * Display order in carousels (e.g. homepage hero). Any positive integer; lower = earlier.
      */
     carousel_position?: number | null;
     /**

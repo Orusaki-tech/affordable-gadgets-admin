@@ -8,13 +8,35 @@ import { PageLoader } from '../components/PageLoader';
 
 const ProductForm = lazy(() => import('../components/ProductForm').then((m) => ({ default: m.ProductForm })));
 
-function articleStatus(product: ProductTemplate): string {
-  const a = (product as { article?: { is_published?: boolean; headline?: string; body?: string } | null })
-    .article;
-  if (!a) return 'None';
-  if (a.is_published) return 'Published';
-  if ((a.headline || '').trim() || (a.body || '').trim()) return 'Draft';
+type ArticleSummary = {
+  id?: number;
+  slug?: string;
+  headline?: string;
+  body?: string;
+  is_published?: boolean;
+  is_primary?: boolean;
+  category?: string;
+};
+
+type GuideRow = {
+  product: ProductTemplate;
+  article: ArticleSummary | null;
+};
+
+function articleStatus(article: ArticleSummary | null): string {
+  if (!article) return 'None';
+  if (article.is_published) return 'Published';
+  if ((article.headline || '').trim() || (article.body || '').trim()) return 'Draft';
   return 'None';
+}
+
+function collectGuideRows(product: ProductTemplate): GuideRow[] {
+  const articles = (product as { articles?: ArticleSummary[] }).articles;
+  if (Array.isArray(articles) && articles.length > 0) {
+    return articles.map((article) => ({ product, article }));
+  }
+  const legacy = (product as { article?: ArticleSummary | null }).article;
+  return [{ product, article: legacy ?? null }];
 }
 
 export default function ProductGuidesPage() {
@@ -23,6 +45,7 @@ export default function ProductGuidesPage() {
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebounce(search, 300);
   const [editingProduct, setEditingProduct] = useState<ProductTemplate | null>(null);
+  const [editingArticleId, setEditingArticleId] = useState<number | null>(null);
 
   const hasRole = useCallback(
     (code: string) => {
@@ -41,7 +64,20 @@ export default function ProductGuidesPage() {
     search: debouncedSearch.trim(),
   });
 
-  const rows = useMemo(() => products ?? [], [products]);
+  const rows = useMemo(
+    () => (products ?? []).flatMap((product) => collectGuideRows(product)),
+    [products]
+  );
+
+  const openEditor = (product: ProductTemplate, articleId: number | null) => {
+    setEditingProduct(product);
+    setEditingArticleId(articleId);
+  };
+
+  const closeEditor = () => {
+    setEditingProduct(null);
+    setEditingArticleId(null);
+  };
 
   if (profileLoading) {
     return <PageLoader />;
@@ -65,7 +101,7 @@ export default function ProductGuidesPage() {
         <div>
           <h1 style={{ margin: 0 }}>Buying guides (SEO)</h1>
           <p style={{ color: '#666', marginTop: '0.35rem' }}>
-            Manage per-product articles shown at <code>/products/&lt;slug&gt;/blog</code> on the storefront.
+            Manage articles shown at <code>/products/&lt;slug&gt;/blog/&lt;article-slug&gt;</code> on the storefront.
           </p>
         </div>
       </div>
@@ -81,35 +117,48 @@ export default function ProductGuidesPage() {
         />
       </div>
 
-      {error && (
-        <p style={{ color: '#c00' }}>{error.message}</p>
-      )}
+      {error && <p style={{ color: '#c00' }}>{error.message}</p>}
 
       <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
               <th style={{ padding: '0.5rem' }}>Product</th>
+              <th style={{ padding: '0.5rem' }}>Article</th>
               <th style={{ padding: '0.5rem' }}>Slug</th>
-              <th style={{ padding: '0.5rem' }}>Guide status</th>
+              <th style={{ padding: '0.5rem' }}>Status</th>
               <th style={{ padding: '0.5rem' }} />
             </tr>
           </thead>
           <tbody>
-            {rows.map((p) => (
-              <tr key={p.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '0.5rem' }}>{p.product_name}</td>
-                <td style={{ padding: '0.5rem' }}>{(p as { slug?: string }).slug || '—'}</td>
-                <td style={{ padding: '0.5rem' }}>{articleStatus(p)}</td>
-                <td style={{ padding: '0.5rem', textAlign: 'right' }}>
+            {rows.map(({ product, article }) => (
+              <tr key={`${product.id}-${article?.id ?? 'none'}`} style={{ borderBottom: '1px solid #eee' }}>
+                <td style={{ padding: '0.5rem' }}>{product.product_name}</td>
+                <td style={{ padding: '0.5rem' }}>
+                  {article?.headline?.trim() || '—'}
+                  {article?.is_primary ? ' (primary)' : ''}
+                </td>
+                <td style={{ padding: '0.5rem' }}>{article?.slug || '—'}</td>
+                <td style={{ padding: '0.5rem' }}>{articleStatus(article)}</td>
+                <td style={{ padding: '0.5rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button
                     type="button"
                     className="btn-primary"
-                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}
-                    onClick={() => setEditingProduct(p)}
+                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem', marginRight: '0.35rem' }}
+                    onClick={() => openEditor(product, article?.id ?? null)}
                   >
-                    Edit guide
+                    {article ? 'Edit' : 'Add article'}
                   </button>
+                  {article && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}
+                      onClick={() => openEditor(product, null)}
+                    >
+                      Add another
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -118,9 +167,15 @@ export default function ProductGuidesPage() {
       </div>
 
       <p style={{ marginTop: '1rem', color: '#666' }}>
-        Showing {rows.length} of {totalCount}
+        Showing {rows.length} article rows from {products?.length ?? 0} products ({totalCount} total products)
         {hasMore && (
-          <button type="button" className="btn-secondary" style={{ marginLeft: '0.75rem' }} onClick={() => loadMore()} disabled={isLoading}>
+          <button
+            type="button"
+            className="btn-secondary"
+            style={{ marginLeft: '0.75rem' }}
+            onClick={() => loadMore()}
+            disabled={isLoading}
+          >
             Load more
           </button>
         )}
@@ -131,8 +186,9 @@ export default function ProductGuidesPage() {
           <ProductForm
             product={editingProduct}
             variant="buyingGuide"
-            onClose={() => setEditingProduct(null)}
-            onSuccess={() => setEditingProduct(null)}
+            editingArticleId={editingArticleId}
+            onClose={closeEditor}
+            onSuccess={closeEditor}
           />
         </Suspense>
       )}

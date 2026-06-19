@@ -21,11 +21,11 @@ export type PromotionRequest = {
      */
     promotion_code?: string;
     /**
-     * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales'
+     * List of display locations: 'stories_carousel', 'special_offers', 'flash_sales', 'homepage_hero'
      */
     display_locations?: any;
     /**
-     * Position in stories carousel (1-5). 1 = Large banner, 2-5 = Grid positions
+     * Display order in carousels (e.g. homepage hero). Any positive integer; lower = earlier.
      */
     carousel_position?: number | null;
     /**
@@ -36,6 +36,14 @@ export type PromotionRequest = {
      * Fixed discount amount
      */
     discount_amount?: string | null;
+    /**
+     * Product showcased in storefront promo cards like the homepage hero.
+     */
+    featured_product?: number | null;
+    /**
+     * Explicit sale price to show and apply for the featured product.
+     */
+    featured_sale_price?: string | null;
     start_date: string;
     end_date: string;
     is_active?: boolean;

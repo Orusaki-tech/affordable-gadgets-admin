@@ -1,0 +1,16 @@
+steps:
+- name: 'curlimages/curl:latest'
+  args: ['-sSL', 'https://api.affordable-gadgetske.com/openapi.yaml', '-o', 'inventory-management-frontend/openapi.yaml']
+- name: 'gcr.io/cloud-builders/docker'
+  args:
+    - build
+    - '--build-arg'
+    - 'REACT_APP_API_BASE_URL=https://api.affordable-gadgetske.com/api/inventory'
+    - '-f'
+    - 'inventory-management-frontend/Dockerfile'
+    - '-t'
+    - 'us-east1-docker.pkg.dev/project-07850c05-c54d-486b-80a/ag-admin/ag-admin:production-latest'
+    - 'inventory-management-frontend/'
+images:
+- 'us-east1-docker.pkg.dev/project-07850c05-c54d-486b-80a/ag-admin/ag-admin:production-latest'
+timeout: 600s

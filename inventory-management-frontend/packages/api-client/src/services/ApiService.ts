@@ -12,6 +12,7 @@ import type { OrderHistoryRequestRequest } from '../models/OrderHistoryRequestRe
 import type { OrderOtpRequestRequest } from '../models/OrderOtpRequestRequest';
 import type { PaginatedCartList } from '../models/PaginatedCartList';
 import type { PaginatedProductAccessoryList } from '../models/PaginatedProductAccessoryList';
+import type { PaginatedPublicArticleCardList } from '../models/PaginatedPublicArticleCardList';
 import type { PaginatedPublicBundleList } from '../models/PaginatedPublicBundleList';
 import type { PaginatedPublicDeliveryRateList } from '../models/PaginatedPublicDeliveryRateList';
 import type { PaginatedPublicInventoryUnitPublicList } from '../models/PaginatedPublicInventoryUnitPublicList';
@@ -41,6 +42,20 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ApiService {
+    /**
+     * POST: Authenticate via Supabase JWT (Google OAuth).
+     * Accepts a Supabase access_token, verifies it, and returns a Django Token.
+     * Maps Supabase user to existing Django user by supabase_uid or email.
+     * Supports both admin and customer users.
+     * @returns any No response body
+     * @throws ApiError
+     */
+    public static apiAuthSupabaseCreate(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/auth/supabase/',
+        });
+    }
     /**
      * Custom token login view that updates last_login field.
      * Use this instead of the default obtain_auth_token for admin users.
@@ -173,6 +188,55 @@ export class ApiService {
             url: '/api/v1/public/accessories-link/{id}/',
             path: {
                 'id': id,
+            },
+        });
+    }
+    /**
+     * Published articles for blog card carousels and article index pages.
+     * @param brand
+     * @param category
+     * @param ordering Sort by published_at or -published_at (default).
+     * @param page
+     * @param pageSize
+     * @param product
+     * @returns PaginatedPublicArticleCardList
+     * @throws ApiError
+     */
+    public static apiV1PublicArticlesList(
+        brand?: string,
+        category?: string,
+        ordering?: string,
+        page?: number,
+        pageSize?: number,
+        product?: number,
+    ): CancelablePromise<PaginatedPublicArticleCardList> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/public/articles/',
+            query: {
+                'brand': brand,
+                'category': category,
+                'ordering': ordering,
+                'page': page,
+                'page_size': pageSize,
+                'product': product,
+            },
+        });
+    }
+    /**
+     * Published articles for blog card carousels and article index pages.
+     * @param slug
+     * @returns PublicProductArticle
+     * @throws ApiError
+     */
+    public static apiV1PublicArticlesRetrieve(
+        slug: string,
+    ): CancelablePromise<PublicProductArticle> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/public/articles/{slug}/',
+            path: {
+                'slug': slug,
             },
         });
     }
@@ -457,6 +521,18 @@ export class ApiService {
         });
     }
     /**
+     * Public endpoint to record user activity events.
+     * Accepts optional session_key for anonymous tracking before login.
+     * @returns any No response body
+     * @throws ApiError
+     */
+    public static apiV1PublicEventsCreate(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/v1/public/events/',
+        });
+    }
+    /**
      * Create a BNPL inquiry which is routed to Leads (Sales team).
      * @param requestBody
      * @returns any
@@ -649,7 +725,7 @@ export class ApiService {
         });
     }
     /**
-     * Published buying guide for a product (404 if missing or draft).
+     * Published primary buying guide for a product (404 if missing or draft).
      * @param productSlug
      * @returns PublicProductArticle
      * @throws ApiError
@@ -661,6 +737,57 @@ export class ApiService {
             method: 'GET',
             url: '/api/v1/public/products/by-slug/{product_slug}/article/',
             path: {
+                'product_slug': productSlug,
+            },
+        });
+    }
+    /**
+     * All published articles for a product.
+     * @param productSlug
+     * @param ordering Which field to use when ordering the results.
+     * @param page A page number within the paginated result set.
+     * @param pageSize Number of results to return per page.
+     * @param search A search term.
+     * @returns PaginatedPublicArticleCardList
+     * @throws ApiError
+     */
+    public static apiV1PublicProductsBySlugArticlesList(
+        productSlug: string,
+        ordering?: string,
+        page?: number,
+        pageSize?: number,
+        search?: string,
+    ): CancelablePromise<PaginatedPublicArticleCardList> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/public/products/by-slug/{product_slug}/articles/',
+            path: {
+                'product_slug': productSlug,
+            },
+            query: {
+                'ordering': ordering,
+                'page': page,
+                'page_size': pageSize,
+                'search': search,
+            },
+        });
+    }
+    /**
+     * Single published article for a product.
+     * @param articleSlug
+     * @param productSlug
+     * @returns PublicProductArticle
+     * @throws ApiError
+     */
+    public static apiV1PublicProductsBySlugArticlesRetrieve(
+        articleSlug: string,
+        productSlug: string,
+    ): CancelablePromise<PublicProductArticle> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/v1/public/products/by-slug/{product_slug}/articles/{article_slug}/',
+            path: {
+                'article_slug': articleSlug,
                 'product_slug': productSlug,
             },
         });

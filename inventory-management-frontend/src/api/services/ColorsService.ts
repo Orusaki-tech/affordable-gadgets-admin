@@ -11,8 +11,7 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class ColorsService {
     /**
-     * Color lookup table. Admin-only write, public read.
-     * Uses IsAdminOrReadOnly.
+     * Color lookup table. Inventory Manager write, all staff read.
      * @param page A page number within the paginated result set.
      * @returns PaginatedColorList
      * @throws ApiError
@@ -29,8 +28,7 @@ export class ColorsService {
         });
     }
     /**
-     * Color lookup table. Admin-only write, public read.
-     * Uses IsAdminOrReadOnly.
+     * Color lookup table. Inventory Manager write, all staff read.
      * @param requestBody
      * @returns Color
      * @throws ApiError
@@ -46,8 +44,7 @@ export class ColorsService {
         });
     }
     /**
-     * Color lookup table. Admin-only write, public read.
-     * Uses IsAdminOrReadOnly.
+     * Color lookup table. Inventory Manager write, all staff read.
      * @param id A unique integer value identifying this color.
      * @returns Color
      * @throws ApiError
@@ -64,8 +61,7 @@ export class ColorsService {
         });
     }
     /**
-     * Color lookup table. Admin-only write, public read.
-     * Uses IsAdminOrReadOnly.
+     * Color lookup table. Inventory Manager write, all staff read.
      * @param id A unique integer value identifying this color.
      * @param requestBody
      * @returns Color
@@ -86,8 +82,7 @@ export class ColorsService {
         });
     }
     /**
-     * Color lookup table. Admin-only write, public read.
-     * Uses IsAdminOrReadOnly.
+     * Color lookup table. Inventory Manager write, all staff read.
      * @param id A unique integer value identifying this color.
      * @param requestBody
      * @returns Color
@@ -108,8 +103,7 @@ export class ColorsService {
         });
     }
     /**
-     * Color lookup table. Admin-only write, public read.
-     * Uses IsAdminOrReadOnly.
+     * Color lookup table. Inventory Manager write, all staff read.
      * @param id A unique integer value identifying this color.
      * @returns void
      * @throws ApiError
