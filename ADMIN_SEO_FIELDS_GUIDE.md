@@ -90,31 +90,30 @@ In the Product Form, scroll down to find the **"SEO Fields"** section. The SEO f
 **Location:** Product Form → SEO Section → "URL Slug"
 
 **What it is:**
-- The URL-friendly version of `brand` + `model_series` (and `product_type` for separation)
-- Used in the product page URL: `yoursite.com/products/[slug]`
-- Auto-generated if left empty
+- The canonical URL path for the product page: `yoursite.com/products/[slug]`
+- Auto-generated from brand + model when left empty (no `-ph`/`-ac` suffixes)
 
 **How to fill it:**
 - **Format:** Lowercase, hyphens instead of spaces
-- **Example:** `iphone-15-pro-max-256gb-titanium`
-- **Auto-generation:** If you leave it empty, it will be auto-generated from `brand` + `model_series` (+ `product_type`)
+- **Example:** `samsung-galaxy-s26-ultra`
+- **Auto-generation:** Uses brand + model descriptor (deduplicated, max ~60 chars)
 
 **Best Practices:**
 - Use lowercase letters
 - Separate words with hyphens (`-`)
-- No spaces or special characters
-- Keep it concise but descriptive
-- Include key identifiers (model, storage, color)
+- No spaces, special characters, or type codes (`-ph`, `-ac`, `-tb`, `-lt`)
+- Keep it short: `brand-model-variant` (e.g. `apple-iphone-17-air`)
+- **Do not change slugs** on published products unless you intend a permanent URL migration (legacy URLs are redirected automatically)
 
 **Example Good Slugs:**
-- ✅ `samsung-galaxy-s24-ultra-512gb-phantom-black`
-- ✅ `xiaomi-redmi-note-13-pro-256gb-blue`
-- ✅ `iphone-15-pro-max-256gb-titanium`
+- ✅ `samsung-galaxy-s24-ultra`
+- ✅ `apple-iphone-17-air`
+- ✅ `google-pixel-8`
 
 **Example Bad Slugs:**
+- ❌ `samsung-galaxy-a57-samsung-galaxy-a57-ph` (duplicated words + internal type code)
+- ❌ `a` (too short, not descriptive)
 - ❌ `Samsung Galaxy S24` (has spaces and capital letters)
-- ❌ `samsung_galaxy_s24` (uses underscores instead of hyphens)
-- ❌ `samsung-galaxy-s24!!!` (has special characters)
 
 **Note:** The form automatically converts your input to lowercase and replaces spaces with hyphens.
 

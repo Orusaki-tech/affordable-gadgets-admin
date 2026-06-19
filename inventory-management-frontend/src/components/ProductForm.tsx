@@ -16,6 +16,7 @@ import { queryKeys } from '../hooks/queryKeys';
 import { OpenAPI } from '../api/core/OpenAPI';
 import { RichTextEditor } from './RichTextEditor';
 import ProductVariantEditor from './ProductVariantEditor';
+import { buildSeoProductSlug } from '../utils/seoSlug';
 
 interface VariantFormData {
   storage_gb?: number | null;
@@ -363,26 +364,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }));
   }, [product, productDetail, variant, editingArticleId]);
 
-  // Auto-generate slug from structured fields (brand + model_series + product_type)
+  // Auto-generate SEO-friendly slug from brand + model + product name
   useEffect(() => {
     if (!product && !isSlugManuallyEdited) {
-      const brand = formData.brand?.trim();
-      const modelSeries = formData.model_series?.trim();
-      const productType = formData.product_type?.trim();
-      const productName = formData.product_name?.trim();
-
-      const isMissing = (v?: string) => !v || v.trim() === "" || v.trim().toUpperCase() === "N/A";
-
-      const source = !isMissing(brand) && !isMissing(modelSeries) && !isMissing(productName)
-        ? [brand, modelSeries, productName, productType].filter(Boolean).join('-')
-        : productName;
-
-      if (!source) return;
-
-      const generatedSlug = source
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
+      const generatedSlug = buildSeoProductSlug({
+        brand: formData.brand,
+        modelSeries: formData.model_series,
+        productName: formData.product_name,
+      });
 
       if (generatedSlug && generatedSlug !== formData.slug) {
         setFormData(prev => ({ ...prev, slug: generatedSlug }));
@@ -391,7 +380,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   }, [
     formData.brand,
     formData.model_series,
-    formData.product_type,
     formData.product_name,
     formData.slug,
     product,
