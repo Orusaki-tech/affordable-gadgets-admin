@@ -66,7 +66,6 @@ export const DashboardPage: React.FC = () => {
   const isInventoryManager = hasRole('IM');
   const isMarketingManager = hasRole('MM') && !isSuperuser;
   const isContentCreator = hasRole('CC') && !isSuperuser;
-  const isOrderManager = hasRole('OM') && !isSuperuser;
   const canViewUnits = isSuperuser || isInventoryManager || isMarketingManager;
 
   // Fetch pending requests for salesperson
