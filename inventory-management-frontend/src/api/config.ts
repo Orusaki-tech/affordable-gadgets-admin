@@ -44,13 +44,36 @@ const patchGlobalFetchForNgrok = () => {
   globalWithFlag.__ngrokFetchPatched = true;
 };
 
+const INVENTORY_API_SUFFIX = '/api/inventory';
+
+/** Ensure OpenAPI base ends with /api/inventory (login uses /api/auth/ on the host root). */
+export const normalizeInventoryApiBase = (url: string): string => {
+  const normalized = url.replace(/\/$/, '');
+  if (normalized.endsWith(INVENTORY_API_SUFFIX)) {
+    return normalized;
+  }
+  // Common misconfig: API host only, e.g. https://api.example.com
+  if (/^https?:\/\/[^/]+$/i.test(normalized)) {
+    const fixed = `${normalized}${INVENTORY_API_SUFFIX}`;
+    console.warn(`⚠️ API base missing ${INVENTORY_API_SUFFIX}; using ${fixed}`);
+    return fixed;
+  }
+  if (normalized.endsWith('/api')) {
+    const fixed = `${normalized}/inventory`;
+    console.warn(`⚠️ API base missing /inventory suffix; using ${fixed}`);
+    return fixed;
+  }
+  return normalized;
+};
+
 // Configure base URL from environment variable or auto-detect from current hostname
 const getApiBaseUrl = () => {
   // If environment variable is set, use it
   if (process.env.REACT_APP_API_BASE_URL) {
-    console.log(`🔧 Using API URL from environment: ${process.env.REACT_APP_API_BASE_URL}`);
+    const resolved = normalizeInventoryApiBase(process.env.REACT_APP_API_BASE_URL);
+    console.log(`🔧 Using API URL from environment: ${resolved}`);
     console.log(`🔍 Environment check - NODE_ENV: ${process.env.NODE_ENV}, hostname: ${typeof window !== 'undefined' ? window.location.hostname : 'N/A'}`);
-    return process.env.REACT_APP_API_BASE_URL;
+    return resolved;
   }
   
     // Auto-detect based on current hostname (only for local development)

@@ -64,8 +64,10 @@ export const DashboardPage: React.FC = () => {
 
   const isSalesperson = hasRole('SP') && !isSuperuser;
   const isInventoryManager = hasRole('IM');
+  const isMarketingManager = hasRole('MM') && !isSuperuser;
   const isContentCreator = hasRole('CC') && !isSuperuser;
   const isOrderManager = hasRole('OM') && !isSuperuser;
+  const canViewUnits = isSuperuser || isInventoryManager || isMarketingManager;
 
   // Fetch pending requests for salesperson
   const { data: myReservations } = useQuery({
@@ -168,7 +170,7 @@ export const DashboardPage: React.FC = () => {
       
       return firstPage;
     },
-    enabled: !isLoadingProfile && (isSuperuser || isInventoryManager), // Superusers and Inventory Managers have full access
+    enabled: !isLoadingProfile && canViewUnits,
     retry: 1,
   });
 
@@ -263,7 +265,7 @@ export const DashboardPage: React.FC = () => {
             color="secondary"
           />
         </Grid>
-        {!isContentCreator && !isOrderManager && (
+        {canViewUnits && (
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
               title="Available Units"
@@ -506,8 +508,8 @@ export const DashboardPage: React.FC = () => {
         </Paper>
       )}
       
-      {/* Available Inventory Section - Only show for Inventory Managers and Superusers */}
-      {!isContentCreator && !isOrderManager && (
+      {/* Available Inventory Section - Superusers, Inventory Managers, Marketing Managers */}
+      {canViewUnits && (
         <Paper elevation={1} sx={{ p: 3, mb: 3 }}>
           <Typography variant="h5" component="h2" gutterBottom fontWeight="bold">
             Available Inventory
