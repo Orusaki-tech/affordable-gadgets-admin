@@ -93,6 +93,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     article_product_id: null as number | null,
     article_product_name: '',
     article_product_slug: '',
+    article_products: [] as Array<{ id: number; product_name: string; slug?: string }>,
     article_seo_title: '',
     article_seo_description: '',
     article_body: '',
@@ -249,6 +250,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         article_product_id: product?.id ?? null,
         article_product_name: product?.product_name || '',
         article_product_slug: (product as { slug?: string })?.slug || '',
+        article_products: product?.id
+          ? [
+              {
+                id: product.id,
+                product_name: product.product_name || '',
+                slug: (product as { slug?: string })?.slug || '',
+              },
+            ]
+          : [],
         article_seo_title: '',
         article_seo_description: '',
         article_body: '',
@@ -327,6 +337,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         article_product_id: null,
         article_product_name: '',
         article_product_slug: '',
+        article_products: [],
         article_seo_title: '',
         article_seo_description: '',
         article_body: '',
@@ -363,6 +374,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       slug?: string;
     }) => {
       if (cancelled || !article) return;
+      const linkedRaw = Array.isArray(article.products) ? (article.products as Array<Record<string, unknown>>) : [];
+      let linked = linkedRaw
+        .map((row) => ({
+          id: Number(row.id),
+          product_name: String(row.product_name || ''),
+          slug: String(row.slug || ''),
+        }))
+        .filter((row) => Number.isFinite(row.id));
+      if (linked.length === 0 && (productMeta?.id || typeof article.product === 'number')) {
+        const id = productMeta?.id ?? (article.product as number);
+        linked = [
+          {
+            id: Number(id),
+            product_name: productMeta?.name || String(article.product_name || ''),
+            slug: productMeta?.slug || String(article.product_slug || ''),
+          },
+        ];
+      }
+      const primary = linked[0];
       setFormData((prev) => ({
         ...prev,
         article_id: (article.id as number) ?? null,
@@ -374,15 +404,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         article_seo_description: String(article.seo_description || ''),
         article_body: String(article.body || ''),
         article_is_published: Boolean(article.is_published),
-        article_product_id:
-          productMeta?.id ??
-          (typeof article.product === 'number' ? article.product : prev.article_product_id),
-        article_product_name:
-          productMeta?.name ||
-          String(article.product_name || prev.article_product_name || ''),
-        article_product_slug:
-          productMeta?.slug ||
-          String(article.product_slug || prev.article_product_slug || ''),
+        article_products: linked,
+        article_product_id: primary?.id ?? null,
+        article_product_name: primary?.product_name || '',
+        article_product_slug: primary?.slug || '',
       }));
     };
 
@@ -738,9 +763,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   });
 
   const saveBuyingGuideArticle = async () => {
+    const productIds = formData.article_products.map((p) => p.id);
     const payload: Record<string, unknown> = {
       ...buildArticleNested(),
-      product_id: formData.article_product_id,
+      product_ids: productIds,
+      product_id: productIds[0] ?? null,
     };
     const { request: apiRequest } = await import('../api/core/request');
     if (formData.article_id) {
@@ -911,6 +938,59 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       ? `/products/${formData.article_product_slug}/blog/${formData.article_slug || '<slug>'}`
       : `/blog/${formData.article_slug || '<slug>'}`;
 
+    const addLinkedProduct = (p: ProductTemplate) => {
+      if (!p.id) return;
+      setFormData((prev) => {
+        if (prev.article_products.some((row) => row.id === p.id)) return prev;
+        const next = [
+          ...prev.article_products,
+          {
+            id: p.id!,
+            product_name: p.product_name || '',
+            slug: (p as { slug?: string }).slug || '',
+          },
+        ];
+        return {
+          ...prev,
+          article_products: next,
+          article_product_id: next[0]?.id ?? null,
+          article_product_name: next[0]?.product_name || '',
+          article_product_slug: next[0]?.slug || '',
+        };
+      });
+      setProductPickerSearch('');
+      setProductPickerOpen(false);
+    };
+
+    const removeLinkedProduct = (productId: number) => {
+      setFormData((prev) => {
+        const next = prev.article_products.filter((row) => row.id !== productId);
+        return {
+          ...prev,
+          article_products: next,
+          article_product_id: next[0]?.id ?? null,
+          article_product_name: next[0]?.product_name || '',
+          article_product_slug: next[0]?.slug || '',
+          article_is_primary: next.length ? prev.article_is_primary : false,
+        };
+      });
+    };
+
+    const setPrimaryProduct = (productId: number) => {
+      setFormData((prev) => {
+        const selected = prev.article_products.find((row) => row.id === productId);
+        if (!selected) return prev;
+        const next = [selected, ...prev.article_products.filter((row) => row.id !== productId)];
+        return {
+          ...prev,
+          article_products: next,
+          article_product_id: selected.id,
+          article_product_name: selected.product_name,
+          article_product_slug: selected.slug || '',
+        };
+      });
+    };
+
     return (
       <div className="modal-overlay modal-overlay-fullscreen" onClick={onClose}>
         <div className="modal-content modal-content-fullscreen" onClick={(e) => e.stopPropagation()}>
@@ -930,49 +1010,68 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
 
             <div className="form-group">
-              <label htmlFor="article_product_picker">Assigned product (optional)</label>
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-                <input
-                  id="article_product_picker"
-                  type="text"
-                  value={
-                    productPickerOpen
-                      ? productPickerSearch
-                      : formData.article_product_name || ''
-                  }
-                  onFocus={() => {
-                    setProductPickerOpen(true);
-                    setProductPickerSearch(formData.article_product_name || '');
-                  }}
-                  onChange={(e) => {
-                    setProductPickerOpen(true);
-                    setProductPickerSearch(e.target.value);
-                  }}
-                  disabled={isLoading}
-                  placeholder="Search products to assign… leave empty for a general blog"
-                  style={{ flex: 1, minWidth: 220 }}
-                />
-                {formData.article_product_id != null && (
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    disabled={isLoading}
-                    onClick={() => {
-                      setFormData((prev) => ({
-                        ...prev,
-                        article_product_id: null,
-                        article_product_name: '',
-                        article_product_slug: '',
-                        article_is_primary: false,
-                      }));
-                      setProductPickerSearch('');
-                      setProductPickerOpen(false);
+              <label htmlFor="article_product_picker">Associated products</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                {formData.article_products.length === 0 && (
+                  <span style={{ color: '#888', fontSize: '0.9rem' }}>None — general blog</span>
+                )}
+                {formData.article_products.map((row, index) => (
+                  <span
+                    key={row.id}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.25rem 0.55rem',
+                      borderRadius: 999,
+                      background: index === 0 ? 'rgba(212, 175, 55, 0.2)' : 'rgba(127,127,127,0.15)',
+                      border: '1px solid rgba(127,127,127,0.25)',
+                      fontSize: '0.85rem',
                     }}
                   >
-                    Clear product
-                  </button>
-                )}
+                    {row.product_name}
+                    {index === 0 ? ' · primary' : ''}
+                    {index !== 0 && (
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem' }}
+                        disabled={isLoading}
+                        onClick={() => setPrimaryProduct(row.id)}
+                      >
+                        Make primary
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      aria-label={`Remove ${row.product_name}`}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontSize: '1rem',
+                        lineHeight: 1,
+                      }}
+                      disabled={isLoading}
+                      onClick={() => removeLinkedProduct(row.id)}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
               </div>
+              <input
+                id="article_product_picker"
+                type="text"
+                value={productPickerSearch}
+                onFocus={() => setProductPickerOpen(true)}
+                onChange={(e) => {
+                  setProductPickerOpen(true);
+                  setProductPickerSearch(e.target.value);
+                }}
+                disabled={isLoading}
+                placeholder="Search and add products…"
+              />
               {productPickerOpen && (
                 <div
                   style={{
@@ -984,40 +1083,35 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     background: 'var(--md-surface, #fff)',
                   }}
                 >
-                  {productPickerResults.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      style={{
-                        display: 'block',
-                        width: '100%',
-                        textAlign: 'left',
-                        padding: '0.5rem 0.75rem',
-                        border: 'none',
-                        borderBottom: '1px solid #eee',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          article_product_id: p.id ?? null,
-                          article_product_name: p.product_name || '',
-                          article_product_slug: (p as { slug?: string }).slug || '',
-                        }));
-                        setProductPickerSearch(p.product_name || '');
-                        setProductPickerOpen(false);
-                      }}
-                    >
-                      {p.product_name}
-                      {(p as { slug?: string }).slug ? (
-                        <span style={{ color: '#888', marginLeft: 8, fontSize: '0.85rem' }}>
-                          {(p as { slug?: string }).slug}
-                        </span>
-                      ) : null}
-                    </button>
-                  ))}
-                  {productPickerResults.length === 0 && (
+                  {productPickerResults
+                    .filter((p) => !formData.article_products.some((row) => row.id === p.id))
+                    .map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '0.5rem 0.75rem',
+                          border: 'none',
+                          borderBottom: '1px solid #eee',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => addLinkedProduct(p)}
+                      >
+                        {p.product_name}
+                        {(p as { slug?: string }).slug ? (
+                          <span style={{ color: '#888', marginLeft: 8, fontSize: '0.85rem' }}>
+                            {(p as { slug?: string }).slug}
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  {productPickerResults.filter(
+                    (p) => !formData.article_products.some((row) => row.id === p.id)
+                  ).length === 0 && (
                     <p style={{ padding: '0.75rem', margin: 0, color: '#666', fontSize: '0.9rem' }}>
                       No products found
                     </p>
@@ -1025,7 +1119,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 </div>
               )}
               <small style={{ color: '#666' }}>
-                General blogs publish at <code>/blog/&lt;slug&gt;</code>. Assign a product to also show them on that product page.
+                Add every product this blog should appear on. The primary product controls the
+                canonical <code>/products/…/blog/…</code> URL; with no products it publishes at{' '}
+                <code>/blog/&lt;slug&gt;</code>.
               </small>
             </div>
 
@@ -1057,7 +1153,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </select>
             </div>
 
-            {formData.article_product_id != null && (
+            {formData.article_products.length > 0 && (
               <div className="form-group">
                 <label htmlFor="article_is_primary_bg">
                   <input
@@ -1067,7 +1163,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     onChange={(e) => setFormData({ ...formData, article_is_primary: e.target.checked })}
                     disabled={isLoading}
                   />{' '}
-                  Primary article for this product (default /blog redirect)
+                  Primary article for the primary product (default /blog redirect)
                 </label>
               </div>
             )}

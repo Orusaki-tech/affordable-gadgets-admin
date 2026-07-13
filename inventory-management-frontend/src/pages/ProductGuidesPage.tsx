@@ -18,6 +18,7 @@ type ArticleRow = {
   product?: number | null;
   product_name?: string | null;
   product_slug?: string | null;
+  products?: Array<{ id: number; product_name?: string; slug?: string }>;
   updated_at?: string;
 };
 
@@ -33,6 +34,14 @@ function livePath(article: ArticleRow): string {
   }
   if (article.slug) return `/blog/${article.slug}`;
   return '—';
+}
+
+function productLabels(article: ArticleRow): string {
+  const linked = article.products || [];
+  if (linked.length > 0) {
+    return linked.map((p) => p.product_name || `#${p.id}`).join(', ');
+  }
+  return article.product_name?.trim() || '— General';
 }
 
 export default function ProductGuidesPage() {
@@ -178,7 +187,7 @@ export default function ProductGuidesPage() {
           <thead>
             <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
               <th style={{ padding: '0.5rem' }}>Title</th>
-              <th style={{ padding: '0.5rem' }}>Product</th>
+              <th style={{ padding: '0.5rem' }}>Products</th>
               <th style={{ padding: '0.5rem' }}>Slug / URL</th>
               <th style={{ padding: '0.5rem' }}>Status</th>
               <th style={{ padding: '0.5rem' }} />
@@ -191,7 +200,7 @@ export default function ProductGuidesPage() {
                   {article.headline?.trim() || 'Untitled'}
                   {article.is_primary ? ' (primary)' : ''}
                 </td>
-                <td style={{ padding: '0.5rem' }}>{article.product_name?.trim() || '— General'}</td>
+                <td style={{ padding: '0.5rem' }}>{productLabels(article)}</td>
                 <td style={{ padding: '0.5rem', fontSize: '0.85rem' }}>
                   <code>{livePath(article)}</code>
                 </td>
