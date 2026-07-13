@@ -46,16 +46,35 @@ function livePath(article: ArticleRow): string {
   return '—';
 }
 
-function linkedProducts(article: ArticleRow) {
+function linkedProducts(
+  article: ArticleRow,
+  nameById: Record<number, { product_name: string; slug?: string }>
+) {
   if (Array.isArray(article.products) && article.products.length > 0) {
-    return article.products;
+    return article.products.map((product) => {
+      const resolved = nameById[product.id];
+      return {
+        ...product,
+        product_name:
+          product.product_name?.trim() ||
+          resolved?.product_name ||
+          article.product_name ||
+          `Product #${product.id}`,
+        slug: product.slug || resolved?.slug || article.product_slug || undefined,
+      };
+    });
   }
   if (article.product_name || article.product) {
+    const id = article.product || 0;
+    const resolved = id ? nameById[id] : undefined;
     return [
       {
-        id: article.product || 0,
-        product_name: article.product_name || `Product #${article.product}`,
-        slug: article.product_slug || undefined,
+        id,
+        product_name:
+          article.product_name?.trim() ||
+          resolved?.product_name ||
+          (id ? `Product #${id}` : 'Unknown product'),
+        slug: article.product_slug || resolved?.slug || undefined,
       },
     ];
   }
@@ -77,6 +96,9 @@ export default function ProductGuidesPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingArticleId, setEditingArticleId] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<ProductTemplate | null>(null);
+  const [productNameById, setProductNameById] = useState<
+    Record<number, { product_name: string; slug?: string }>
+  >({});
 
   const hasRole = useCallback(
     (code: string) => {
@@ -122,6 +144,57 @@ export default function ProductGuidesPage() {
     if (!canAccess) return;
     loadArticles(1, false);
   }, [canAccess, loadArticles]);
+
+  useEffect(() => {
+    const missingIds = new Set<number>();
+    for (const article of rows) {
+      if (article.product && !article.product_name?.trim()) {
+        missingIds.add(article.product);
+      }
+      for (const product of article.products || []) {
+        if (product.id && !product.product_name?.trim()) {
+          missingIds.add(product.id);
+        }
+      }
+    }
+    if (missingIds.size === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const entries: Record<number, { product_name: string; slug?: string }> = {};
+      await Promise.all(
+        Array.from(missingIds).map(async (id) => {
+          try {
+            const product = await ProductsService.productsRetrieve(id);
+            entries[id] = {
+              product_name: product.product_name || `Product #${id}`,
+              slug: (product as { slug?: string }).slug,
+            };
+          } catch {
+            entries[id] = { product_name: `Product #${id}` };
+          }
+        })
+      );
+      if (!cancelled) {
+        setProductNameById((prev) => {
+          const next = { ...prev };
+          let changed = false;
+          for (const [id, value] of Object.entries(entries)) {
+            const numId = Number(id);
+            if (!prev[numId]) {
+              next[numId] = value;
+              changed = true;
+            }
+          }
+          return changed ? next : prev;
+        });
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rows]);
 
   const openCreate = () => {
     setEditingArticleId(null);
@@ -209,7 +282,13 @@ export default function ProductGuidesPage() {
       <div className="blogs-grid">
         {rows.map((article) => {
           const status = articleStatus(article);
-          const products = linkedProducts(article);
+          const products = linkedProducts(article, productNameById);
+          const primarySlug = products[0]?.slug || article.product_slug;
+          const path =
+            primarySlug && article.slug
+              ? `/products/${primarySlug}/blog/${article.slug}`
+              : livePath(article);
+
           return (
             <article key={article.id ?? article.slug} className="blog-card">
               <div className="blog-card-top">
@@ -238,13 +317,13 @@ export default function ProductGuidesPage() {
                         className={`blog-chip ${index === 0 ? 'is-primary' : ''}`}
                         title={product.slug || undefined}
                       >
-                        {product.product_name || `#${product.id}`}
+                        {product.product_name}
                         {index === 0 ? ' · primary' : ''}
                       </span>
                     ))
                   )}
                 </div>
-                <div className="blog-card-url">{livePath(article)}</div>
+                <div className="blog-card-url">{path}</div>
               </div>
 
               <div className="blog-card-actions">
