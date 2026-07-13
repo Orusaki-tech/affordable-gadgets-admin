@@ -665,7 +665,13 @@ export const AdminLayout: React.FC = () => {
               >
                 {sidebarOpen ? '✕' : '☰'}
               </button>
-              <h1 className="page-title">{location.pathname.split('/').pop()?.replace('-', ' ') || 'Dashboard'}</h1>
+              <h1 className="page-title">
+                {(() => {
+                  const segment = location.pathname.split('/').pop() || 'dashboard';
+                  if (segment === 'product-guides') return 'Blogs';
+                  return segment.replace(/-/g, ' ');
+                })()}
+              </h1>
             </div>
             <NotificationBell />
           </div>

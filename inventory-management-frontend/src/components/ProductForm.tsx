@@ -17,6 +17,7 @@ import { OpenAPI } from '../api/core/OpenAPI';
 import { RichTextEditor } from './RichTextEditor';
 import ProductVariantEditor from './ProductVariantEditor';
 import { buildSeoProductSlug } from '../utils/seoSlug';
+import '../styles/components/BlogsAdmin.css';
 
 interface VariantFormData {
   storage_gb?: number | null;
@@ -992,257 +993,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     };
 
     return (
-      <div className="modal-overlay modal-overlay-fullscreen" onClick={onClose}>
-        <div className="modal-content modal-content-fullscreen" onClick={(e) => e.stopPropagation()}>
-          <div className="modal-header">
-            <h2>{formData.article_id ? 'Edit blog' : 'Create blog'}</h2>
-            <button type="button" className="modal-close" onClick={onClose}>
-              ×
-            </button>
-          </div>
-          <p style={{ color: '#666', fontSize: '0.9rem', margin: '0.75rem 1.25rem 0', lineHeight: 1.45 }}>
-            Live at <code>{liveUrl}</code>
-          </p>
-
-          <form onSubmit={handleSubmit} className="form-section blog-editor-form">
-            <div className="form-section-divider" id="buying-guide">
-              <h3>Blog content</h3>
+      <div className="blog-workspace" role="dialog" aria-modal="true" aria-labelledby="blog-workspace-title">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <header className="blog-workspace-header">
+            <div className="blog-workspace-header-left">
+              <h2 id="blog-workspace-title">{formData.article_id ? 'Edit blog' : 'Create blog'}</h2>
+              <p className="blog-workspace-url">
+                Live at <code>{liveUrl}</code>
+              </p>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="article_product_picker">Associated products</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                {formData.article_products.length === 0 && (
-                  <span style={{ color: '#888', fontSize: '0.9rem' }}>None — general blog</span>
-                )}
-                {formData.article_products.map((row, index) => (
-                  <span
-                    key={row.id}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      padding: '0.25rem 0.55rem',
-                      borderRadius: 999,
-                      background: index === 0 ? 'rgba(212, 175, 55, 0.2)' : 'rgba(127,127,127,0.15)',
-                      border: '1px solid rgba(127,127,127,0.25)',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    {row.product_name}
-                    {index === 0 ? ' · primary' : ''}
-                    {index !== 0 && (
-                      <button
-                        type="button"
-                        className="btn-secondary"
-                        style={{ fontSize: '0.75rem', padding: '0.1rem 0.4rem' }}
-                        disabled={isLoading}
-                        onClick={() => setPrimaryProduct(row.id)}
-                      >
-                        Make primary
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      aria-label={`Remove ${row.product_name}`}
-                      style={{
-                        border: 'none',
-                        background: 'transparent',
-                        cursor: 'pointer',
-                        fontSize: '1rem',
-                        lineHeight: 1,
-                      }}
-                      disabled={isLoading}
-                      onClick={() => removeLinkedProduct(row.id)}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <input
-                id="article_product_picker"
-                type="text"
-                value={productPickerSearch}
-                onFocus={() => setProductPickerOpen(true)}
-                onChange={(e) => {
-                  setProductPickerOpen(true);
-                  setProductPickerSearch(e.target.value);
-                }}
-                disabled={isLoading}
-                placeholder="Search and add products…"
-              />
-              {productPickerOpen && (
-                <div
-                  style={{
-                    marginTop: '0.35rem',
-                    border: '1px solid #ddd',
-                    borderRadius: 6,
-                    maxHeight: 200,
-                    overflowY: 'auto',
-                    background: 'var(--md-surface, #fff)',
-                  }}
-                >
-                  {productPickerResults
-                    .filter((p) => !formData.article_products.some((row) => row.id === p.id))
-                    .map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        style={{
-                          display: 'block',
-                          width: '100%',
-                          textAlign: 'left',
-                          padding: '0.5rem 0.75rem',
-                          border: 'none',
-                          borderBottom: '1px solid #eee',
-                          background: 'transparent',
-                          cursor: 'pointer',
-                        }}
-                        onClick={() => addLinkedProduct(p)}
-                      >
-                        {p.product_name}
-                        {(p as { slug?: string }).slug ? (
-                          <span style={{ color: '#888', marginLeft: 8, fontSize: '0.85rem' }}>
-                            {(p as { slug?: string }).slug}
-                          </span>
-                        ) : null}
-                      </button>
-                    ))}
-                  {productPickerResults.filter(
-                    (p) => !formData.article_products.some((row) => row.id === p.id)
-                  ).length === 0 && (
-                    <p style={{ padding: '0.75rem', margin: 0, color: '#666', fontSize: '0.9rem' }}>
-                      No products found
-                    </p>
-                  )}
-                </div>
-              )}
-              <small style={{ color: '#666' }}>
-                Add every product this blog should appear on. The primary product controls the
-                canonical <code>/products/…/blog/…</code> URL; with no products it publishes at{' '}
-                <code>/blog/&lt;slug&gt;</code>.
-              </small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="article_slug_bg">Article slug</label>
-              <input
-                id="article_slug_bg"
-                type="text"
-                value={formData.article_slug}
-                onChange={(e) => setFormData({ ...formData, article_slug: e.target.value })}
-                disabled={isLoading}
-                placeholder="auto-generated from headline if empty"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="article_category_bg">Category</label>
-              <select
-                id="article_category_bg"
-                value={formData.article_category}
-                onChange={(e) => setFormData({ ...formData, article_category: e.target.value })}
-                disabled={isLoading}
-              >
-                {ARTICLE_CATEGORIES.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {formData.article_products.length > 0 && (
-              <div className="form-group">
-                <label htmlFor="article_is_primary_bg">
-                  <input
-                    id="article_is_primary_bg"
-                    type="checkbox"
-                    checked={formData.article_is_primary}
-                    onChange={(e) => setFormData({ ...formData, article_is_primary: e.target.checked })}
-                    disabled={isLoading}
-                  />{' '}
-                  Primary article for the primary product (default /blog redirect)
-                </label>
-              </div>
-            )}
-
-            <div className="form-group">
-              <label htmlFor="article_headline_bg">Headline (H1)</label>
-              <input
-                id="article_headline_bg"
-                type="text"
-                value={formData.article_headline}
-                onChange={(e) => setFormData({ ...formData, article_headline: e.target.value })}
-                disabled={isLoading}
-                maxLength={255}
-                placeholder="e.g. The iPhone Story: Six Eras That Changed Everything"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="article_seo_title_bg">
-                SEO title (page title)
-                <span
-                  className="char-count"
-                  style={{
-                    float: 'right',
-                    fontWeight: 'normal',
-                    color: formData.article_seo_title.length > 60 ? '#dc3545' : '#666',
-                  }}
-                >
-                  {formData.article_seo_title.length}/60
-                </span>
-              </label>
-              <input
-                id="article_seo_title_bg"
-                type="text"
-                maxLength={60}
-                value={formData.article_seo_title}
-                onChange={(e) => setFormData({ ...formData, article_seo_title: e.target.value })}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="article_seo_description_bg">
-                Meta description
-                <span
-                  className="char-count"
-                  style={{
-                    float: 'right',
-                    fontWeight: 'normal',
-                    color: formData.article_seo_description.length > 160 ? '#dc3545' : '#666',
-                  }}
-                >
-                  {formData.article_seo_description.length}/160
-                </span>
-              </label>
-              <textarea
-                id="article_seo_description_bg"
-                maxLength={160}
-                rows={3}
-                value={formData.article_seo_description}
-                onChange={(e) => setFormData({ ...formData, article_seo_description: e.target.value })}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="form-group blog-editor-body">
-              <label htmlFor="article_body_bg">Body</label>
-              <RichTextEditor
-                key={formData.article_id ?? `new-${formData.article_product_id ?? 'standalone'}`}
-                value={formData.article_body}
-                onChange={(body) => setFormData((prev) => ({ ...prev, article_body: body }))}
-                contentFormat="markdown"
-                placeholder="Start writing your blog…"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="form-group">
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+            <div className="blog-workspace-header-actions">
+              <label className="blog-publish-row">
                 <input
                   type="checkbox"
                   checked={formData.article_is_published}
@@ -1251,20 +1012,214 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   }
                   disabled={isLoading}
                 />
-                <span>Published on storefront</span>
+                <span>Published</span>
               </label>
-            </div>
-
-            <div className="form-actions">
               <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
                 Cancel
               </button>
               <button type="submit" className="btn-primary" disabled={isLoading}>
-                {isLoading ? 'Saving…' : 'Save blog'}
+                {isLoading ? 'Saving…' : 'Save'}
               </button>
             </div>
-          </form>
-        </div>
+          </header>
+
+          <div className="blog-workspace-body">
+            <div className="blog-workspace-layout">
+              <div className="blog-workspace-main">
+                <div className="blog-panel">
+                  <h3>Story</h3>
+                  <div className="form-group">
+                    <label htmlFor="article_headline_bg">Headline</label>
+                    <input
+                      id="article_headline_bg"
+                      className="blog-headline-input"
+                      type="text"
+                      value={formData.article_headline}
+                      onChange={(e) => setFormData({ ...formData, article_headline: e.target.value })}
+                      disabled={isLoading}
+                      maxLength={255}
+                      placeholder="Give this post a clear, specific headline"
+                    />
+                  </div>
+                  <div className="form-group blog-editor-body" style={{ marginBottom: 0 }}>
+                    <label htmlFor="article_body_bg">Body</label>
+                    <RichTextEditor
+                      key={formData.article_id ?? `new-${formData.article_product_id ?? 'standalone'}`}
+                      value={formData.article_body}
+                      onChange={(body) => setFormData((prev) => ({ ...prev, article_body: body }))}
+                      contentFormat="markdown"
+                      placeholder="Start writing…"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <aside className="blog-workspace-side">
+                <div className="blog-panel">
+                  <h3>Products</h3>
+                  <div className="blog-product-chips">
+                    {formData.article_products.length === 0 && (
+                      <span className="blog-chip is-general">General blog — no product</span>
+                    )}
+                    {formData.article_products.map((row, index) => (
+                      <span
+                        key={row.id}
+                        className={`blog-product-chip ${index === 0 ? 'is-primary' : ''}`}
+                      >
+                        <span>
+                          {row.product_name}
+                          {index === 0 ? ' · primary' : ''}
+                        </span>
+                        {index !== 0 && (
+                          <button
+                            type="button"
+                            className="chip-action"
+                            disabled={isLoading}
+                            onClick={() => setPrimaryProduct(row.id)}
+                          >
+                            primary
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${row.product_name}`}
+                          disabled={isLoading}
+                          onClick={() => removeLinkedProduct(row.id)}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    id="article_product_picker"
+                    type="search"
+                    value={productPickerSearch}
+                    onFocus={() => setProductPickerOpen(true)}
+                    onChange={(e) => {
+                      setProductPickerOpen(true);
+                      setProductPickerSearch(e.target.value);
+                    }}
+                    disabled={isLoading}
+                    placeholder="Add a product…"
+                  />
+                  {productPickerOpen && (
+                    <div className="blog-picker-dropdown">
+                      {productPickerResults
+                        .filter((p) => !formData.article_products.some((row) => row.id === p.id))
+                        .map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            className="blog-picker-option"
+                            onClick={() => addLinkedProduct(p)}
+                          >
+                            {p.product_name}
+                          </button>
+                        ))}
+                      {productPickerResults.filter(
+                        (p) => !formData.article_products.some((row) => row.id === p.id)
+                      ).length === 0 && (
+                        <p style={{ padding: '0.75rem', margin: 0, color: '#888', fontSize: '0.85rem' }}>
+                          No matches
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {formData.article_products.length > 0 && (
+                    <label className="blog-publish-row" style={{ marginTop: '0.85rem' }}>
+                      <input
+                        id="article_is_primary_bg"
+                        type="checkbox"
+                        checked={formData.article_is_primary}
+                        onChange={(e) => setFormData({ ...formData, article_is_primary: e.target.checked })}
+                        disabled={isLoading}
+                      />
+                      <span>Primary article for primary product</span>
+                    </label>
+                  )}
+                </div>
+
+                <div className="blog-panel">
+                  <h3>Details</h3>
+                  <div className="form-group">
+                    <label htmlFor="article_category_bg">Category</label>
+                    <select
+                      id="article_category_bg"
+                      value={formData.article_category}
+                      onChange={(e) => setFormData({ ...formData, article_category: e.target.value })}
+                      disabled={isLoading}
+                    >
+                      {ARTICLE_CATEGORIES.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="article_slug_bg">Slug</label>
+                    <input
+                      id="article_slug_bg"
+                      type="text"
+                      value={formData.article_slug}
+                      onChange={(e) => setFormData({ ...formData, article_slug: e.target.value })}
+                      disabled={isLoading}
+                      placeholder="auto from headline"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="article_seo_title_bg">
+                      SEO title
+                      <span
+                        className="char-count"
+                        style={{
+                          float: 'right',
+                          fontWeight: 'normal',
+                          color: formData.article_seo_title.length > 60 ? '#f87171' : '#9aa0a6',
+                        }}
+                      >
+                        {formData.article_seo_title.length}/60
+                      </span>
+                    </label>
+                    <input
+                      id="article_seo_title_bg"
+                      type="text"
+                      maxLength={60}
+                      value={formData.article_seo_title}
+                      onChange={(e) => setFormData({ ...formData, article_seo_title: e.target.value })}
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label htmlFor="article_seo_description_bg">
+                      Meta description
+                      <span
+                        className="char-count"
+                        style={{
+                          float: 'right',
+                          fontWeight: 'normal',
+                          color: formData.article_seo_description.length > 160 ? '#f87171' : '#9aa0a6',
+                        }}
+                      >
+                        {formData.article_seo_description.length}/160
+                      </span>
+                    </label>
+                    <textarea
+                      id="article_seo_description_bg"
+                      maxLength={160}
+                      rows={4}
+                      value={formData.article_seo_description}
+                      onChange={(e) => setFormData({ ...formData, article_seo_description: e.target.value })}
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </form>
       </div>
     );
   }

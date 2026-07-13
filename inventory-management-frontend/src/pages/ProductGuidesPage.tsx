@@ -4,6 +4,7 @@ import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useDebounce } from '../hooks/useDebounce';
 import { ArticlesService, ProductsService, type ProductTemplate } from '../api/index';
 import { PageLoader } from '../components/PageLoader';
+import '../styles/components/BlogsAdmin.css';
 
 const ProductForm = lazy(() => import('../components/ProductForm').then((m) => ({ default: m.ProductForm })));
 
@@ -22,10 +23,19 @@ type ArticleRow = {
   updated_at?: string;
 };
 
-function articleStatus(article: ArticleRow): string {
+const CATEGORY_LABELS: Record<string, string> = {
+  buying_guide: 'Buying Guide',
+  history_guide: 'History Guide',
+  informational_guide: 'Informational Guide',
+  tech_tip: 'Tech Tip',
+  news: 'News',
+  general: 'General',
+};
+
+function articleStatus(article: ArticleRow): 'Published' | 'Draft' | 'Empty' {
   if (article.is_published) return 'Published';
   if ((article.headline || '').trim() || (article.body || '').trim()) return 'Draft';
-  return 'None';
+  return 'Empty';
 }
 
 function livePath(article: ArticleRow): string {
@@ -36,12 +46,20 @@ function livePath(article: ArticleRow): string {
   return '—';
 }
 
-function productLabels(article: ArticleRow): string {
-  const linked = article.products || [];
-  if (linked.length > 0) {
-    return linked.map((p) => p.product_name || `#${p.id}`).join(', ');
+function linkedProducts(article: ArticleRow) {
+  if (Array.isArray(article.products) && article.products.length > 0) {
+    return article.products;
   }
-  return article.product_name?.trim() || '— General';
+  if (article.product_name || article.product) {
+    return [
+      {
+        id: article.product || 0,
+        product_name: article.product_name || `Product #${article.product}`,
+        slug: article.product_slug || undefined,
+      },
+    ];
+  }
+  return [];
 }
 
 export default function ProductGuidesPage() {
@@ -143,7 +161,7 @@ export default function ProductGuidesPage() {
 
   if (!canAccess) {
     return (
-      <div style={{ padding: '2rem' }}>
+      <div className="blogs-page">
         <h2>Access denied</h2>
         <p>Blogs can be edited by Content Creators and Inventory Managers.</p>
         <button type="button" className="btn-primary" onClick={() => navigate('/dashboard')}>
@@ -154,14 +172,13 @@ export default function ProductGuidesPage() {
   }
 
   return (
-    <div style={{ padding: '1.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '1rem' }}>
+    <div className="blogs-page">
+      <div className="blogs-page-header">
         <div>
-          <h1 style={{ margin: 0 }}>Blogs</h1>
-          <p style={{ color: '#666', marginTop: '0.35rem' }}>
-            Create general posts or product guides. Product-linked posts live at{' '}
-            <code>/products/&lt;slug&gt;/blog/&lt;article-slug&gt;</code>; standalone posts at{' '}
-            <code>/blog/&lt;article-slug&gt;</code>.
+          <h1>Blogs</h1>
+          <p>
+            Write general posts or attach them to one or more products. Product-linked posts appear on
+            product pages; general posts live at <code>/blog/&lt;slug&gt;</code>.
           </p>
         </div>
         <button type="button" className="btn-primary" onClick={openCreate}>
@@ -169,79 +186,106 @@ export default function ProductGuidesPage() {
         </button>
       </div>
 
-      <div className="form-group" style={{ maxWidth: 420 }}>
-        <label htmlFor="blogs-search">Search blogs</label>
-        <input
-          id="blogs-search"
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Headline, slug, product…"
-        />
+      <div className="blogs-toolbar">
+        <div className="blogs-search form-group" style={{ margin: 0 }}>
+          <label htmlFor="blogs-search" className="sr-only">
+            Search blogs
+          </label>
+          <input
+            id="blogs-search"
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by headline, slug, or product…"
+          />
+        </div>
+        <span className="blogs-count">
+          {listLoading && rows.length === 0 ? 'Loading…' : `${rows.length} of ${totalCount}`}
+        </span>
       </div>
 
-      {listError && <p style={{ color: '#c00' }}>{listError}</p>}
+      {listError && <p style={{ color: '#f87171' }}>{listError}</p>}
 
-      <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
-          <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-              <th style={{ padding: '0.5rem' }}>Title</th>
-              <th style={{ padding: '0.5rem' }}>Products</th>
-              <th style={{ padding: '0.5rem' }}>Slug / URL</th>
-              <th style={{ padding: '0.5rem' }}>Status</th>
-              <th style={{ padding: '0.5rem' }} />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((article) => (
-              <tr key={article.id ?? article.slug} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '0.5rem' }}>
-                  {article.headline?.trim() || 'Untitled'}
-                  {article.is_primary ? ' (primary)' : ''}
-                </td>
-                <td style={{ padding: '0.5rem' }}>{productLabels(article)}</td>
-                <td style={{ padding: '0.5rem', fontSize: '0.85rem' }}>
-                  <code>{livePath(article)}</code>
-                </td>
-                <td style={{ padding: '0.5rem' }}>{articleStatus(article)}</td>
-                <td style={{ padding: '0.5rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button
-                    type="button"
-                    className="btn-primary"
-                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.75rem' }}
-                    onClick={() => openEdit(article)}
-                  >
-                    Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {!listLoading && rows.length === 0 && (
-              <tr>
-                <td colSpan={5} style={{ padding: '1.5rem', color: '#666' }}>
-                  No blogs yet. Create one to get started.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="blogs-grid">
+        {rows.map((article) => {
+          const status = articleStatus(article);
+          const products = linkedProducts(article);
+          return (
+            <article key={article.id ?? article.slug} className="blog-card">
+              <div className="blog-card-top">
+                <span className="blog-card-category">
+                  {CATEGORY_LABELS[article.category || ''] || article.category || 'General'}
+                </span>
+                <span
+                  className={`blog-card-status ${
+                    status === 'Published' ? 'is-published' : 'is-draft'
+                  }`}
+                >
+                  {status}
+                </span>
+              </div>
+
+              <h2 className="blog-card-title">{article.headline?.trim() || 'Untitled draft'}</h2>
+
+              <div className="blog-card-meta">
+                <div className="blog-card-products">
+                  {products.length === 0 ? (
+                    <span className="blog-chip is-general">General blog</span>
+                  ) : (
+                    products.map((product, index) => (
+                      <span
+                        key={`${article.id}-${product.id}`}
+                        className={`blog-chip ${index === 0 ? 'is-primary' : ''}`}
+                        title={product.slug || undefined}
+                      >
+                        {product.product_name || `#${product.id}`}
+                        {index === 0 ? ' · primary' : ''}
+                      </span>
+                    ))
+                  )}
+                </div>
+                <div className="blog-card-url">{livePath(article)}</div>
+              </div>
+
+              <div className="blog-card-actions">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }}
+                  onClick={() => openEdit(article)}
+                >
+                  Edit
+                </button>
+              </div>
+            </article>
+          );
+        })}
+
+        {!listLoading && rows.length === 0 && (
+          <div className="blogs-empty">
+            <p style={{ margin: '0 0 0.75rem', fontSize: '1.05rem' }}>No blogs yet</p>
+            <button type="button" className="btn-primary" onClick={openCreate}>
+              Create your first blog
+            </button>
+          </div>
+        )}
       </div>
 
-      <p style={{ marginTop: '1rem', color: '#666' }}>
-        Showing {rows.length} of {totalCount} blogs
+      <div className="blogs-footer">
+        <span>
+          Showing {rows.length} of {totalCount}
+        </span>
         {hasMore && (
           <button
             type="button"
             className="btn-secondary"
-            style={{ marginLeft: '0.75rem' }}
             onClick={() => loadArticles(page + 1, true)}
             disabled={listLoading}
           >
             Load more
           </button>
         )}
-      </p>
+      </div>
 
       {editorOpen && (
         <Suspense fallback={<PageLoader />}>
