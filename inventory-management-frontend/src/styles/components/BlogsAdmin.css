@@ -162,7 +162,28 @@
 .blog-card-actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
   padding-top: 0.25rem;
+}
+
+.blog-card-delete {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.9rem;
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+}
+
+.blog-card-delete:hover:not(:disabled) {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.55);
+  background: rgba(248, 113, 113, 0.16);
+}
+
+.blog-card-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .blogs-empty {

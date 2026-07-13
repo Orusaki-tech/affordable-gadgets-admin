@@ -199,6 +199,8 @@ export default function ProductGuidesPage() {
     };
   }, [rows]);
 
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+
   const openCreate = () => {
     setEditingArticleId(null);
     setEditingProduct(null);
@@ -237,6 +239,39 @@ export default function ProductGuidesPage() {
     setEditingProduct(null);
     setEditingLinkedProducts([]);
     loadArticles(1, false);
+  };
+
+  const deleteArticle = async (article: ArticleRow) => {
+    if (!article.id) return;
+    const title = article.headline?.trim() || article.slug || `Blog #${article.id}`;
+    const confirmed = window.confirm(
+      `Delete “${title}”?\n\nThis permanently removes the blog and cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setDeletingId(article.id);
+    setListError(null);
+    try {
+      await ArticlesService.articlesDestroy(article.id);
+      setRows((prev) => prev.filter((row) => row.id !== article.id));
+      setTotalCount((prev) => Math.max(0, prev - 1));
+      if (editingArticleId === article.id) {
+        closeEditor();
+      }
+    } catch (err) {
+      const apiErr = err as { body?: unknown; message?: string };
+      let detail = apiErr?.message || 'Failed to delete blog';
+      if (apiErr?.body && typeof apiErr.body === 'object') {
+        try {
+          detail = JSON.stringify(apiErr.body);
+        } catch {
+          /* keep message */
+        }
+      }
+      setListError(detail);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   if (profileLoading) {
@@ -340,9 +375,18 @@ export default function ProductGuidesPage() {
               <div className="blog-card-actions">
                 <button
                   type="button"
+                  className="btn-secondary blog-card-delete"
+                  disabled={deletingId === article.id}
+                  onClick={() => deleteArticle(article)}
+                >
+                  {deletingId === article.id ? 'Deleting…' : 'Delete'}
+                </button>
+                <button
+                  type="button"
                   className="btn-primary"
                   style={{ fontSize: '0.85rem', padding: '0.4rem 0.9rem' }}
                   onClick={() => openEdit(article)}
+                  disabled={deletingId === article.id}
                 >
                   Edit
                 </button>

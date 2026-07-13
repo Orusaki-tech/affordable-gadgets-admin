@@ -1159,6 +1159,41 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 />
                 <span>Published</span>
               </label>
+              {formData.article_id ? (
+                <button
+                  type="button"
+                  className="btn-secondary blog-card-delete"
+                  disabled={isLoading}
+                  onClick={async () => {
+                    const title =
+                      formData.article_headline.trim() ||
+                      formData.article_slug ||
+                      `Blog #${formData.article_id}`;
+                    const confirmed = window.confirm(
+                      `Delete “${title}”?\n\nThis permanently removes the blog and cannot be undone.`
+                    );
+                    if (!confirmed || !formData.article_id) return;
+                    try {
+                      await ArticlesService.articlesDestroy(formData.article_id);
+                      queryClient.invalidateQueries({ queryKey: ['articles'] });
+                      onSuccess();
+                    } catch (err) {
+                      const apiErr = err as { body?: unknown; message?: string };
+                      let detail = apiErr?.message || 'Failed to delete blog';
+                      if (apiErr?.body && typeof apiErr.body === 'object') {
+                        try {
+                          detail = JSON.stringify(apiErr.body);
+                        } catch {
+                          /* keep message */
+                        }
+                      }
+                      alert(`Failed to delete blog: ${detail}`);
+                    }
+                  }}
+                >
+                  Delete
+                </button>
+              ) : null}
               <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
                 Cancel
               </button>
