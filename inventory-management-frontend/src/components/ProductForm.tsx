@@ -935,7 +935,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         })
         .catch((err) => {
           console.error(err);
-          alert(`Failed to save blog: ${(err as Error).message || 'Unknown error'}`);
+          const apiErr = err as { body?: unknown; message?: string };
+          let detail = apiErr?.message || 'Unknown error';
+          if (apiErr?.body && typeof apiErr.body === 'object') {
+            try {
+              detail = JSON.stringify(apiErr.body);
+            } catch {
+              /* keep message */
+            }
+          } else if (typeof apiErr?.body === 'string' && apiErr.body.trim()) {
+            detail = apiErr.body;
+          }
+          alert(`Failed to save blog: ${detail}`);
         });
       return;
     }
