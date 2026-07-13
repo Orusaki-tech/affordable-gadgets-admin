@@ -207,7 +207,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         og_image: null, // File upload handled separately
         // Content Fields
         long_description: (product as any).long_description || '',
-        product_highlights: (product as any).product_highlights || [],
+        product_highlights: Array.isArray((product as any).product_highlights)
+          ? (product as any).product_highlights
+          : [],
         is_published: (product as any).is_published !== false,
         // Video Fields
         product_video_url: (product as any).product_video_url || '',
@@ -745,6 +747,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
     
     // For non-Content Creators or when creating, include all fields
+    const highlights = (formData.product_highlights ?? []).map((h) => h.trim()).filter(Boolean);
     const submitData: any = {
       product_name: formData.product_name,
       product_type: formData.product_type,
@@ -766,7 +769,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       keywords: formData.keywords || undefined,
       // Content Fields
       long_description: formData.long_description || undefined,
-      product_highlights: formData.product_highlights.filter(h => h.trim()).length > 0 ? formData.product_highlights.filter(h => h.trim()) : undefined,
+      // multipart/form-data cannot send nested arrays cleanly — stringify JSONField values
+      product_highlights: highlights.length > 0 ? JSON.stringify(highlights) : undefined,
       is_published: formData.is_published,
       // Video Fields
       product_video_url: formData.product_video_url || undefined,
@@ -995,8 +999,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <div className="form-group">
               <label htmlFor="article_body_bg">Body</label>
               <RichTextEditor
+                key={formData.article_id ?? `new-${product.id}`}
                 value={formData.article_body}
-                onChange={(html) => setFormData({ ...formData, article_body: html })}
+                onChange={(html) => setFormData((prev) => ({ ...prev, article_body: html }))}
                 placeholder="Start writing your buying guide…"
                 disabled={isLoading}
               />
@@ -2208,8 +2213,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               <div className="form-group">
                 <label htmlFor="article_body">Article body</label>
                 <RichTextEditor
+                  key={formData.article_id ?? 'new-article'}
                   value={formData.article_body}
-                  onChange={(html) => setFormData({ ...formData, article_body: html })}
+                  onChange={(html) => setFormData((prev) => ({ ...prev, article_body: html }))}
                   placeholder="Start writing your buying guide…"
                   disabled={isLoading}
                 />

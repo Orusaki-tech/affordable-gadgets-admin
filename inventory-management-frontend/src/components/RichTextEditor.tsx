@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useEditor, EditorContent, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
@@ -15,7 +15,7 @@ interface RichTextEditorProps {
 }
 
 function Toolbar({ editor }: { editor: Editor | null }) {
-  if (!editor) return null;
+  if (!editor || editor.isDestroyed) return null;
 
   return (
     <div className="rich-editor-toolbar">
@@ -127,7 +127,7 @@ function Toolbar({ editor }: { editor: Editor | null }) {
                 mediaType: 'multipart/form-data',
               });
               const data = res as { image_url?: string };
-              if (data.image_url) {
+              if (data.image_url && !editor.isDestroyed) {
                 editor.chain().focus().setImage({ src: data.image_url }).run();
               }
             } catch (err) {
@@ -142,7 +142,13 @@ function Toolbar({ editor }: { editor: Editor | null }) {
 }
 
 export function RichTextEditor({ value, onChange, placeholder, disabled }: RichTextEditorProps) {
+  // Track HTML we last pushed to/from the editor so external value updates
+  // don't call setContent after TipTap has already destroyed its schema.
+  const lastEmittedHtml = useRef(value || '');
+
   const editor = useEditor({
+    // Avoid creating the editor during the first render pass (React 19 / Strict Mode).
+    immediatelyRender: false,
     extensions: [
       StarterKit,
       Image,
@@ -150,23 +156,41 @@ export function RichTextEditor({ value, onChange, placeholder, disabled }: RichT
       Placeholder.configure({ placeholder: placeholder || 'Start writing…' }),
     ],
     content: value || '',
-    onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+    onUpdate: ({ editor: ed }) => {
+      const html = ed.getHTML();
+      lastEmittedHtml.current = html;
+      onChange(html);
     },
     editable: !disabled,
   });
 
-  React.useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if ((value || '') === lastEmittedHtml.current) return;
+    lastEmittedHtml.current = value || '';
+    try {
       editor.commands.setContent(value || '', { emitUpdate: false });
+    } catch (err) {
+      // TipTap can throw if the view/schema was torn down mid-update (modal close / remount).
+      console.warn('RichTextEditor setContent skipped:', err);
     }
   }, [value, editor]);
 
-  React.useEffect(() => {
-    if (editor) {
-      editor.setEditable(!disabled);
-    }
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    editor.setEditable(!disabled);
   }, [disabled, editor]);
+
+  if (!editor) {
+    return (
+      <div className={`rich-editor-wrapper ${disabled ? 'is-disabled' : ''}`}>
+        <div className="rich-editor-toolbar" aria-hidden />
+        <div className="ProseMirror" style={{ minHeight: '8rem', opacity: 0.5 }}>
+          Loading editor…
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`rich-editor-wrapper ${disabled ? 'is-disabled' : ''}`}>
