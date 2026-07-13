@@ -455,6 +455,11 @@ html {
   background: #e8e8e8;
 }
 
+.rich-editor-toolbar button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .rich-editor-toolbar button.is-active {
   background: #d0d7ff;
   border-color: #6b7fff;

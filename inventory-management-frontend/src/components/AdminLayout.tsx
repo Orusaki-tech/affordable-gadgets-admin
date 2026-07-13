@@ -290,7 +290,7 @@ export const AdminLayout: React.FC = () => {
                 Dashboard
               </Link>
               <p className="sidebar-scroll-hint" role="note">
-                Scroll the menu for Buying guides, Financing, Reports, and more.
+                Scroll the menu for Blogs, Financing, Reports, and more.
               </p>
               
               {/* Request Management */}
@@ -323,7 +323,7 @@ export const AdminLayout: React.FC = () => {
                 Products
               </Link>
               <Link to="/product-guides" className={isActive('/product-guides')} onClick={() => setSidebarOpen(false)}>
-                Buying guides
+                Blogs
               </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
                 <span>Bundles</span>
@@ -405,7 +405,7 @@ export const AdminLayout: React.FC = () => {
                 Dashboard
               </Link>
               <p className="sidebar-scroll-hint" role="note">
-                Buying guides lives under Content → below Products.
+                Blogs live under Content → below Products.
               </p>
               
               {/* Content Management */}
@@ -414,7 +414,7 @@ export const AdminLayout: React.FC = () => {
                 Products
               </Link>
               <Link to="/product-guides" className={isActive('/product-guides')} onClick={() => setSidebarOpen(false)}>
-                Buying guides
+                Blogs
               </Link>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
                 <span>Bundles</span>
@@ -516,7 +516,7 @@ export const AdminLayout: React.FC = () => {
                 Dashboard
               </Link>
               <p className="sidebar-scroll-hint" role="note">
-                Scroll the menu for Management (Buying guides), Financing, Administration, and more.
+                Scroll the menu for Management (Blogs), Financing, Administration, and more.
               </p>
               
               {/* Request Management */}
@@ -559,7 +559,7 @@ export const AdminLayout: React.FC = () => {
                 Products
               </Link>
               <Link to="/product-guides" className={isActive('/product-guides')} onClick={() => setSidebarOpen(false)}>
-                Buying guides
+                Blogs
               </Link>
               <Link to="/units" className={isActive('/units')} onClick={() => setSidebarOpen(false)}>
                 Inventory Units

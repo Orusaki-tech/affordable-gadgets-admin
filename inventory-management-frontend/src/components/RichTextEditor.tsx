@@ -6,12 +6,29 @@ import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import { OpenAPI } from '../api/core/OpenAPI';
 import { request as __request } from '../api/core/request';
+import { htmlToMarkdown, markdownToHtml } from '../utils/markdownBridge';
 
 interface RichTextEditorProps {
+  /** External value — HTML by default, or Markdown when contentFormat="markdown". */
   value: string;
-  onChange: (html: string) => void;
+  onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  /**
+   * Buying guides / ProductArticle.body are stored as Markdown for the storefront.
+   * TipTap edits HTML internally; we convert on load and on change.
+   */
+  contentFormat?: 'html' | 'markdown';
+}
+
+function toEditorHtml(value: string, format: 'html' | 'markdown'): string {
+  if (format === 'markdown') return markdownToHtml(value || '');
+  return value || '';
+}
+
+function fromEditorHtml(html: string, format: 'html' | 'markdown'): string {
+  if (format === 'markdown') return htmlToMarkdown(html || '');
+  return html || '';
 }
 
 function Toolbar({ editor }: { editor: Editor | null }) {
@@ -19,6 +36,23 @@ function Toolbar({ editor }: { editor: Editor | null }) {
 
   return (
     <div className="rich-editor-toolbar">
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().undo().run()}
+        disabled={!editor.can().undo()}
+        title="Undo"
+      >
+        ↶
+      </button>
+      <button
+        type="button"
+        onClick={() => editor.chain().focus().redo().run()}
+        disabled={!editor.can().redo()}
+        title="Redo"
+      >
+        ↷
+      </button>
+      <span className="toolbar-separator" />
       <button
         type="button"
         onClick={() => editor.chain().focus().toggleBold().run()}
@@ -141,40 +175,48 @@ function Toolbar({ editor }: { editor: Editor | null }) {
   );
 }
 
-export function RichTextEditor({ value, onChange, placeholder, disabled }: RichTextEditorProps) {
-  // Track HTML we last pushed to/from the editor so external value updates
+export function RichTextEditor({
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  contentFormat = 'html',
+}: RichTextEditorProps) {
+  // Track the last value we emitted (same format as `value`) so external loads
   // don't call setContent after TipTap has already destroyed its schema.
-  const lastEmittedHtml = useRef(value || '');
+  const lastEmitted = useRef(value || '');
+  const formatRef = useRef(contentFormat);
+  formatRef.current = contentFormat;
 
   const editor = useEditor({
     // Avoid creating the editor during the first render pass (React 19 / Strict Mode).
     immediatelyRender: false,
     extensions: [
       StarterKit,
-      Image,
+      Image.configure({ inline: false, allowBase64: false }),
       Link.configure({ openOnClick: false }),
       Placeholder.configure({ placeholder: placeholder || 'Start writing…' }),
     ],
-    content: value || '',
+    content: toEditorHtml(value || '', contentFormat),
     onUpdate: ({ editor: ed }) => {
-      const html = ed.getHTML();
-      lastEmittedHtml.current = html;
-      onChange(html);
+      const next = fromEditorHtml(ed.getHTML(), formatRef.current);
+      lastEmitted.current = next;
+      onChange(next);
     },
     editable: !disabled,
   });
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
-    if ((value || '') === lastEmittedHtml.current) return;
-    lastEmittedHtml.current = value || '';
+    if ((value || '') === lastEmitted.current) return;
+    lastEmitted.current = value || '';
     try {
-      editor.commands.setContent(value || '', { emitUpdate: false });
+      editor.commands.setContent(toEditorHtml(value || '', contentFormat), { emitUpdate: false });
     } catch (err) {
       // TipTap can throw if the view/schema was torn down mid-update (modal close / remount).
       console.warn('RichTextEditor setContent skipped:', err);
     }
-  }, [value, editor]);
+  }, [value, editor, contentFormat]);
 
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;

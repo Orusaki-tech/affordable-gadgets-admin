@@ -90,6 +90,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     article_category: 'buying_guide',
     article_is_primary: false,
     article_id: null as number | null,
+    article_product_id: null as number | null,
+    article_product_name: '',
+    article_product_slug: '',
     article_seo_title: '',
     article_seo_description: '',
     article_body: '',
@@ -102,6 +105,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const previewImagesRef = useRef<string[]>([]);
   const [isSlugManuallyEdited, setIsSlugManuallyEdited] = useState(false);
   const [pendingVariants, setPendingVariants] = useState<VariantFormData[]>([]);
+  const [productPickerSearch, setProductPickerSearch] = useState('');
+  const [productPickerResults, setProductPickerResults] = useState<ProductTemplate[]>([]);
+  const [productPickerOpen, setProductPickerOpen] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
@@ -130,13 +136,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
   }, [adminProfile, isContentCreator, isSuperuser, product]);
 
-  // Prevent Content Creators from creating products
+  // Prevent Content Creators from creating products (blogs without a product are allowed)
   useEffect(() => {
+    if (variant === 'buyingGuide') return;
     if (isContentCreator && !product) {
       alert('Content Creators can only edit existing products.');
       onClose();
     }
-  }, [isContentCreator, product, onClose]);
+  }, [isContentCreator, product, onClose, variant]);
 
   // Keep refs in sync so callbacks always see the latest values
   useEffect(() => {
@@ -239,6 +246,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         article_category: 'buying_guide',
         article_is_primary: false,
         article_id: editingArticleId,
+        article_product_id: product?.id ?? null,
+        article_product_name: product?.product_name || '',
+        article_product_slug: (product as { slug?: string })?.slug || '',
         article_seo_title: '',
         article_seo_description: '',
         article_body: '',
@@ -314,6 +324,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         article_category: 'buying_guide',
         article_is_primary: false,
         article_id: null,
+        article_product_id: null,
+        article_product_name: '',
+        article_product_slug: '',
         article_seo_title: '',
         article_seo_description: '',
         article_body: '',
@@ -340,31 +353,91 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   }, [product, adminProfile, isContentCreator, editingArticleId]);
 
   useEffect(() => {
-    if (!product || variant !== 'buyingGuide') return;
-    const source = (productDetail as any) ?? product;
-    const articles = (source as { articles?: Array<Record<string, unknown>> }).articles;
-    let article: Record<string, unknown> | null = null;
-    if (editingArticleId && Array.isArray(articles)) {
-      article = articles.find((row) => row.id === editingArticleId) ?? null;
-    } else if ((source as { article?: Record<string, unknown> }).article) {
-      article = (source as { article?: Record<string, unknown> }).article ?? null;
-    } else if (Array.isArray(articles) && articles.length > 0) {
-      article = articles.find((row) => row.is_primary) ?? articles[0];
-    }
-    if (!article) return;
-    setFormData((prev) => ({
-      ...prev,
-      article_id: (article!.id as number) ?? null,
-      article_headline: String(article!.headline || ''),
-      article_slug: String(article!.slug || ''),
-      article_category: String(article!.category || 'buying_guide'),
-      article_is_primary: Boolean(article!.is_primary),
-      article_seo_title: String(article!.seo_title || ''),
-      article_seo_description: String(article!.seo_description || ''),
-      article_body: String(article!.body || ''),
-      article_is_published: Boolean(article!.is_published),
-    }));
+    if (variant !== 'buyingGuide') return;
+
+    let cancelled = false;
+
+    const applyArticle = (article: Record<string, unknown> | null, productMeta?: {
+      id?: number | null;
+      name?: string;
+      slug?: string;
+    }) => {
+      if (cancelled || !article) return;
+      setFormData((prev) => ({
+        ...prev,
+        article_id: (article.id as number) ?? null,
+        article_headline: String(article.headline || ''),
+        article_slug: String(article.slug || ''),
+        article_category: String(article.category || 'buying_guide'),
+        article_is_primary: Boolean(article.is_primary),
+        article_seo_title: String(article.seo_title || ''),
+        article_seo_description: String(article.seo_description || ''),
+        article_body: String(article.body || ''),
+        article_is_published: Boolean(article.is_published),
+        article_product_id:
+          productMeta?.id ??
+          (typeof article.product === 'number' ? article.product : prev.article_product_id),
+        article_product_name:
+          productMeta?.name ||
+          String(article.product_name || prev.article_product_name || ''),
+        article_product_slug:
+          productMeta?.slug ||
+          String(article.product_slug || prev.article_product_slug || ''),
+      }));
+    };
+
+    const load = async () => {
+      if (editingArticleId) {
+        try {
+          const article = (await ArticlesService.articlesRetrieve(editingArticleId)) as Record<
+            string,
+            unknown
+          >;
+          applyArticle(article, {
+            id: typeof article.product === 'number' ? article.product : null,
+            name: String(article.product_name || ''),
+            slug: String(article.product_slug || ''),
+          });
+          return;
+        } catch (err) {
+          console.warn('Failed to load article', err);
+        }
+      }
+
+      if (!product) return;
+      const source = (productDetail as any) ?? product;
+      const articles = (source as { articles?: Array<Record<string, unknown>> }).articles;
+      let article: Record<string, unknown> | null = null;
+      if (editingArticleId && Array.isArray(articles)) {
+        article = articles.find((row) => row.id === editingArticleId) ?? null;
+      } else if ((source as { article?: Record<string, unknown> }).article) {
+        article = (source as { article?: Record<string, unknown> }).article ?? null;
+      } else if (Array.isArray(articles) && articles.length > 0) {
+        article = articles.find((row) => row.is_primary) ?? articles[0];
+      }
+      applyArticle(article, {
+        id: product.id ?? null,
+        name: product.product_name || '',
+        slug: (product as { slug?: string }).slug || '',
+      });
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [product, productDetail, variant, editingArticleId]);
+
+  useEffect(() => {
+    if (variant !== 'buyingGuide' || !productPickerOpen) return;
+    const q = productPickerSearch.trim();
+    const handle = window.setTimeout(() => {
+      ProductsService.productsList(undefined, 1, q || undefined)
+        .then((data) => setProductPickerResults((data.results || []) as ProductTemplate[]))
+        .catch(() => setProductPickerResults([]));
+    }, 250);
+    return () => window.clearTimeout(handle);
+  }, [productPickerSearch, productPickerOpen, variant]);
 
   // Auto-generate SEO-friendly slug from brand + model + product name
   useEffect(() => {
@@ -665,47 +738,42 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   });
 
   const saveBuyingGuideArticle = async () => {
-    if (!product?.id) return;
-    const payload = {
+    const payload: Record<string, unknown> = {
       ...buildArticleNested(),
-      product_id: product.id,
+      product_id: formData.article_product_id,
     };
+    const { request: apiRequest } = await import('../api/core/request');
     if (formData.article_id) {
-      await ArticlesService.articlesPartialUpdate(formData.article_id, payload as any);
+      await apiRequest(OpenAPI, {
+        method: 'PATCH',
+        url: '/articles/{id}/',
+        path: { id: formData.article_id },
+        body: payload,
+        mediaType: 'application/json',
+      });
       return;
     }
-    await ArticlesService.articlesCreate(payload as any);
+    await apiRequest(OpenAPI, {
+      method: 'POST',
+      url: '/articles/',
+      body: payload,
+      mediaType: 'application/json',
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (variant === 'buyingGuide' && product?.id) {
-      if (isContentCreator) {
-        saveBuyingGuideArticle()
-          .then(() => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
-            onSuccess();
-          })
-          .catch((err) => {
-            console.error(err);
-            alert('Failed to save buying guide.');
-          });
-        return;
-      }
-      const articlePayload = { article: buildArticleNested() };
-      if (isInventoryManager || isSuperuser) {
-        updateMutation.mutate(articlePayload as any);
-        return;
-      }
+    if (variant === 'buyingGuide') {
       saveBuyingGuideArticle()
         .then(() => {
           queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
+          queryClient.invalidateQueries({ queryKey: ['articles'] });
           onSuccess();
         })
         .catch((err) => {
           console.error(err);
-          alert('Failed to save buying guide.');
+          alert(`Failed to save blog: ${(err as Error).message || 'Unknown error'}`);
         });
       return;
     }
@@ -823,59 +891,142 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   }
 
   if (variant === 'buyingGuide') {
-    if (!product?.id) {
-      return (
-        <div className="modal-overlay" onClick={onClose}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Buying guide</h2>
-              <button type="button" className="modal-close" onClick={onClose}>
-                ×
-              </button>
-            </div>
-            <p style={{ padding: '1rem' }}>No product selected.</p>
-          </div>
-        </div>
-      );
-    }
     if (!(isContentCreator || isInventoryManager || isSuperuser)) {
       return (
         <div className="modal-overlay" onClick={onClose}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Buying guide</h2>
+              <h2>Blog</h2>
               <button type="button" className="modal-close" onClick={onClose}>
                 ×
               </button>
             </div>
-            <p style={{ padding: '1rem' }}>You do not have permission to edit buying guides.</p>
+            <p style={{ padding: '1rem' }}>You do not have permission to edit blogs.</p>
           </div>
         </div>
       );
     }
 
+    const liveUrl = formData.article_product_slug
+      ? `/products/${formData.article_product_slug}/blog/${formData.article_slug || '<slug>'}`
+      : `/blog/${formData.article_slug || '<slug>'}`;
+
     return (
-      <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-overlay modal-overlay-fullscreen" onClick={onClose}>
+        <div className="modal-content modal-content-fullscreen" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
-            <h2>Edit buying guide</h2>
+            <h2>{formData.article_id ? 'Edit blog' : 'Create blog'}</h2>
             <button type="button" className="modal-close" onClick={onClose}>
               ×
             </button>
           </div>
-          <p style={{ color: '#666', fontSize: '0.9rem', margin: '0.75rem 1rem 0', lineHeight: 1.45 }}>
-            <strong>{product.product_name}</strong>
-            {(product as { slug?: string }).slug ? (
-              <>
-                {' '}
-                · Live at <code>/products/{(product as { slug?: string }).slug}/blog/{formData.article_slug || '&lt;slug&gt;'}</code>
-              </>
-            ) : null}
+          <p style={{ color: '#666', fontSize: '0.9rem', margin: '0.75rem 1.25rem 0', lineHeight: 1.45 }}>
+            Live at <code>{liveUrl}</code>
           </p>
 
-          <form onSubmit={handleSubmit} className="form-section">
+          <form onSubmit={handleSubmit} className="form-section blog-editor-form">
             <div className="form-section-divider" id="buying-guide">
-              <h3>Guide content</h3>
+              <h3>Blog content</h3>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="article_product_picker">Assigned product (optional)</label>
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <input
+                  id="article_product_picker"
+                  type="text"
+                  value={
+                    productPickerOpen
+                      ? productPickerSearch
+                      : formData.article_product_name || ''
+                  }
+                  onFocus={() => {
+                    setProductPickerOpen(true);
+                    setProductPickerSearch(formData.article_product_name || '');
+                  }}
+                  onChange={(e) => {
+                    setProductPickerOpen(true);
+                    setProductPickerSearch(e.target.value);
+                  }}
+                  disabled={isLoading}
+                  placeholder="Search products to assign… leave empty for a general blog"
+                  style={{ flex: 1, minWidth: 220 }}
+                />
+                {formData.article_product_id != null && (
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    disabled={isLoading}
+                    onClick={() => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        article_product_id: null,
+                        article_product_name: '',
+                        article_product_slug: '',
+                        article_is_primary: false,
+                      }));
+                      setProductPickerSearch('');
+                      setProductPickerOpen(false);
+                    }}
+                  >
+                    Clear product
+                  </button>
+                )}
+              </div>
+              {productPickerOpen && (
+                <div
+                  style={{
+                    marginTop: '0.35rem',
+                    border: '1px solid #ddd',
+                    borderRadius: 6,
+                    maxHeight: 200,
+                    overflowY: 'auto',
+                    background: 'var(--md-surface, #fff)',
+                  }}
+                >
+                  {productPickerResults.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '0.5rem 0.75rem',
+                        border: 'none',
+                        borderBottom: '1px solid #eee',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          article_product_id: p.id ?? null,
+                          article_product_name: p.product_name || '',
+                          article_product_slug: (p as { slug?: string }).slug || '',
+                        }));
+                        setProductPickerSearch(p.product_name || '');
+                        setProductPickerOpen(false);
+                      }}
+                    >
+                      {p.product_name}
+                      {(p as { slug?: string }).slug ? (
+                        <span style={{ color: '#888', marginLeft: 8, fontSize: '0.85rem' }}>
+                          {(p as { slug?: string }).slug}
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                  {productPickerResults.length === 0 && (
+                    <p style={{ padding: '0.75rem', margin: 0, color: '#666', fontSize: '0.9rem' }}>
+                      No products found
+                    </p>
+                  )}
+                </div>
+              )}
+              <small style={{ color: '#666' }}>
+                General blogs publish at <code>/blog/&lt;slug&gt;</code>. Assign a product to also show them on that product page.
+              </small>
             </div>
 
             <div className="form-group">
@@ -906,33 +1057,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </select>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="article_is_primary_bg">
-                <input
-                  id="article_is_primary_bg"
-                  type="checkbox"
-                  checked={formData.article_is_primary}
-                  onChange={(e) => setFormData({ ...formData, article_is_primary: e.target.checked })}
-                  disabled={isLoading}
-                />{' '}
-                Primary article (default for /blog redirect)
-              </label>
-            </div>
-            {(product as { article?: { published_at?: string; updated_at?: string } }).article?.published_at && (
-              <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 1rem 0.5rem' }}>
-                First published:{' '}
-                {new Date(
-                  (product as { article?: { published_at?: string } }).article!.published_at!
-                ).toLocaleString()}
-              </p>
-            )}
-            {(product as { article?: { updated_at?: string } }).article?.updated_at && (
-              <p style={{ color: '#666', fontSize: '0.85rem', margin: '0 1rem 1rem' }}>
-                Last updated:{' '}
-                {new Date(
-                  (product as { article?: { updated_at?: string } }).article!.updated_at!
-                ).toLocaleString()}
-              </p>
+            {formData.article_product_id != null && (
+              <div className="form-group">
+                <label htmlFor="article_is_primary_bg">
+                  <input
+                    id="article_is_primary_bg"
+                    type="checkbox"
+                    checked={formData.article_is_primary}
+                    onChange={(e) => setFormData({ ...formData, article_is_primary: e.target.checked })}
+                    disabled={isLoading}
+                  />{' '}
+                  Primary article for this product (default /blog redirect)
+                </label>
+              </div>
             )}
 
             <div className="form-group">
@@ -944,7 +1081,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 onChange={(e) => setFormData({ ...formData, article_headline: e.target.value })}
                 disabled={isLoading}
                 maxLength={255}
-                placeholder="e.g. Galaxy A42 5G in Kenya: who should buy it?"
+                placeholder="e.g. The iPhone Story: Six Eras That Changed Everything"
               />
             </div>
 
@@ -996,13 +1133,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group blog-editor-body">
               <label htmlFor="article_body_bg">Body</label>
               <RichTextEditor
-                key={formData.article_id ?? `new-${product.id}`}
+                key={formData.article_id ?? `new-${formData.article_product_id ?? 'standalone'}`}
                 value={formData.article_body}
-                onChange={(html) => setFormData((prev) => ({ ...prev, article_body: html }))}
-                placeholder="Start writing your buying guide…"
+                onChange={(body) => setFormData((prev) => ({ ...prev, article_body: body }))}
+                contentFormat="markdown"
+                placeholder="Start writing your blog…"
                 disabled={isLoading}
               />
             </div>
@@ -1026,7 +1164,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 Cancel
               </button>
               <button type="submit" className="btn-primary" disabled={isLoading}>
-                {isLoading ? 'Saving…' : 'Save buying guide'}
+                {isLoading ? 'Saving…' : 'Save blog'}
               </button>
             </div>
           </form>
@@ -2215,7 +2353,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <RichTextEditor
                   key={formData.article_id ?? 'new-article'}
                   value={formData.article_body}
-                  onChange={(html) => setFormData((prev) => ({ ...prev, article_body: html }))}
+                  onChange={(body) => setFormData((prev) => ({ ...prev, article_body: body }))}
+                  contentFormat="markdown"
                   placeholder="Start writing your buying guide…"
                   disabled={isLoading}
                 />

@@ -3374,6 +3374,36 @@ p, body {
   flex-direction: column;
 }
 
+.modal-overlay-fullscreen {
+  padding: 0;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.modal-content-fullscreen {
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border-radius: 0;
+  animation: none;
+}
+
+.modal-content-fullscreen .blog-editor-form {
+  flex: 1;
+  overflow-y: auto;
+  max-height: none;
+  padding: 1rem 1.25rem 2rem;
+}
+
+.modal-content-fullscreen .blog-editor-body .rich-editor-wrapper {
+  min-height: 50vh;
+}
+
+.modal-content-fullscreen .blog-editor-body .ProseMirror {
+  min-height: 45vh;
+}
+
 /* Bundle modal reset */
 
 .unit-form-modal {
