@@ -205,19 +205,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     if (variant === 'buyingGuide') {
       // Article fields / linked products are owned by the buying-guide effect below.
       // Only seed a single product when creating a new blog with a product context.
-      if (product?.id && !editingArticleId) {
+      const seedProductId = product?.id;
+      if (typeof seedProductId === 'number' && !editingArticleId) {
         setFormData((prev) => {
           if (prev.article_products.length > 0) return prev;
           return {
             ...prev,
-            article_product_id: product.id ?? null,
-            article_product_name: product.product_name || '',
-            article_product_slug: (product as { slug?: string }).slug || '',
+            article_product_id: seedProductId,
+            article_product_name: product?.product_name || '',
+            article_product_slug: (product as { slug?: string } | null)?.slug || '',
             article_products: [
               {
-                id: product.id,
-                product_name: product.product_name || `Product #${product.id}`,
-                slug: (product as { slug?: string }).slug || '',
+                id: seedProductId,
+                product_name: product?.product_name || `Product #${seedProductId}`,
+                slug: (product as { slug?: string } | null)?.slug || '',
               },
             ],
           };
