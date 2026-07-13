@@ -96,6 +96,9 @@ export default function ProductGuidesPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingArticleId, setEditingArticleId] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<ProductTemplate | null>(null);
+  const [editingLinkedProducts, setEditingLinkedProducts] = useState<
+    Array<{ id: number; product_name: string; slug?: string }>
+  >([]);
   const [productNameById, setProductNameById] = useState<
     Record<number, { product_name: string; slug?: string }>
   >({});
@@ -199,11 +202,18 @@ export default function ProductGuidesPage() {
   const openCreate = () => {
     setEditingArticleId(null);
     setEditingProduct(null);
+    setEditingLinkedProducts([]);
     setEditorOpen(true);
   };
 
   const openEdit = async (article: ArticleRow) => {
     setEditingArticleId(article.id ?? null);
+    const linked = linkedProducts(article, productNameById).map((product) => ({
+      id: product.id,
+      product_name: product.product_name || `Product #${product.id}`,
+      slug: product.slug,
+    }));
+    setEditingLinkedProducts(linked);
     if (article.product) {
       try {
         const product = await ProductsService.productsRetrieve(article.product);
@@ -211,8 +221,8 @@ export default function ProductGuidesPage() {
       } catch {
         setEditingProduct({
           id: article.product,
-          product_name: article.product_name || `Product #${article.product}`,
-          slug: article.product_slug || undefined,
+          product_name: article.product_name || linked[0]?.product_name || `Product #${article.product}`,
+          slug: article.product_slug || linked[0]?.slug || undefined,
         } as ProductTemplate);
       }
     } else {
@@ -225,6 +235,7 @@ export default function ProductGuidesPage() {
     setEditorOpen(false);
     setEditingArticleId(null);
     setEditingProduct(null);
+    setEditingLinkedProducts([]);
     loadArticles(1, false);
   };
 
@@ -372,6 +383,7 @@ export default function ProductGuidesPage() {
             product={editingProduct}
             variant="buyingGuide"
             editingArticleId={editingArticleId}
+            initialLinkedProducts={editingLinkedProducts}
             onClose={closeEditor}
             onSuccess={closeEditor}
           />

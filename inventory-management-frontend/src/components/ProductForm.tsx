@@ -27,6 +27,12 @@ interface VariantFormData {
   is_active: boolean;
 }
 
+interface LinkedArticleProduct {
+  id: number;
+  product_name: string;
+  slug?: string;
+}
+
 interface ProductFormProps {
   product: ProductTemplate | null;
   onClose: () => void;
@@ -35,6 +41,8 @@ interface ProductFormProps {
   variant?: 'full' | 'buyingGuide';
   /** When editing a specific article row (multi-article). Omit for primary / legacy single guide. */
   editingArticleId?: number | null;
+  /** Known linked products from the blogs list (names already resolved when possible). */
+  initialLinkedProducts?: LinkedArticleProduct[];
 }
 
 const ARTICLE_CATEGORIES = [
@@ -46,13 +54,17 @@ const ARTICLE_CATEGORIES = [
   { value: 'general', label: 'General' },
 ] as const;
 
+const EMPTY_LINKED_PRODUCTS: LinkedArticleProduct[] = [];
+
 export const ProductForm: React.FC<ProductFormProps> = ({
   product,
   onClose,
   onSuccess,
   variant = 'full',
   editingArticleId = null,
+  initialLinkedProducts,
 }) => {
+  const linkedProductSeed = initialLinkedProducts ?? EMPTY_LINKED_PRODUCTS;
   useAuth(); // useAdminProfile uses auth internally
   const [formData, setFormData] = useState({
     product_name: '',
@@ -190,6 +202,30 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const { data: brandsData } = useBrandsList({ enabled: !isContentCreator });
 
   useEffect(() => {
+    if (variant === 'buyingGuide') {
+      // Article fields / linked products are owned by the buying-guide effect below.
+      // Only seed a single product when creating a new blog with a product context.
+      if (product?.id && !editingArticleId) {
+        setFormData((prev) => {
+          if (prev.article_products.length > 0) return prev;
+          return {
+            ...prev,
+            article_product_id: product.id ?? null,
+            article_product_name: product.product_name || '',
+            article_product_slug: (product as { slug?: string }).slug || '',
+            article_products: [
+              {
+                id: product.id,
+                product_name: product.product_name || `Product #${product.id}`,
+                slug: (product as { slug?: string }).slug || '',
+              },
+            ],
+          };
+        });
+      }
+      return;
+    }
+
     if (product) {
       setIsSlugManuallyEdited(true);
       setFormData({
@@ -362,37 +398,119 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       setSelectedImages([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product, adminProfile, isContentCreator, editingArticleId]);
+  }, [product, adminProfile, isContentCreator, editingArticleId, variant]);
 
   useEffect(() => {
     if (variant !== 'buyingGuide') return;
 
     let cancelled = false;
 
-    const applyArticle = (article: Record<string, unknown> | null, productMeta?: {
-      id?: number | null;
-      name?: string;
-      slug?: string;
-    }) => {
+    const normalizeLinked = (
+      rows: Array<{ id?: number | null; product_name?: string | null; slug?: string | null }>
+    ): LinkedArticleProduct[] => {
+      const seen = new Set<number>();
+      const out: LinkedArticleProduct[] = [];
+      for (const row of rows) {
+        const id = Number(row.id);
+        if (!Number.isFinite(id) || id <= 0 || seen.has(id)) continue;
+        seen.add(id);
+        out.push({
+          id,
+          product_name: (row.product_name || '').trim() || `Product #${id}`,
+          slug: row.slug || '',
+        });
+      }
+      return out;
+    };
+
+    const resolveLinkedNames = async (rows: LinkedArticleProduct[]): Promise<LinkedArticleProduct[]> => {
+      return Promise.all(
+        rows.map(async (row) => {
+          if (row.product_name && !row.product_name.startsWith('Product #')) {
+            return row;
+          }
+          try {
+            const productRow = await ProductsService.productsRetrieve(row.id);
+            return {
+              id: row.id,
+              product_name: productRow.product_name || row.product_name || `Product #${row.id}`,
+              slug: (productRow as { slug?: string }).slug || row.slug || '',
+            };
+          } catch {
+            return row;
+          }
+        })
+      );
+    };
+
+    const mergeWithSeed = (linked: LinkedArticleProduct[]): LinkedArticleProduct[] => {
+      if (linkedProductSeed.length === 0) return linked;
+      const byId = new Map(linkedProductSeed.map((row) => [row.id, row]));
+      const merged = linked.map((row) => {
+        const seeded = byId.get(row.id);
+        if (!seeded) return row;
+        const seededName = (seeded.product_name || '').trim();
+        const currentName = (row.product_name || '').trim();
+        const useSeeded =
+          Boolean(seededName) &&
+          (!currentName || currentName.startsWith('Product #') || currentName.toLowerCase() === 'primary');
+        return {
+          ...row,
+          product_name: useSeeded ? seededName : currentName || seededName || `Product #${row.id}`,
+          slug: row.slug || seeded.slug || '',
+        };
+      });
+      for (const seeded of linkedProductSeed) {
+        if (!merged.some((row) => row.id === seeded.id)) {
+          merged.push({
+            id: seeded.id,
+            product_name: seeded.product_name || `Product #${seeded.id}`,
+            slug: seeded.slug || '',
+          });
+        }
+      }
+      return merged;
+    };
+
+    const applyArticle = async (
+      article: Record<string, unknown> | null,
+      productMeta?: {
+        id?: number | null;
+        name?: string;
+        slug?: string;
+      }
+    ) => {
       if (cancelled || !article) return;
-      const linkedRaw = Array.isArray(article.products) ? (article.products as Array<Record<string, unknown>>) : [];
-      let linked = linkedRaw
-        .map((row) => ({
+
+      const linkedRaw = Array.isArray(article.products)
+        ? (article.products as Array<Record<string, unknown>>)
+        : [];
+      let linked = normalizeLinked(
+        linkedRaw.map((row) => ({
           id: Number(row.id),
           product_name: String(row.product_name || ''),
           slug: String(row.slug || ''),
         }))
-        .filter((row) => Number.isFinite(row.id));
+      );
+
+      if (linked.length === 0 && linkedProductSeed.length > 0) {
+        linked = normalizeLinked(linkedProductSeed);
+      }
       if (linked.length === 0 && (productMeta?.id || typeof article.product === 'number')) {
-        const id = productMeta?.id ?? (article.product as number);
-        linked = [
+        const id = Number(productMeta?.id ?? article.product);
+        linked = normalizeLinked([
           {
-            id: Number(id),
+            id,
             product_name: productMeta?.name || String(article.product_name || ''),
             slug: productMeta?.slug || String(article.product_slug || ''),
           },
-        ];
+        ]);
       }
+
+      linked = mergeWithSeed(linked);
+      linked = await resolveLinkedNames(linked);
+      if (cancelled) return;
+
       const primary = linked[0];
       setFormData((prev) => ({
         ...prev,
@@ -419,10 +537,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             string,
             unknown
           >;
-          applyArticle(article, {
-            id: typeof article.product === 'number' ? article.product : null,
-            name: String(article.product_name || ''),
-            slug: String(article.product_slug || ''),
+          await applyArticle(article, {
+            id: typeof article.product === 'number' ? article.product : product?.id ?? null,
+            name: String(article.product_name || product?.product_name || ''),
+            slug: String(
+              article.product_slug || (product as { slug?: string } | null)?.slug || ''
+            ),
           });
           return;
         } catch (err) {
@@ -430,7 +550,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         }
       }
 
-      if (!product) return;
+      if (!product) {
+        if (linkedProductSeed.length > 0) {
+          const linked = await resolveLinkedNames(normalizeLinked(linkedProductSeed));
+          if (!cancelled) {
+            setFormData((prev) => ({
+              ...prev,
+              article_products: linked,
+              article_product_id: linked[0]?.id ?? null,
+              article_product_name: linked[0]?.product_name || '',
+              article_product_slug: linked[0]?.slug || '',
+            }));
+          }
+        }
+        return;
+      }
       const source = (productDetail as any) ?? product;
       const articles = (source as { articles?: Array<Record<string, unknown>> }).articles;
       let article: Record<string, unknown> | null = null;
@@ -441,7 +575,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       } else if (Array.isArray(articles) && articles.length > 0) {
         article = articles.find((row) => row.is_primary) ?? articles[0];
       }
-      applyArticle(article, {
+      await applyArticle(article, {
         id: product.id ?? null,
         name: product.product_name || '',
         slug: (product as { slug?: string }).slug || '',
@@ -452,7 +586,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [product, productDetail, variant, editingArticleId]);
+  }, [product, productDetail, variant, editingArticleId, linkedProductSeed]);
 
   useEffect(() => {
     if (variant !== 'buyingGuide' || !productPickerOpen) return;
@@ -1027,12 +1161,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <div className="blog-workspace-layout">
               <div className="blog-workspace-main">
                 <div className="blog-panel">
-                  <h3>Story</h3>
-                  <div className="form-group">
-                    <label htmlFor="article_headline_bg">Headline</label>
+                  <div className="blog-panel-head">
+                    <h3>Story</h3>
+                    <p className="blog-panel-hint">Headline and body content</p>
+                  </div>
+                  <div className="blog-field">
+                    <label className="blog-field-label" htmlFor="article_headline_bg">
+                      Headline
+                    </label>
                     <input
                       id="article_headline_bg"
-                      className="blog-headline-input"
+                      className="blog-control blog-headline-input"
                       type="text"
                       value={formData.article_headline}
                       onChange={(e) => setFormData({ ...formData, article_headline: e.target.value })}
@@ -1041,23 +1180,31 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       placeholder="Give this post a clear, specific headline"
                     />
                   </div>
-                  <div className="form-group blog-editor-body" style={{ marginBottom: 0 }}>
-                    <label htmlFor="article_body_bg">Body</label>
-                    <RichTextEditor
-                      key={formData.article_id ?? `new-${formData.article_product_id ?? 'standalone'}`}
-                      value={formData.article_body}
-                      onChange={(body) => setFormData((prev) => ({ ...prev, article_body: body }))}
-                      contentFormat="markdown"
-                      placeholder="Start writing…"
-                      disabled={isLoading}
-                    />
+                  <div className="blog-field" style={{ marginBottom: 0 }}>
+                    <label className="blog-field-label" htmlFor="article_body_bg">
+                      Body
+                    </label>
+                    <div className="blog-editor-body">
+                      <RichTextEditor
+                        key={formData.article_id ?? `new-${formData.article_product_id ?? 'standalone'}`}
+                        value={formData.article_body}
+                        onChange={(body) => setFormData((prev) => ({ ...prev, article_body: body }))}
+                        contentFormat="markdown"
+                        placeholder="Start writing…"
+                        disabled={isLoading}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
               <aside className="blog-workspace-side">
-                <div className="blog-panel">
-                  <h3>Products</h3>
+                <div className="blog-panel blog-panel--products">
+                  <div className="blog-panel-head">
+                    <h3>Products</h3>
+                    <p className="blog-panel-hint">Link one or more products this guide covers</p>
+                  </div>
+
                   <div className="blog-product-chips">
                     {formData.article_products.length === 0 && (
                       <span className="blog-chip is-general">General blog — no product</span>
@@ -1067,22 +1214,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         key={row.id}
                         className={`blog-product-chip ${index === 0 ? 'is-primary' : ''}`}
                       >
-                        <span>
-                          {row.product_name}
-                          {index === 0 ? ' · primary' : ''}
+                        <span className="blog-product-chip-name">
+                          {row.product_name?.trim() || `Product #${row.id}`}
                         </span>
-                        {index !== 0 && (
+                        {index === 0 ? (
+                          <span className="blog-product-chip-badge">Primary</span>
+                        ) : (
                           <button
                             type="button"
                             className="chip-action"
                             disabled={isLoading}
                             onClick={() => setPrimaryProduct(row.id)}
                           >
-                            primary
+                            Make primary
                           </button>
                         )}
                         <button
                           type="button"
+                          className="chip-remove"
                           aria-label={`Remove ${row.product_name}`}
                           disabled={isLoading}
                           onClick={() => removeLinkedProduct(row.id)}
@@ -1092,43 +1241,51 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       </span>
                     ))}
                   </div>
-                  <input
-                    id="article_product_picker"
-                    type="search"
-                    value={productPickerSearch}
-                    onFocus={() => setProductPickerOpen(true)}
-                    onChange={(e) => {
-                      setProductPickerOpen(true);
-                      setProductPickerSearch(e.target.value);
-                    }}
-                    disabled={isLoading}
-                    placeholder="Add a product…"
-                  />
-                  {productPickerOpen && (
-                    <div className="blog-picker-dropdown">
-                      {productPickerResults
-                        .filter((p) => !formData.article_products.some((row) => row.id === p.id))
-                        .map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            className="blog-picker-option"
-                            onClick={() => addLinkedProduct(p)}
-                          >
-                            {p.product_name}
-                          </button>
-                        ))}
-                      {productPickerResults.filter(
-                        (p) => !formData.article_products.some((row) => row.id === p.id)
-                      ).length === 0 && (
-                        <p style={{ padding: '0.75rem', margin: 0, color: '#888', fontSize: '0.85rem' }}>
-                          No matches
-                        </p>
-                      )}
+
+                  <div className="blog-field">
+                    <label className="blog-field-label" htmlFor="article_product_picker">
+                      Add product
+                    </label>
+                    <div className="blog-search-field">
+                      <input
+                        id="article_product_picker"
+                        type="search"
+                        value={productPickerSearch}
+                        onFocus={() => setProductPickerOpen(true)}
+                        onChange={(e) => {
+                          setProductPickerOpen(true);
+                          setProductPickerSearch(e.target.value);
+                        }}
+                        disabled={isLoading}
+                        placeholder="Search by name…"
+                        autoComplete="off"
+                      />
                     </div>
-                  )}
+                    {productPickerOpen && (
+                      <div className="blog-picker-dropdown">
+                        {productPickerResults
+                          .filter((p) => !formData.article_products.some((row) => row.id === p.id))
+                          .map((p) => (
+                            <button
+                              key={p.id}
+                              type="button"
+                              className="blog-picker-option"
+                              onClick={() => addLinkedProduct(p)}
+                            >
+                              {p.product_name}
+                            </button>
+                          ))}
+                        {productPickerResults.filter(
+                          (p) => !formData.article_products.some((row) => row.id === p.id)
+                        ).length === 0 && (
+                          <p className="blog-picker-empty">No matches</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {formData.article_products.length > 0 && (
-                    <label className="blog-publish-row" style={{ marginTop: '0.85rem' }}>
+                    <label className="blog-toggle-row" htmlFor="article_is_primary_bg">
                       <input
                         id="article_is_primary_bg"
                         type="checkbox"
@@ -1136,17 +1293,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         onChange={(e) => setFormData({ ...formData, article_is_primary: e.target.checked })}
                         disabled={isLoading}
                       />
-                      <span>Primary article for primary product</span>
+                      <span className="blog-toggle-copy">
+                        <span className="blog-toggle-title">Primary article</span>
+                        <span className="blog-toggle-desc">Mark as the main guide for the primary product</span>
+                      </span>
                     </label>
                   )}
                 </div>
 
-                <div className="blog-panel">
-                  <h3>Details</h3>
-                  <div className="form-group">
-                    <label htmlFor="article_category_bg">Category</label>
+                <div className="blog-panel blog-panel--details">
+                  <div className="blog-panel-head">
+                    <h3>Details</h3>
+                    <p className="blog-panel-hint">Category, URL, and SEO metadata</p>
+                  </div>
+
+                  <div className="blog-field">
+                    <label className="blog-field-label" htmlFor="article_category_bg">
+                      Category
+                    </label>
                     <select
                       id="article_category_bg"
+                      className="blog-control"
                       value={formData.article_category}
                       onChange={(e) => setFormData({ ...formData, article_category: e.target.value })}
                       disabled={isLoading}
@@ -1158,10 +1325,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       ))}
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="article_slug_bg">Slug</label>
+
+                  <div className="blog-field">
+                    <label className="blog-field-label" htmlFor="article_slug_bg">
+                      Slug
+                    </label>
                     <input
                       id="article_slug_bg"
+                      className="blog-control"
                       type="text"
                       value={formData.article_slug}
                       onChange={(e) => setFormData({ ...formData, article_slug: e.target.value })}
@@ -1169,22 +1340,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       placeholder="auto from headline"
                     />
                   </div>
-                  <div className="form-group">
-                    <label htmlFor="article_seo_title_bg">
-                      SEO title
+
+                  <div className="blog-field">
+                    <div className="blog-field-label-row">
+                      <label className="blog-field-label" htmlFor="article_seo_title_bg">
+                        SEO title
+                      </label>
                       <span
-                        className="char-count"
-                        style={{
-                          float: 'right',
-                          fontWeight: 'normal',
-                          color: formData.article_seo_title.length > 60 ? '#f87171' : '#9aa0a6',
-                        }}
+                        className={`blog-char-count ${formData.article_seo_title.length > 60 ? 'is-over' : ''}`}
                       >
                         {formData.article_seo_title.length}/60
                       </span>
-                    </label>
+                    </div>
                     <input
                       id="article_seo_title_bg"
+                      className="blog-control"
                       type="text"
                       maxLength={60}
                       value={formData.article_seo_title}
@@ -1192,22 +1362,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       disabled={isLoading}
                     />
                   </div>
-                  <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label htmlFor="article_seo_description_bg">
-                      Meta description
+
+                  <div className="blog-field" style={{ marginBottom: 0 }}>
+                    <div className="blog-field-label-row">
+                      <label className="blog-field-label" htmlFor="article_seo_description_bg">
+                        Meta description
+                      </label>
                       <span
-                        className="char-count"
-                        style={{
-                          float: 'right',
-                          fontWeight: 'normal',
-                          color: formData.article_seo_description.length > 160 ? '#f87171' : '#9aa0a6',
-                        }}
+                        className={`blog-char-count ${formData.article_seo_description.length > 160 ? 'is-over' : ''}`}
                       >
                         {formData.article_seo_description.length}/160
                       </span>
-                    </label>
+                    </div>
                     <textarea
                       id="article_seo_description_bg"
+                      className="blog-control blog-control--textarea"
                       maxLength={160}
                       rows={4}
                       value={formData.article_seo_description}
