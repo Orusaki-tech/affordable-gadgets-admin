@@ -4,8 +4,8 @@ import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import { OpenAPI } from '../api/core/OpenAPI';
-import { request as __request } from '../api/core/request';
+import { ArticleImagesService } from '../api/services/ArticleImagesService';
+import { ApiError } from '../api/core/ApiError';
 import { htmlToMarkdown, markdownToHtml } from '../utils/markdownBridge';
 
 interface RichTextEditorProps {
@@ -152,20 +152,25 @@ function Toolbar({ editor }: { editor: Editor | null }) {
             const file = e.target.files?.[0];
             if (!file) return;
             try {
-              const formData = new FormData();
-              formData.append('image', file);
-              const res = await __request(OpenAPI, {
-                method: 'POST',
-                url: '/article-images/upload/',
-                formData,
-                mediaType: 'multipart/form-data',
+              // OpenAPI client expects a plain object here — not a native FormData.
+              // Passing FormData yields an empty multipart body → 400 Bad Request.
+              const data = await ArticleImagesService.articleImagesUploadCreate({
+                image: file,
               });
-              const data = res as { image_url?: string };
               if (data.image_url && !editor.isDestroyed) {
                 editor.chain().focus().setImage({ src: data.image_url }).run();
               }
             } catch (err) {
-              alert(`Failed to upload image: ${(err as Error).message}`);
+              const detail =
+                err instanceof ApiError
+                  ? typeof err.body === 'string'
+                    ? err.body
+                    : err.body?.image?.[0] ||
+                      err.body?.detail ||
+                      err.body?.non_field_errors?.[0] ||
+                      err.message
+                  : (err as Error).message;
+              alert(`Failed to upload image: ${detail}`);
             }
             e.target.value = '';
           }}
