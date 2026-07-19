@@ -122,6 +122,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [productPickerSearch, setProductPickerSearch] = useState('');
   const [productPickerResults, setProductPickerResults] = useState<ProductTemplate[]>([]);
   const [productPickerOpen, setProductPickerOpen] = useState(false);
+  /** Featured / list thumbnail for blogs (`thumbnail_image`). */
+  const [articleThumbnailFile, setArticleThumbnailFile] = useState<File | null>(null);
+  const [articleThumbnailPreview, setArticleThumbnailPreview] = useState<string | null>(null);
+  const [articleThumbnailClear, setArticleThumbnailClear] = useState(false);
+  const articleThumbnailObjectUrlRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: adminProfile, isLoading: isLoadingProfile } = useAdminProfile();
@@ -513,6 +518,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       if (cancelled) return;
 
       const primary = linked[0];
+      const existingThumb =
+        typeof article.thumbnail_image === 'string' && article.thumbnail_image.trim()
+          ? article.thumbnail_image
+          : null;
+      if (articleThumbnailObjectUrlRef.current) {
+        URL.revokeObjectURL(articleThumbnailObjectUrlRef.current);
+        articleThumbnailObjectUrlRef.current = null;
+      }
+      setArticleThumbnailFile(null);
+      setArticleThumbnailClear(false);
+      setArticleThumbnailPreview(existingThumb);
       setFormData((prev) => ({
         ...prev,
         article_id: (article.id as number) ?? null,
@@ -630,6 +646,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         prev.forEach(url => URL.revokeObjectURL(url));
         return [];
       });
+      if (articleThumbnailObjectUrlRef.current) {
+        URL.revokeObjectURL(articleThumbnailObjectUrlRef.current);
+        articleThumbnailObjectUrlRef.current = null;
+      }
     };
   }, []);
 
@@ -906,22 +926,39 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       product_id: productIds[0] ?? null,
     };
     const { request: apiRequest } = await import('../api/core/request');
-    if (formData.article_id) {
+
+    let articleId = formData.article_id;
+    if (articleId) {
       await apiRequest(OpenAPI, {
         method: 'PATCH',
         url: '/articles/{id}/',
-        path: { id: formData.article_id },
+        path: { id: articleId },
         body: payload,
         mediaType: 'application/json',
       });
-      return;
+    } else {
+      const created = (await apiRequest(OpenAPI, {
+        method: 'POST',
+        url: '/articles/',
+        body: payload,
+        mediaType: 'application/json',
+      })) as { id?: number };
+      articleId = typeof created?.id === 'number' ? created.id : null;
     }
-    await apiRequest(OpenAPI, {
-      method: 'POST',
-      url: '/articles/',
-      body: payload,
-      mediaType: 'application/json',
-    });
+
+    if (articleThumbnailFile && articleId) {
+      await ArticlesService.articlesPartialUpdate(articleId, {
+        thumbnail_image: articleThumbnailFile,
+      });
+    } else if (articleThumbnailClear && articleId) {
+      await apiRequest(OpenAPI, {
+        method: 'PATCH',
+        url: '/articles/{id}/',
+        path: { id: articleId },
+        body: { thumbnail_image: null },
+        mediaType: 'application/json',
+      });
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -1352,6 +1389,61 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   <div className="blog-panel-head">
                     <h3>Details</h3>
                     <p className="blog-panel-hint">Category, URL, and SEO metadata</p>
+                  </div>
+
+                  <div className="blog-field">
+                    <label className="blog-field-label" htmlFor="article_thumbnail_bg">
+                      Primary image
+                    </label>
+                    <p className="blog-panel-hint" style={{ margin: '0 0 0.55rem' }}>
+                      Optional. Shown on the articles grid (1:1) instead of “Photo coming soon”.
+                    </p>
+                    {articleThumbnailPreview ? (
+                      <div className="blog-thumbnail-preview">
+                        <img
+                          src={articleThumbnailPreview}
+                          alt="Primary blog image preview"
+                          className="blog-thumbnail-preview__img"
+                        />
+                        <button
+                          type="button"
+                          className="blog-thumbnail-preview__remove"
+                          disabled={isLoading}
+                          onClick={() => {
+                            if (articleThumbnailObjectUrlRef.current) {
+                              URL.revokeObjectURL(articleThumbnailObjectUrlRef.current);
+                              articleThumbnailObjectUrlRef.current = null;
+                            }
+                            setArticleThumbnailFile(null);
+                            setArticleThumbnailPreview(null);
+                            setArticleThumbnailClear(true);
+                          }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="blog-thumbnail-empty">No primary image</div>
+                    )}
+                    <input
+                      id="article_thumbnail_bg"
+                      type="file"
+                      accept="image/*"
+                      disabled={isLoading}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = '';
+                        if (!file) return;
+                        if (articleThumbnailObjectUrlRef.current) {
+                          URL.revokeObjectURL(articleThumbnailObjectUrlRef.current);
+                        }
+                        const objectUrl = URL.createObjectURL(file);
+                        articleThumbnailObjectUrlRef.current = objectUrl;
+                        setArticleThumbnailFile(file);
+                        setArticleThumbnailPreview(objectUrl);
+                        setArticleThumbnailClear(false);
+                      }}
+                    />
                   </div>
 
                   <div className="blog-field">
