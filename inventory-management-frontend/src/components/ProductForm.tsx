@@ -1401,7 +1401,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       <div className="blog-thumbnail-preview">
                         <img
                           src={articleThumbnailPreview}
-                          alt="Primary blog image preview"
+                          alt="Primary blog thumbnail preview"
                           className="blog-thumbnail-preview__img"
                         />
                         <button
