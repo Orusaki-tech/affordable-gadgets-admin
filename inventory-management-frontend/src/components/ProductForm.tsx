@@ -14,6 +14,7 @@ import { useAdminProfile } from '../hooks/useAdminProfile';
 import { useBrandsList } from '../hooks/useBrandsList';
 import { queryKeys } from '../hooks/queryKeys';
 import { OpenAPI } from '../api/core/OpenAPI';
+import { createProduct, patchProduct } from '../api/productSave';
 import { RichTextEditor } from './RichTextEditor';
 import ProductVariantEditor from './ProductVariantEditor';
 import { buildSeoProductSlug } from '../utils/seoSlug';
@@ -654,8 +655,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   }, []);
 
   const createMutation = useMutation({
-    mutationFn: (data: any) =>
-      ProductsService.productsCreate(data),
+    mutationFn: (data: any) => createProduct(data),
     onSuccess: async (createdProduct) => {
       // Invalidate both query keys to ensure UnitForm sees the new product
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -751,7 +751,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const updateMutation = useMutation({
     mutationFn: (data: any) => {
       if (!product?.id) throw new Error('Product ID is required');
-      return ProductsService.productsPartialUpdate(product.id, data);
+      return patchProduct(product.id, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.productsAll() });
@@ -1048,8 +1048,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       keywords: formData.keywords || undefined,
       // Content Fields
       long_description: formData.long_description || undefined,
-      // multipart/form-data cannot send nested arrays cleanly — stringify JSONField values
-      product_highlights: highlights.length > 0 ? JSON.stringify(highlights) : undefined,
+      product_highlights: highlights.length > 0 ? highlights : undefined,
       is_published: formData.is_published,
       // Video Fields
       product_video_url: formData.product_video_url || undefined,
