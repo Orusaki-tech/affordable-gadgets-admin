@@ -10,7 +10,7 @@ import type { ProductRequest } from './models/ProductRequest';
 import { ProductsService } from './services/ProductsService';
 
 function payloadHasFiles(data: Record<string, unknown>): boolean {
-  return Object.values(data).some((value) => isBlob(value));
+  return Object.values(data).some((value) => value != null && isBlob(value));
 }
 
 export function patchProduct(

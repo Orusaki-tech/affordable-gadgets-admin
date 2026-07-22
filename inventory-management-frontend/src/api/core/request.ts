@@ -27,6 +27,7 @@ export const isStringWithValue = (value: any): value is string => {
 
 export const isBlob = (value: any): value is Blob => {
     return (
+        value !== null &&
         typeof value === 'object' &&
         typeof value.type === 'string' &&
         typeof value.stream === 'function' &&
