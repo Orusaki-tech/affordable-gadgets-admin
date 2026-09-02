@@ -308,6 +308,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         article_seo_description: '',
         article_body: '',
         article_is_published: false,
+        article_tag_ids: [] as number[],
       });
       
       // Auto-populate brand_ids if product has no brands and admin has brands
@@ -387,6 +388,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         article_seo_description: '',
         article_body: '',
         article_is_published: false,
+        article_tag_ids: [] as number[],
       });
       
       // For new products, auto-populate brand_ids from admin profile
