@@ -112,6 +112,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     article_seo_description: '',
     article_body: '',
     article_is_published: false,
+    article_tag_ids: [] as number[],
   });
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const selectedImagesRef = useRef<File[]>([]);
@@ -541,6 +542,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         article_seo_description: String(article.seo_description || ''),
         article_body: String(article.body || ''),
         article_is_published: Boolean(article.is_published),
+        article_tag_ids: Array.isArray((article as any).tags) ? (article as any).tags.map((t: any) => t.id).filter((id: any): id is number => typeof id === 'number') : ((article as any).tag_ids || []),
         article_products: linked,
         article_product_id: primary?.id ?? null,
         article_product_name: primary?.product_name || '',
@@ -924,6 +926,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       ...buildArticleNested(),
       product_ids: productIds,
       product_id: productIds[0] ?? null,
+      tag_ids: (formData as any).article_tag_ids || [],
     };
     const { request: apiRequest } = await import('../api/core/request');
 
@@ -1462,6 +1465,34 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  <div className="blog-field">
+                    <label className="blog-field-label">Tags</label>
+                    <p className="blog-panel-hint" style={{ margin: '0 0 0.35rem' }}>Select tags like featured to control featured product blogs</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      {tagsData?.map((tag: any) => (
+                        <label key={tag.id} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={((formData as any).article_tag_ids || []).includes(tag.id)}
+                            onChange={(e) => {
+                              const ids = ((formData as any).article_tag_ids || []) as number[];
+                              if (e.target.checked) {
+                                setFormData((prev: any) => ({ ...prev, article_tag_ids: [...ids, tag.id] }));
+                              } else {
+                                setFormData((prev: any) => ({ ...prev, article_tag_ids: ids.filter((id: number) => id !== tag.id) }));
+                              }
+                            }}
+                            disabled={isLoading}
+                          />
+                          <span>{tag.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {(!tagsData || tagsData.length === 0) && (
+                      <small style={{ color: '#666', fontSize: '0.875rem' }}>No tags. Create in Tags page.</small>
+                    )}
                   </div>
 
                   <div className="blog-field">
