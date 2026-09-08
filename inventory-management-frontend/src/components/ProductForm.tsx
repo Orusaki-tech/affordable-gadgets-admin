@@ -93,6 +93,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     // Video Fields
     product_video_url: '',
     product_video_file: null as File | null,
+    videos: [] as Array<{ url: string; title: string }>,
     // Tags
     tag_ids: [] as number[],
     // Company Brand Assignment (different from product manufacturer brand)
@@ -267,6 +268,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         // Video Fields
         product_video_url: (product as any).product_video_url || '',
         product_video_file: null, // File upload handled separately
+        videos: (() => {
+          const rows = Array.isArray((product as any).videos) ? (product as any).videos : [];
+          const mapped = rows
+            .map((row: any) => ({
+              url: String(row?.url || '').trim(),
+              title: String(row?.title || '').trim(),
+            }))
+            .filter((row: { url: string }) => Boolean(row.url));
+          if (mapped.length > 0) return mapped;
+          const legacy = String((product as any).product_video_url || '').trim();
+          return legacy ? [{ url: legacy, title: '' }] : [];
+        })(),
         // Tags
         tag_ids: product.tags?.map((tag: Tag) => tag.id || 0).filter((id): id is number => id !== 0) || [],
         // Company Brand Assignment
@@ -370,6 +383,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         // Video Fields
         product_video_url: '',
         product_video_file: null,
+        videos: [],
         // Tags
         tag_ids: [],
         // Company Brand Assignment
@@ -911,6 +925,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }));
   };
 
+  const handleAddVideo = () => {
+    setFormData((prev) => ({
+      ...prev,
+      videos: [...prev.videos, { url: '', title: '' }],
+    }));
+  };
+
+  const handleRemoveVideo = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      videos: prev.videos.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleVideoChange = (index: number, field: 'url' | 'title', value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      videos: prev.videos.map((video, i) => (i === index ? { ...video, [field]: value } : video)),
+    }));
+  };
+
   const buildArticleNested = () => ({
     slug: formData.article_slug.trim() || undefined,
     category: formData.article_category,
@@ -1008,8 +1043,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         long_description: formData.long_description || undefined,
         product_highlights: formData.product_highlights.filter(h => h.trim()).length > 0 ? formData.product_highlights.filter(h => h.trim()) : undefined,
         is_published: formData.is_published,
-        // Video Fields
-        product_video_url: formData.product_video_url || undefined,
+        // Video Fields — always send videos so clearing links is possible
+        videos: formData.videos
+          .map((video, index) => ({
+            url: video.url.trim(),
+            title: video.title.trim(),
+            display_order: index,
+          }))
+          .filter((video) => Boolean(video.url)),
+        product_video_url:
+          formData.videos.map((video) => video.url.trim()).find(Boolean) ||
+          '',
         // Tags — always send the array so PATCH can clear tags (omitting the field leaves them unchanged)
         tag_ids: formData.tag_ids,
         article: buildArticleNested(),
@@ -1055,8 +1099,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       long_description: formData.long_description || undefined,
       product_highlights: highlights.length > 0 ? highlights : undefined,
       is_published: formData.is_published,
-      // Video Fields
-      product_video_url: formData.product_video_url || undefined,
+      // Video Fields — always send videos so clearing links is possible
+      videos: formData.videos
+        .map((video, index) => ({
+          url: video.url.trim(),
+          title: video.title.trim(),
+          display_order: index,
+        }))
+        .filter((video) => Boolean(video.url)),
+      product_video_url:
+        formData.videos.map((video) => video.url.trim()).find(Boolean) ||
+        '',
       // Company Brand Assignment
       brand_ids: formData.brand_ids.length > 0 ? formData.brand_ids : undefined,
       is_global: formData.is_global,
@@ -2567,21 +2620,71 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           {!isInventoryManager && (
           <>
           <div className="form-section-divider">
-            <h3>Product Video</h3>
+            <h3>Product Videos</h3>
           </div>
 
           <div className="form-group">
-            <label htmlFor="product_video_url">Video URL</label>
-            <input
-              id="product_video_url"
-              type="url"
-              value={formData.product_video_url}
-              onChange={(e) => setFormData({ ...formData, product_video_url: e.target.value })}
+            <label>YouTube / Vimeo links</label>
+            {formData.videos.map((video, index) => (
+              <div
+                key={`video-${index}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 180px auto',
+                  gap: '0.5rem',
+                  marginBottom: '0.5rem',
+                  alignItems: 'center',
+                }}
+              >
+                <input
+                  type="url"
+                  value={video.url}
+                  onChange={(e) => handleVideoChange(index, 'url', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="https://youtube.com/watch?v=... or https://youtu.be/..."
+                />
+                <input
+                  type="text"
+                  value={video.title}
+                  onChange={(e) => handleVideoChange(index, 'title', e.target.value)}
+                  disabled={isLoading}
+                  placeholder="Optional title"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveVideo(index)}
+                  disabled={isLoading}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: '#fee2e2',
+                    color: '#991b1b',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={handleAddVideo}
               disabled={isLoading}
-              placeholder="https://youtube.com/watch?v=... or https://drive.google.com/..."
-            />
+              style={{
+                marginTop: '0.5rem',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              + Add Video Link
+            </button>
             <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
-              YouTube watch, Shorts, youtu.be, or Vimeo links play in the storefront. For the homepage
+              Add one or more YouTube watch, Shorts, youtu.be, or Vimeo links. For the homepage
               product-video carousel, also add the <strong>Video</strong> tag to this product.
             </small>
           </div>
@@ -2599,7 +2702,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               disabled={isLoading}
             />
             <small style={{ color: '#666', fontSize: '0.875rem', marginTop: '0.25rem', display: 'block' }}>
-              Upload a product video file directly (max 100MB).
+              Optional uploaded file (max 100MB). External links above are preferred for multiple videos.
             </small>
           </div>
           </>
