@@ -1,4 +1,4 @@
-name: Deploy admin production (manual fallback)
+name: Deploy admin production (DISABLED - Vercel handles shop deploys)
 
 on:
   workflow_dispatch:
@@ -15,20 +15,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
-          service_account: ${{ secrets.GCP_DEPLOY_SA }}
-
-      - name: Deploy admin MIG (recreate + pull images)
-        env:
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          GCP_REGION: us-east1
-          MIG_NAME: ${{ secrets.PRODUCTION_ADMIN_MIG_NAME }}
-          SERVICE: admin
-          DEPLOY_CONFIG_BUCKET: ${{ secrets.DEPLOY_CONFIG_BUCKET }}
-          ENV_NAME: production
-          IMAGE_TAG: ${{ inputs.image_tag }}
-        run: bash scripts/mig-recreate-deploy.sh
+      - name: Skip deployment
+        run: |
+          echo "This workflow is disabled. The shop is deployed via Vercel on push to main."
+          echo "No action needed."
