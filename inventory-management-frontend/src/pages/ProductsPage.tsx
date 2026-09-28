@@ -835,6 +835,15 @@ export const ProductsPage: React.FC = () => {
       <div className="page-header">
         <h1>Products</h1>
         <div className="page-header-actions">
+          <a
+            href={`${(process.env.REACT_APP_STUDIO_URL || 'https://www.affordable-gadgetske.com/studio').replace(/\/+$/, '')}/products`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-secondary"
+            style={{ marginRight: '0.5rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+          >
+            Visual Studio
+          </a>
           {isMarketingManager && (
             <>
               {selectedProductsForPromotion.size === 0 ? (

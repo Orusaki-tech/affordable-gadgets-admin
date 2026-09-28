@@ -9,6 +9,12 @@ import { NotificationBell } from './NotificationBell';
 import { ThemeToggleButton } from './ThemeSwitcher';
 import '../styles/components/AdminLayout/base.css';
 
+const STUDIO_URL =
+  (process.env.REACT_APP_STUDIO_URL || 'https://www.affordable-gadgetske.com/studio').replace(
+    /\/+$/,
+    ''
+  );
+
 // Extend AdminProfileResponse to include brands and is_global_admin
 // Note: brands in Admin is string, but we parse it as Brand[] when needed
 interface AdminProfileResponse extends Omit<BaseAdminProfileResponse, 'brands'> {
@@ -262,6 +268,15 @@ export const AdminLayout: React.FC = () => {
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
               </Link>
+              <a
+                href={`${STUDIO_URL}/products`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={isActive('/products')}
+                onClick={() => setSidebarOpen(false)}
+              >
+                Visual Studio
+              </a>
               <Link to="/bundles" className={isActive('/bundles')} onClick={() => setSidebarOpen(false)}>
                 <span>Bundles</span>
                 {isBundleReadOnly && <span className="nav-lock">🔒</span>}
@@ -322,6 +337,14 @@ export const AdminLayout: React.FC = () => {
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
               </Link>
+              <a
+                href={`${STUDIO_URL}/products`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setSidebarOpen(false)}
+              >
+                Visual Studio
+              </a>
               <Link to="/product-guides" className={isActive('/product-guides')} onClick={() => setSidebarOpen(false)}>
                 Blogs
               </Link>
@@ -413,6 +436,14 @@ export const AdminLayout: React.FC = () => {
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
               </Link>
+              <a
+                href={`${STUDIO_URL}/products`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setSidebarOpen(false)}
+              >
+                Visual Studio
+              </a>
               <Link to="/product-guides" className={isActive('/product-guides')} onClick={() => setSidebarOpen(false)}>
                 Blogs
               </Link>
@@ -464,6 +495,14 @@ export const AdminLayout: React.FC = () => {
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
               </Link>
+              <a
+                href={`${STUDIO_URL}/products`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setSidebarOpen(false)}
+              >
+                Visual Studio
+              </a>
               
               {/* Other */}
               <div className="nav-section-header">Other</div>
@@ -558,6 +597,14 @@ export const AdminLayout: React.FC = () => {
               <Link to="/products" className={isActive('/products')} onClick={() => setSidebarOpen(false)}>
                 Products
               </Link>
+              <a
+                href={`${STUDIO_URL}/products`}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setSidebarOpen(false)}
+              >
+                Visual Studio
+              </a>
               <Link to="/product-guides" className={isActive('/product-guides')} onClick={() => setSidebarOpen(false)}>
                 Blogs
               </Link>
